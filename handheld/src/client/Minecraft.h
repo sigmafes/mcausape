@@ -1,0 +1,307 @@
+#ifndef NET_MINECRAFT_CLIENT__Minecraft_H__
+#define NET_MINECRAFT_CLIENT__Minecraft_H__
+
+#include "Options.h"
+#ifndef STANDALONE_SERVER
+#include "MouseHandler.h"
+#endif
+#include "Timer.h"
+#include "player/input/ITurnInput.h"
+#ifndef STANDALONE_SERVER
+#include "gui/Gui.h"
+#include "gui/screens/ScreenChooser.h"
+#endif
+//#include "../network/RakNetInstance.h"
+#include "../world/phys/HitResult.h"
+
+class User;
+class Level;
+class LocalPlayer;
+class IInputHolder;
+class Mob;
+class Player;
+class LevelRenderer;
+class GameRenderer;
+class ParticleEngine;
+class Entity;
+class ICreator;
+class GameMode;
+class Textures;
+class CThread;
+class SoundEngine;
+class Screen;
+class Font;
+class LevelStorageSource;
+class BuildActionIntention;
+class PerfRenderer;
+class LevelSettings;
+class IRakNetInstance;
+class NetEventCallback;
+class CommandServer;
+struct PingedCompatibleServer;
+//class ExternalFileLevelStorageSource;
+
+
+#include "../App.h"
+#include "PixelCalc.h"
+class AppPlatform;
+class AppPlatform_android;
+
+class Minecraft: public App
+{
+protected:
+	Minecraft();
+public:
+	virtual ~Minecraft();
+
+	void init();
+	void setSize(int width, int height);
+	void reloadOptions();
+
+	bool supportNonTouchScreen();
+	bool useTouchscreen();
+	void grabMouse();
+	void releaseMouse();
+	void updateMusic();
+
+	void handleBuildAction(BuildActionIntention*);
+
+	void toggleDimension(){}
+	bool isCreativeMode();
+	// The world was made with Debug Mode on: the developer keys work in it.
+	bool isDebugWorld();
+	// The world was made with Allow Cheats on: chat commands will check this.
+	bool areCheatsAllowed();
+	void setIsCreativeMode(bool isCreative);
+	void setScreen(Screen*);
+
+	virtual void selectLevel(const std::string& levelId, const std::string& levelName, const LevelSettings& settings);
+	virtual void setLevel(Level* level, const std::string& message = "", LocalPlayer* forceInsertPlayer = NULL);
+
+	void generateLevel( const std::string& message, Level* level );
+	LevelStorageSource* getLevelSource();
+
+	bool isLookingForMultiplayer;
+	void locateMultiplayer();
+	void cancelLocateMultiplayer();
+	bool joinMultiplayer(const PingedCompatibleServer& server);
+	void hostMultiplayer(int port=19132);
+	Player* respawnPlayer(int playerId);
+	void respawnPlayer();
+	void resetPlayer(Player* player);
+	void doActuallyRespawnPlayer();
+
+	void update();
+
+	void tick(int nTick, int maxTick);
+	void tickInput();
+
+	bool isOnlineClient();
+	bool isOnline();
+	void pauseGame(bool isBackPaused);
+	void gameLostFocus();
+
+	void prepareLevel(const std::string& message);
+
+	/** prepareLevel, in three parts, so the web can run it across frames.
+
+	    Every other platform generates on a thread while the main loop keeps
+	    drawing ProgressScreen, which is where the loading bar comes from. There
+	    are no threads in a browser, so prepareLevel ran inline and blocked the
+	    one thread the page has: nothing painted, and a world load looked like
+	    the menu freezing.
+
+	    Nothing here is a new state for the game. isGeneratingLevel is already a
+	    supported condition with the level half-built and the main loop running
+	    -- it is exactly what the threaded platforms sit in -- so the web now
+	    drives that same state cooperatively instead of from a thread.
+
+	    prepareLevel() itself still calls all three back to back, so every other
+	    platform runs the identical sequence it always did. */
+	void prepareLevelBegin();
+	/// Runs at most maxIterations of the chunk pass, or all of them when
+	/// maxIterations <= 0. Returns true once the pass is finished.
+	bool prepareLevelChunkStep(int maxIterations);
+	/// The two blocking tails, split so the web can paint the stage name that
+	/// goes with each before it starts. progressMessages has had "Saving chunks"
+	/// and "Preparing" in it since 2013; on the web neither was ever on screen,
+	/// because both ran inside one frame after the last one the bar drew.
+	void prepareLevelSave();
+	void prepareLevelPrepare();
+	void prepareLevelFinish();
+	// The Nether of a new world, built while it is created (see prepareNetherBegin).
+	void prepareNetherBegin();
+	bool prepareNetherStep(int maxMs);
+	void prepareNetherFinish();
+
+	void leaveGame(bool renameLevel = false);
+
+	// Swaps the Overworld and the Nether around the local player. Called from
+	// tick(), never mid-entity-update. Single-player only: see the guard in it.
+	// respawn: the player died in the Nether and comes back at the Overworld's
+	// spawn (or his bed), with no arrival portal.
+	void changeDimension(bool toNether, bool respawn = false);
+
+	int getProgressStatusId();
+	const char* getProgressMessage();
+
+	ICreator* getCreator();
+
+	// void onGraphicsLost() {}
+	void onGraphicsReset();
+
+	bool isLevelGenerated();
+	int getLicenseId();
+
+    void audioEngineOn();
+    void audioEngineOff();
+    
+	bool isPowerVR() { return _powerVr; }
+	bool isKindleFire(int kindleVersion);
+	bool transformResolution(int* w, int* h);
+	void optionUpdated(const Options::Option* option, bool value);
+	void optionUpdated(const Options::Option* option, float value);
+	void optionUpdated(const Options::Option* option, int value);
+#ifdef __APPLE__
+    bool _isSuperFast;
+    bool isSuperFast() { return _isSuperFast; }
+#endif
+
+protected:
+	void _levelGenerated();
+
+private:
+	static void* prepareLevel_tspawn(void *p_param);
+
+	// Ticks left before another portal trip is honoured, so the player who
+	// arrives standing in the arrival portal does not bounce straight back.
+	int _portalCooldown;
+
+	// The player who went through a portal, held here while the other level is
+	// generated. A new level has no player until _levelGenerated, and putting him
+	// in earlier lets him fall through chunks that do not exist yet.
+	LocalPlayer* _travelPlayer;
+
+	// A portal trip is started one step before it is carried out: the loading
+	// screen goes up first, and changeDimension runs two frames later, so the
+	// work that blocks the page happens behind a screen that is already drawn.
+	// 1 = to the Nether, 2 = back; 0 = none pending.
+	int _pendingDim;
+	int _pendingDimFrames;
+
+	void handleMouseClick(int button);
+	void handleMouseDown(int button, bool down);
+
+	void _reloadInput();
+public:
+	int width;
+	int height;
+
+	// Vars that the platform is allowed to use in the future
+	int commandPort;
+	int reserved_d1, reserved_d2;
+	float reserved_f1, reserved_f2;
+
+	Options options;
+
+	static bool useAmbientOcclusion;
+	//static bool threadInterrupt;
+
+	volatile bool pause;
+
+	LevelRenderer*  levelRenderer;
+	GameRenderer*   gameRenderer;
+	ParticleEngine* particleEngine;
+	SoundEngine*    soundEngine;
+
+	GameMode* gameMode;
+#ifndef STANDALONE_SERVER
+	Textures* textures;
+	ScreenChooser screenChooser;
+	Font* font;
+#endif
+	IRakNetInstance*  raknetInstance;
+	NetEventCallback* netCallback;
+
+	int lastTime;
+	int lastTickTime;
+	float ticksSinceLastUpdate;
+
+	User*  user;
+	Level* level;
+
+	LocalPlayer*	player;
+	IInputHolder*	inputHolder;
+	Mob*			cameraTargetPlayer;
+#ifndef STANDALONE_SERVER
+	Gui gui;
+#endif
+	CThread* generateLevelThread;
+	Screen* screen;
+	static int customDebugId;
+
+	static const int CDI_NONE = 0;
+	static const int CDI_GRAPHICS = 1;
+#ifndef STANDALONE_SERVER
+	MouseHandler mouseHandler;
+#endif
+	bool mouseGrabbed;
+
+	// What updateMusic() last told the page, so it only speaks on a change.
+	// The volume starts at an impossible value to force that first push.
+	bool _musicOn;
+	float _musicVolume;
+
+    PixelCalc pixelCalc;
+    PixelCalc pixelCalcUi;
+
+	HitResult hitResult;
+	volatile int progressStagePercentage;
+
+	// This field is initialized in main()
+	// It sets the base path to where worlds can be written (sdcard on android)
+	std::string externalStoragePath;
+	std::string externalCacheStoragePath;
+protected:
+	Timer timer;
+    // @note @attn @warn: this is dangerous as fuck!
+	volatile bool isGeneratingLevel;
+	bool _hasSignaledGeneratingLevelFinished;
+
+	/// How far the chunk pass has got, so it can be resumed next frame.
+	int _prepChunkIndex;
+	/// Set while the web is driving prepareLevel a slice at a time.
+	bool _prepInProgress;
+	/// 0 chunk pass, 1 save, 2 prepare -- one frame drawn between each.
+	int _prepPhase;
+	// Phase 3 (between save and prepare): the Nether, only for a world being created.
+	bool _prepNether;
+	Level* _netherPrep;
+	int _netherPrepIndex;
+
+	LevelStorageSource* storageSource;
+	bool _running;
+	bool _powerVr;
+
+private:
+	volatile int progressStageStatusId;
+	static const char* progressMessages[];
+
+	int missTime;
+	int ticks;
+	bool screenMutex;
+	bool hasScheduledScreen;
+	Screen* scheduledScreen;
+
+	int _licenseId;
+	bool _supportsNonTouchscreen;
+
+	bool _isCreativeMode;
+	//int _respawnPlayerTicks;
+	Player* _pendingRemovePlayer; // @attn @todo @fix: remove this shait and fix the respawn behaviour
+
+	PerfRenderer* _perfRenderer;
+	CommandServer* _commandServer;
+};
+
+#endif /*NET_MINECRAFT_CLIENT__Minecraft_H__*/

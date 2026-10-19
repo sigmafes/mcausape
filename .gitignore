@@ -1,0 +1,7 @@
+.DS_Store
+build/
+cmake-build-*/
+*.o
+*.a.local
+handheld/project/web/build/
+references/
