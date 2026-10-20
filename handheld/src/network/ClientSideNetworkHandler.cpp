@@ -102,19 +102,16 @@ void ClientSideNetworkHandler::onUnableToConnect()
 void ClientSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 {
 	LOGI("onDisconnect\n");
-	if (level)
-	{
-		level->isClientSide = false;
-		for (int i = (int)level->players.size()-1; i >= 0; --i ) {
-			Player* p = level->players[i];
-			if (p != minecraft->player) {
-				p->reallyRemoveIfPlayer = true;
-				level->removeEntity(p);
-			}
-		}
-	}
+	// A client's only connection is to the host, so this is the host going
+	// away: leaving its world, closing its tab, or timing out. 0.6.1 turned
+	// the joined world into a local one here and let the player carry on
+	// alone in a copy nobody else could reach; now the visit ends.
+	//
+	// The screen's button is what calls leaveGame(), not this: runEvents() is
+	// still walking packets through this handler, and leaveGame() deletes it.
+	// Staying client-side matters too -- leaveGame() saves a level that is not.
 #ifndef STANDALONE_SERVER
-	minecraft->gui.addMessage("Disconnected from server");
+	minecraft->setScreen(new DisconnectionScreen("The host has left the world"));
 #endif
 }
 

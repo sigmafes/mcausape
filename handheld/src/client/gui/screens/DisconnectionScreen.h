@@ -5,6 +5,7 @@
 #include "../Font.h"
 #include "../components/Button.h"
 #include "../../Minecraft.h"
+#include "../../../platform/input/Keyboard.h"
 #include <string>
 
 class DisconnectionScreen: public Screen
@@ -48,6 +49,16 @@ public:
 		}
 	}
 	bool isInGameScreen() { return false; }
+
+	// Not Screen's defaults, which close this screen back into the world --
+	// and the world behind it is the one whose host just left.
+	bool handleBackEvent(bool isDown) {
+		if (!isDown) minecraft->leaveGame();
+		return true;
+	}
+	void keyPressed(int eventKey) {
+		if (eventKey == Keyboard::KEY_ESCAPE) minecraft->leaveGame();
+	}
 
 private:
 	std::string _msg;
