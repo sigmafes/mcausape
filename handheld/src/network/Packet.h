@@ -85,6 +85,9 @@ enum MinecraftPacketIds
 	PACKET_SIGNUPDATE,
 
 	PACKET_ADVENTURESETTINGS,
+
+	// Custom skins, see PlayerSkinPacket. Not in the 0.6.1 protocol.
+	PACKET_PLAYERSKIN,
 /*
 	PACKET_PRELOGIN,
 	PACKET_CHAT,

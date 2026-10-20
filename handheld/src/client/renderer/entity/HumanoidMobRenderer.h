@@ -4,8 +4,7 @@
 //package net.minecraft.client.renderer.entity;
 
 #include "MobRenderer.h"
-
-class HumanoidModel;
+#include "../../model/HumanoidModel.h"
 class Mob;
 
 class HumanoidMobRenderer: public MobRenderer
@@ -18,6 +17,11 @@ public:
 	void render(Entity* mob_, float x, float y, float z, float rot, float a);
 protected:
     void additionalRendering(Mob* mob, float a);
+
+	// Swaps the model drawn (and posed, and held items hung off) as one; see
+	// PlayerRenderer, which draws custom skins with a different model.
+	void setHumanoidModel(HumanoidModel* model) { humanoidModel = model; setModel(model); }
+	HumanoidModel* getHumanoidModel() { return humanoidModel; }
 
 private:
 	HumanoidModel* humanoidModel;

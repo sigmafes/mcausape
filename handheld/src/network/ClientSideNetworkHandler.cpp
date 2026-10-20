@@ -31,6 +31,7 @@
 #include "../client/player/RemotePlayer.h"
 #include "../world/level/tile/LevelEvent.h"
 #include "../world/entity/item/FallingTile.h"
+#include "../client/skin/PlayerSkins.h"
 
 static MultiPlayerLevel* mpcast(Level* l) { return (MultiPlayerLevel*) l; }
 
@@ -47,6 +48,8 @@ ClientSideNetworkHandler::ClientSideNetworkHandler(Minecraft* minecraft, IRakNet
 
 ClientSideNetworkHandler::~ClientSideNetworkHandler()
 {
+	// Everyone else's skins came from this host and go with it.
+	PlayerSkins::releaseAllBut(PlayerSkins::localSkin);
 }
 
 void ClientSideNetworkHandler::requestNextChunk()
@@ -301,6 +304,8 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemovePl
 	if (!level || source == minecraft->player->owner) return;
 
 	if (Player* player = findPlayer(level, packet->entityId, &packet->owner)) {
+		PlayerSkins::release(player->skinId);
+		player->skinId = 0;
 		player->reallyRemoveIfPlayer = true;
 		level->removeEntity(player);
 	}
@@ -328,6 +333,10 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveEn
 	LOGI("RemoveEntityPacket %p %p, %d\n", entity, minecraft->player, entity?(int)(entity->isPlayer()): -1);
 	if (!entity) return;
 
+	if (entity->isPlayer() && entity != minecraft->player) {
+		PlayerSkins::release(((Player*) entity)->skinId);
+		((Player*) entity)->skinId = 0;
+	}
 	level->removeEntity(entity);
 }
 
@@ -652,6 +661,13 @@ void ClientSideNetworkHandler::levelGenerated(Level* level)
 	ReadyPacket packet(ReadyPacket::READY_CLIENTGENERATION);
 	raknetInstance->send(packet);
 
+	// Our skin, for the host to keep on our player and pass on. Sent here, the
+	// first moment we know our entity id is the one the host gave us.
+	if (const PlayerSkins::Skin* skin = PlayerSkins::get(PlayerSkins::localSkin)) {
+		PlayerSkinPacket skinPacket(minecraft->player->entityId, skin->w, skin->h, &skin->rgba[0]);
+		raknetInstance->send(skinPacket);
+	}
+
     arrangeRequestChunkOrder();
 
 	// Seeded with several in flight rather than one: see
@@ -939,4 +955,19 @@ void ClientSideNetworkHandler::clearChunksLoaded()
 		chunksLoaded[i] = false;
 	}
 	numChunksLoaded = 0;
+}
+
+void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet)
+{
+	if (!level) return;
+	// The host sends each player's skin after that player's AddPlayerPacket, on
+	// the same ordered channel, so the player is always here by now.
+	Entity* entity = level->getEntity(packet->entityId);
+	if (!entity || !entity->isPlayer() || entity == minecraft->player)
+		return;
+	Player* player = (Player*) entity;
+	PlayerSkins::release(player->skinId);
+	player->skinId = packet->hasSkin()
+		? PlayerSkins::create(packet->w, packet->h, &packet->rgba[0])
+		: 0;
 }

@@ -167,6 +167,9 @@ public:
     float oBob, bob;
 
     std::string name;
+	// A PlayerSkins id; 0 draws mob/char.png as always. Set for remote players
+	// from PlayerSkinPacket -- the local player's comes from its profile.
+	int skinId;
     int dimension;
 
 	Abilities abilities;

@@ -74,6 +74,8 @@
 #ifndef STANDALONE_SERVER
 #include "gui/screens/PrerenderTilesScreen.h"
 #include "renderer/Textures.h"
+#include "skin/PlayerSkins.h"
+#include "../network/packet/PlayerSkinPacket.h"
 #include "gui/screens/DeathScreen.h"
 #endif
 
@@ -1705,6 +1707,21 @@ void Minecraft::reloadOptions() {
     setSize(width, height);
 }
 
+void Minecraft::setLocalSkin(int w, int h, const unsigned char* rgba) {
+	const int id = rgba ? PlayerSkins::create(w, h, rgba) : 0;
+	if (rgba && !id)
+		return;	// not a skin; keep the one we have
+	PlayerSkins::release(PlayerSkins::localSkin);
+	PlayerSkins::localSkin = id;
+
+	if (netCallback && raknetInstance && level && player) {
+		const PlayerSkins::Skin* skin = PlayerSkins::get(id);
+		PlayerSkinPacket packet(player->entityId, skin ? skin->w : 0, skin ? skin->h : 0,
+		                        skin ? &skin->rgba[0] : 0);
+		raknetInstance->send(packet);
+	}
+}
+
 void Minecraft::_reloadInput() {
 #ifndef STANDALONE_SERVER
 	delete inputHolder;
@@ -1921,6 +1938,7 @@ void Minecraft::onGraphicsReset()
 {
 #ifndef STANDALONE_SERVER
 	textures->clear();
+	PlayerSkins::onGraphicsReset();
 	
 	font->onGraphicsReset();
 	gui.onGraphicsReset();

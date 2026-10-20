@@ -43,6 +43,12 @@ public:
 protected:
 	void setArmor(Model* armor);
 	Model* getArmor();
+
+	/// Binds the texture the mob is drawn with. PlayerRenderer overrides it
+	/// for custom skins, which are not files Textures can load by name.
+	virtual void bindMobTexture(Mob* mob);
+	void setModel(Model* model) { this->model = model; }
+	Model* getModel() { return model; }
 private:
 	Model* model;
 	Model* armor;

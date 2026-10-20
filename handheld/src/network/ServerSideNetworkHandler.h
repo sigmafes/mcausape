@@ -57,6 +57,7 @@ public:
 	virtual void handle(const RakNet::RakNetGUID& source, ContainerSetSlotPacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, ContainerClosePacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, SignUpdatePacket* packet);
+	virtual void handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet);
 
 	bool allowsIncomingConnections() { return _allowIncoming; }
 	void allowIncomingConnections(bool doAllow);
@@ -68,6 +69,7 @@ private:
 	void displayGameMessage(const std::string& message);
 
 	Player* getPlayer(const RakNet::RakNetGUID& source);
+	void sendSkin(Player* player, const RakNet::RakNetGUID& target, bool broadcast);
 private:
 
 	Minecraft*					minecraft;

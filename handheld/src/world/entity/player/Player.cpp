@@ -61,6 +61,7 @@ Player::Player(Level* level, bool isCreative)
     flameTime = 20;
 
     textureName = "mob/char.png";
+	skinId = 0;
 	entityData.define(DATA_PLAYER_FLAGS_ID, (PlayerFlagIDType) 0);
 	entityData.define(DATA_BED_POSITION_ID, Pos());
 	//entityData.define(DATA_PLAYER_RUNNING_ID, (SynchedEntityData::TypeChar) 0);

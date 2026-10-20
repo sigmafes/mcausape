@@ -167,6 +167,9 @@ Packet* MinecraftPackets::createPacket(int id)
     case PACKET_ADVENTURESETTINGS:
         packet = new AdventureSettingsPacket();
         break;
+	case PACKET_PLAYERSKIN:
+		packet = new PlayerSkinPacket();
+		break;
 	}
 
     return packet;

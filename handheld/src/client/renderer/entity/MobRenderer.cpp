@@ -67,7 +67,7 @@ void MobRenderer::render(Entity* e, float x, float y, float z, float rot, float 
 
 	if (ws > 1) ws = 1;
 
-	bindTexture(mob->getTexture());
+	bindMobTexture(mob);
 	//glEnable2(GL_ALPHA_TEST);
 
 	model->prepareMobModel(mob, wp, ws, a);
@@ -137,6 +137,10 @@ void MobRenderer::render(Entity* e, float x, float y, float z, float rot, float 
 	glPopMatrix2();
 
 	renderName(mob, x, y, z);
+}
+
+void MobRenderer::bindMobTexture(Mob* mob) {
+	bindTexture(mob->getTexture());
 }
 
 void MobRenderer::setupPosition(Entity* mob, float x, float y, float z) {

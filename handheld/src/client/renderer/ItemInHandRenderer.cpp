@@ -21,6 +21,7 @@
 #include "../../world/item/BowItem.h"
 #include "../../world/level/tile/LeafTile.h"
 #include "entity/HumanoidMobRenderer.h"
+#include "entity/PlayerRenderer.h"
 
 //static StopwatchHandler handler;
 
@@ -358,7 +359,6 @@ void ItemInHandRenderer::render( float a )
 		glRotatef2(-swing3 * 20, 0, 0, 1);
 		// glRotatef2(-swing2 * 80, 1, 0, 0);
 
-		mc->textures->loadAndBindTexture("mob/char.png");
 		glTranslatef2(-1.0f, +3.6f, +3.5f);
 		glRotatef2(120, 0, 0, 1);
 		glRotatef2(180 + 20, 1, 0, 0);
@@ -367,10 +367,11 @@ void ItemInHandRenderer::render( float a )
 		glTranslatef2(5.6f, 0, 0);
 
 		EntityRenderer* er = EntityRenderDispatcher::getInstance()->getRenderer(mc->player);
-		HumanoidMobRenderer* playerRenderer = (HumanoidMobRenderer*) er;
+		PlayerRenderer* playerRenderer = (PlayerRenderer*) er;
 		float ss = 1;
 		glScalef2(ss, ss, ss);
-		playerRenderer->renderHand();
+		// Binds the player's own skin (or mob/char.png) with the arm.
+		playerRenderer->renderHandFor(mc->player);
 		glPopMatrix2();
 	}
 	//glDisable2(GL_RESCALE_NORMAL);

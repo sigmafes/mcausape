@@ -3,6 +3,10 @@
 #include "../../../world/entity/player/Player.h"
 #include "../../../world/level/Level.h"
 #include "../../../world/item/ArmorItem.h"
+#include "../../Minecraft.h"
+#include "../../model/PlayerSkinModel.h"
+#include "../../skin/PlayerSkins.h"
+#include "../Textures.h"
 
 static const std::string armorFilenames[10] = {
 	"armor/cloth_1.png",	"armor/cloth_2.png",
@@ -17,11 +21,71 @@ PlayerRenderer::PlayerRenderer( HumanoidModel* humanoidModel, float shadow )
 	armorParts1(new HumanoidModel(1.0f)),
 	armorParts2(new HumanoidModel(0.5f))
 {
+	for (int i = 0; i < 3; ++i)
+		skinModels[i] = NULL;
 }
 
 PlayerRenderer::~PlayerRenderer() {
 	delete armorParts1;
 	delete armorParts2;
+	for (int i = 0; i < 3; ++i)
+		delete skinModels[i];
+}
+
+int PlayerRenderer::skinFor(Player* player) {
+	// The local player's skin is the profile's, not a copy on the entity: a
+	// new player object is made for every world, and the profile can change
+	// while one is running.
+	int id = player->skinId;
+	Minecraft* mc = entityRenderDispatcher->minecraft;
+	if (mc && player == (Player*) mc->player)
+		id = PlayerSkins::localSkin;
+	return PlayerSkins::get(id) ? id : 0;
+}
+
+HumanoidModel* PlayerRenderer::modelFor(int skinId) {
+	const int model = PlayerSkins::get(skinId)->model;
+	PlayerSkinModel*& slot = skinModels[model - 1];
+	if (!slot)
+		slot = new PlayerSkinModel(model);
+	return slot;
+}
+
+void PlayerRenderer::render(Entity* mob, float x, float y, float z, float rot, float a) {
+	const int skin = skinFor((Player*) mob);
+	if (!skin) {
+		super::render(mob, x, y, z, rot, a);
+		return;
+	}
+	// Drawn with the skin's model for this one entity, then put back: the
+	// default model is the one MobRenderer owns and deletes.
+	HumanoidModel* original = getHumanoidModel();
+	setHumanoidModel(modelFor(skin));
+	super::render(mob, x, y, z, rot, a);
+	setHumanoidModel(original);
+}
+
+void PlayerRenderer::bindMobTexture(Mob* mob) {
+	const int skin = skinFor((Player*) mob);
+	if (skin)
+		PlayerSkins::bind(entityRenderDispatcher->textures, skin);
+	else
+		super::bindMobTexture(mob);
+}
+
+void PlayerRenderer::renderHandFor(Player* player) {
+	const int skin = skinFor(player);
+	if (!skin) {
+		entityRenderDispatcher->textures->loadAndBindTexture("mob/char.png");
+		renderHand();
+		return;
+	}
+	HumanoidModel* original = getHumanoidModel();
+	PlayerSkins::bind(entityRenderDispatcher->textures, skin);
+	setHumanoidModel(modelFor(skin));
+	glEnable2(GL_ALPHA_TEST);
+	renderHand();
+	setHumanoidModel(original);
 }
 
 void PlayerRenderer::setupPosition( Entity* mob, float x, float y, float z ) {
@@ -86,4 +150,6 @@ void PlayerRenderer::onGraphicsReset() {
 
 	if (armorParts1) armorParts1->onGraphicsReset();
 	if (armorParts2) armorParts2->onGraphicsReset();
+	for (int i = 0; i < 3; ++i)
+		if (skinModels[i]) skinModels[i]->onGraphicsReset();
 }

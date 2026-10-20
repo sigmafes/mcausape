@@ -58,6 +58,11 @@ public:
 	void setSize(int width, int height);
 	void reloadOptions();
 
+	/// Makes an RGBA image the profile's skin (NULL: back to the default), and
+	/// tells whoever we are playing with. Called from the web page, which owns
+	/// the file picker and keeps the image between sessions.
+	void setLocalSkin(int w, int h, const unsigned char* rgba);
+
 	bool supportNonTouchScreen();
 	bool useTouchscreen();
 	void grabMouse();

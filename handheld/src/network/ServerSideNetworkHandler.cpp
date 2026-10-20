@@ -18,6 +18,7 @@
 #endif
 #include "../server/ServerPlayer.h"
 #include "../world/entity/item/FallingTile.h"
+#include "../client/skin/PlayerSkins.h"
 
 #define TIMES(x) for(int itc ## __LINE__ = 0; itc ## __LINE__ < x; ++ itc ## __LINE__)
 
@@ -38,6 +39,8 @@ ServerSideNetworkHandler::~ServerSideNetworkHandler()
 
 	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
 		delete _pendingPlayers[i];
+	// The visitors' skins only lived as long as this game.
+	PlayerSkins::releaseAllBut(PlayerSkins::localSkin);
 }
 
 void ServerSideNetworkHandler::tileChanged(int x, int y, int z)
@@ -157,6 +160,8 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 
 			//RemoveEntityPacket packet(player->entityId);
 			//raknetInstance->send(packet);
+			PlayerSkins::release(player->skinId);
+			player->skinId = 0;
 			player->reallyRemoveIfPlayer = true;
 			level->removeEntity(player);
 			//level->removePlayer(player);
@@ -270,6 +275,8 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
             PlayerArmorEquipmentPacket(player).write(&bitStream);
             rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
         }
+
+		sendSkin(player, source, false);
 	}
 
 	level->addEntity(newPlayer);
@@ -304,6 +311,9 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 	bitStream.Reset();
 	AddPlayerPacket(newPlayer).write(&bitStream);
 	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, true);
+	// A skin the newcomer sent before this point is on newPlayer already.
+	if (PlayerSkins::get(newPlayer->skinId))
+		sendSkin(newPlayer, source, true);
 }
 
 //
@@ -702,4 +712,41 @@ Player* ServerSideNetworkHandler::getPlayer( const RakNet::RakNetGUID& source ) 
     for (unsigned int i = 0; i < level->players.size(); ++i)
         if (source == level->players[i]->owner) return level->players[i];
     return NULL;
+}
+
+void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet)
+{
+	if (!level) return;
+	// The sender is whoever it came from, not the id inside it: a client only
+	// ever sends its own skin, and must not be able to dress anyone else.
+	Player* player = getPlayer(source);
+	if (!player) {
+		for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
+			if (_pendingPlayers[i]->owner == source) player = _pendingPlayers[i];
+	}
+	if (!player) return;
+
+	PlayerSkins::release(player->skinId);
+	player->skinId = packet->hasSkin()
+		? PlayerSkins::create(packet->w, packet->h, &packet->rgba[0])
+		: 0;
+
+	// Still pending: onReady_ClientGeneration passes it on with the player.
+	if (getPlayer(source) == player)
+		sendSkin(player, source, true);
+}
+
+/// Sends one player's skin -- or, with none, "default skin" -- to target, or to
+/// everyone but target when broadcast is set. The host's own player carries
+/// no copy: its skin is the profile's.
+void ServerSideNetworkHandler::sendSkin(Player* player, const RakNet::RakNetGUID& target, bool broadcast)
+{
+	int id = (player == (Player*) minecraft->player) ? PlayerSkins::localSkin : player->skinId;
+	const PlayerSkins::Skin* skin = PlayerSkins::get(id);
+	// Nobody has seen a skin for a player that never had one; no need to say so.
+	if (!skin && !broadcast) return;
+	RakNet::BitStream bs;
+	PlayerSkinPacket(player->entityId, skin ? skin->w : 0, skin ? skin->h : 0,
+	                 skin ? &skin->rgba[0] : 0).write(&bs);
+	rakPeer->Send(&bs, MEDIUM_PRIORITY, RELIABLE_ORDERED, 0, target, broadcast);
 }

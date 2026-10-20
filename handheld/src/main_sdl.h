@@ -35,6 +35,7 @@
 #include "platform/input/Keyboard.h"
 #include "platform/input/Multitouch.h"
 #include "network/RakNetInstance.h"
+#include "platform/web/WebBridge.h"
 
 static SDL_Window* g_window = 0;
 static bool g_running = true;
@@ -169,6 +170,23 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_net_leave()
 {
 	if (g_state.app && g_state.app->raknetInstance)
 		g_state.app->raknetInstance->disconnect();
+}
+
+/** The page's answer to WebBridge::pickSkin() and loadSavedSkin(): a decoded
+    skin image, as RGBA in the module's heap. The page owns the buffer and frees
+    it after this returns; Minecraft::setLocalSkin copies what it keeps. The
+    page has already checked the size, but a bad one is simply ignored here. */
+extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_skin_set(const unsigned char* rgba, int w, int h)
+{
+	if (g_state.app && rgba)
+		g_state.app->setLocalSkin(w, h, rgba);
+}
+
+/// Back to the default skin.
+extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_skin_clear()
+{
+	if (g_state.app)
+		g_state.app->setLocalSkin(0, 0, 0);
 }
 
 /** Called from the page whenever the canvas needs to be a different size --
@@ -421,6 +439,8 @@ static void bootFrame()
 		return;
 
 	startApp(MC_DATA_DIR, "/saves");
+	// The saved skin lives beside the worlds, so it can only be read now.
+	WebBridge::loadSavedSkin();
 
 	emscripten_cancel_main_loop();
 	emscripten_set_main_loop(runFrame, 0, 0);

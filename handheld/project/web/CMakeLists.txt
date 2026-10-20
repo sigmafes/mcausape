@@ -108,7 +108,7 @@ target_link_options(minecraftpe PRIVATE
 
     # _malloc/_free are called from the EM_JS prompt bridge in the web dialog.
     -sEXPORTED_FUNCTIONS=_main,_malloc,_free
-    -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,UTF8ToString,stringToUTF8,lengthBytesUTF8
+    -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,UTF8ToString,stringToUTF8,lengthBytesUTF8,HEAPU8
 
     -sENVIRONMENT=web
     "--shell-file" "${SHELL_FILE}"
