@@ -278,10 +278,9 @@ void CreateWorldScreen::keyPressed(int eventKey)
 		refreshLabels();
 		return;
 	}
-	if (eventKey == Keyboard::KEY_TAB) {
-		activeField = (activeField == FIELD_NAME)? FIELD_SEED : FIELD_NAME;
-		return;
-	}
+	// No Tab-switches-field: a browser tab takes Tab for its own focus
+	// navigation before a canvas ever sees it, so a click on the other box
+	// (see mouseClicked) is the only reliable way to move between them.
 	if (eventKey == Keyboard::KEY_RETURN)
 		createWorld();
 }
