@@ -98,7 +98,16 @@ private:
 	int	requestNextChunkPosition;
 
     static const int NumRequestChunks = CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH;
-    
+
+    // How many RequestChunkPacket/ChunkDataPacket round trips run at once.
+    // Each reply requests exactly one more (see the ChunkDataPacket handler),
+    // so seeding this many up front is what keeps that many in flight the
+    // whole way through -- one at a time was a non-issue on a real LAN's
+    // sub-millisecond round trips, but over a relay with real internet
+    // latency, 576 chunks done one after another is most of what made
+    // joining take minutes.
+    static const int MaxInFlightChunkRequests = 16;
+
     int requestNextChunkIndex;
     IntPair requestNextChunkIndexList[NumRequestChunks];
 	bool chunksLoaded[NumRequestChunks];

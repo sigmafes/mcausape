@@ -647,7 +647,13 @@ void ClientSideNetworkHandler::levelGenerated(Level* level)
 	raknetInstance->send(packet);
 
     arrangeRequestChunkOrder();
-	requestNextChunk();
+
+	// Seeded with several in flight rather than one: see
+	// MaxInFlightChunkRequests. requestNextChunk() already stops itself once
+	// requestNextChunkIndex reaches NumRequestChunks, so this is safe even on
+	// a world small enough to have fewer chunks than the cap.
+	for (int i = 0; i < MaxInFlightChunkRequests; ++i)
+		requestNextChunk();
 }
 
 void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerEquipmentPacket* packet)
