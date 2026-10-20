@@ -130,7 +130,9 @@ void OptionsScreen::layoutProfile() {
 	const int paneW = width - paneX;
 	nameX = paneX + 12;
 	nameY = bHeader->height + 20;
-	nameW = Mth::Min(paneW - 24, 180);
+	// Leaves room for the "Click to change" beside it on a narrow screen.
+	const int hintW = minecraft->font->width("Click to change") + 8;
+	nameW = Mth::Max(80, Mth::Min(paneW - 24 - hintW, 160));
 	nameH = 18;
 	skinY = nameY + nameH + 14;
 
