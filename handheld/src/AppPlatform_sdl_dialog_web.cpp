@@ -70,29 +70,38 @@ static std::string takeValue(int index)
 
 void AppPlatform_sdl::showDialog(int dialogId)
 {
+	showDialog(dialogId, "");
+}
+
+void AppPlatform_sdl::showDialog(int dialogId, const std::string& defaultValue)
+{
 	_userInput.clear();
 	_userInputStatus = USERINPUT_NOTINITED;
 	_dialogFields = 0;
 
 	switch (dialogId) {
-	case DialogDefinitions::DIALOG_CREATE_NEW_WORLD:
-		// Name and seed only. The game mode is not asked for here: 0.6.1 has a
-		// screen of its own for it, and Touch::SelectWorldScreen hands off to
-		// SimpleChooseLevelScreen once this comes back.
-		_dialogFields = 2;
-		mcpe_dialog_open("Create world", "Create",
-		                 "World name", "World",
-		                 "Seed (blank for random)", "");
+	case DialogDefinitions::DIALOG_CREATE_WORLD_NAME:
+		// One field, for CreateWorldScreen's name box -- the mode, difficulty
+		// and the rest of that screen are drawn by the game on every platform,
+		// touch included. defaultValue is whatever was already typed, so
+		// reopening this to fix a typo doesn't start the player over from blank.
+		_dialogFields = 1;
+		mcpe_dialog_open("Create world", "OK", "World name", defaultValue.c_str(), "", "");
+		break;
+
+	case DialogDefinitions::DIALOG_CREATE_WORLD_SEED:
+		_dialogFields = 1;
+		mcpe_dialog_open("Create world", "OK", "Seed (blank for random)", defaultValue.c_str(), "", "");
 		break;
 
 	case DialogDefinitions::DIALOG_RENAME_MP_WORLD:
 		_dialogFields = 1;
-		mcpe_dialog_open("Rename world", "Rename", "New name", "", "", "");
+		mcpe_dialog_open("Rename world", "Rename", "New name", defaultValue.c_str(), "", "");
 		break;
 
 	case DialogDefinitions::DIALOG_NEW_CHAT_MESSAGE:
 		_dialogFields = 1;
-		mcpe_dialog_open("Chat", "Send", "Message", "", "", "");
+		mcpe_dialog_open("Chat", "Send", "Message", defaultValue.c_str(), "", "");
 		break;
 
 	default:

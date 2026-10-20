@@ -75,19 +75,28 @@ public:
     virtual void playSound(const std::string& fn, float volume, float pitch) {}
 
 	virtual void showDialog(int dialogId) {}
+	// A field already holding text (CreateWorldScreen's name/seed boxes, reopened
+	// to edit what was typed before) gets to start from that text instead of
+	// blank. Platforms that don't special-case this id just ignore it.
+	virtual void showDialog(int dialogId, const std::string& defaultValue) { showDialog(dialogId); }
     virtual void createUserInput() {}
-	
+
 	bool is_big_endian(void)  {
 		union {
 			unsigned int i;
 			char c[4];
 		} bint = {0x01020304};
 		return bint.c[0] == 1;
-	} 
+	}
 
 	void createUserInput(int dialogId)
 	{
 		showDialog(dialogId);
+		createUserInput();
+	}
+	void createUserInput(int dialogId, const std::string& defaultValue)
+	{
+		showDialog(dialogId, defaultValue);
 		createUserInput();
 	}
 	virtual int getUserInputStatus() { return 0; }

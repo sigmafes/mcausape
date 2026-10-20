@@ -7,6 +7,13 @@ public:
 	static const int DIALOG_NEW_CHAT_MESSAGE = 2;
 	static const int DIALOG_MAINMENU_OPTIONS = 3;
 	static const int DIALOG_RENAME_MP_WORLD  = 4;
+	// Single-field text entry for CreateWorldScreen's own boxes, used only on
+	// touch: there is no physical keyboard to type into a box the screen draws
+	// itself, so a tap on either box borrows the platform's text dialog for one
+	// field and hands the typed value back to the screen that is still on
+	// screen underneath it.
+	static const int DIALOG_CREATE_WORLD_NAME = 5;
+	static const int DIALOG_CREATE_WORLD_SEED = 6;
     static const int DIALOG_DEMO_FEATURE_DISABLED = 98;
 };
 

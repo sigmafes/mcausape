@@ -42,6 +42,7 @@ public:
 	    as "keep waiting", so a dialog that takes its time is only a longer wait.
 	    See AppPlatform_sdl_dialog_web.cpp. */
 	void showDialog(int dialogId);
+	void showDialog(int dialogId, const std::string& defaultValue);
 	int getUserInputStatus();
 	StringVector getUserInput();
 

@@ -1,8 +1,7 @@
 #include "TouchSelectWorldScreen.h"
 #include "../StartMenuScreen.h"
 #include "../ProgressScreen.h"
-#include "../SimpleChooseLevelScreen.h"
-#include "../DialogDefinitions.h"
+#include "../CreateWorldScreen.h"
 #include "../../components/ImageButton.h" //weird!
 #include "../../../renderer/Textures.h"
 #include "../../../renderer/Tesselator.h"
@@ -15,7 +14,6 @@
 
 #include <algorithm>
 #include <set>
-#include "../SimpleChooseLevelScreen.h"
 
 namespace Touch {
 
@@ -351,8 +349,8 @@ void SelectWorldScreen::buttonClicked(Button* button)
 {
 	if (button->id == bCreate.id) {
 		if (_state == _STATE_DEFAULT && !_hasStartedLevel) {
-			minecraft->platform()->createUserInput(DialogDefinitions::DIALOG_CREATE_NEW_WORLD);
-			_state = _STATE_CREATEWORLD;
+			minecraft->setScreen(new CreateWorldScreen());
+			return;
 		}
 	}
 	if (button->id == bDelete.id) {
@@ -387,107 +385,16 @@ bool SelectWorldScreen::isIndexValid( int index )
 	return worldsList && index >= 0 && index < worldsList->getNumberOfItems() - 1;
 }
 
-static char ILLEGAL_FILE_CHARACTERS[] = {
-	'/', '\n', '\r', '\t', '\0', '\f', '`', '?', '*', '\\', '<', '>', '|', '\"', ':'
-};
-
 void SelectWorldScreen::tick()
 {
-	if (_state == _STATE_CREATEWORLD) {
-		#if defined(RPI)
-			std::string levelId = getUniqueLevelName("perf");
-			//int seed = Util::hashCode("/r/Minecraft");
-			LevelSettings settings(getEpochTimeS(), GameType::Creative);
-			minecraft->selectLevel(levelId, levelId, settings);
-			minecraft->hostMultiplayer();
-			minecraft->setScreen(new ProgressScreen());
-			_hasStartedLevel = true;
-		#elif defined(WIN32)
-			std::string name = getUniqueLevelName("perf");
-			minecraft->setScreen(new SimpleChooseLevelScreen(name));
-		#else
-			int status = minecraft->platform()->getUserInputStatus();
-            //LOGI("Status is: %d\n", status);
-			if (status > -1) {
-				if (status == 1) {
-					StringVector sv = minecraft->platform()->getUserInput();
-					
-					// Read the level name.
-					// 1) Trim name 2) Remove all bad chars 3) Append '-' chars 'til the name is unique
-					std::string levelName = Util::stringTrim(sv[0]);
-					std::string levelId = levelName;
-
-					for (int i = 0; i < sizeof(ILLEGAL_FILE_CHARACTERS) / sizeof(char); ++i)
-						levelId = Util::stringReplace(levelId, std::string(1, ILLEGAL_FILE_CHARACTERS[i]), "");
-                    if ((int)levelId.length() == 0) {
-                        levelId = "no_name";
-                    }
-					levelId = getUniqueLevelName(levelId);
-
-					// Read the seed
-					int seed = getEpochTimeS();
-					if (sv.size() >= 2) {
-						std::string seedString = Util::stringTrim(sv[1]);
-						if (seedString.length() > 0) {
-							int tmpSeed;
-							// Try to read it as an integer
-							if (sscanf(seedString.c_str(), "%d", &tmpSeed) > 0) {
-								seed = tmpSeed;
-							} // Hash the "seed"
-							else {
-								seed = Util::hashCode(seedString);
-							}
-						}
-					}
-#if defined(MC_WASM)
-					// The mode is not the dialog's business. Android and iOS put
-					// it there because their dialog was a native multi-field
-					// sheet; a browser has no such thing, and squeezing it into a
-					// second popup with OK and Cancel for two game modes is worse
-					// than what the game already ships -- SimpleChooseLevelScreen
-					// is a real screen with two labelled buttons, and the Windows
-					// build has always used it. Hand off to it with the name and
-					// seed already collected.
-					LOGI("Choosing a mode for level id '%s', name '%s', seed '%d'\n", levelId.c_str(), levelName.c_str(), seed);
-					_state = _STATE_DEFAULT;
-					worldsList->hasPickedLevel = false;
-					worldsList->pickedIndex = -1;
-					// Deletes this screen, so nothing may touch it afterwards.
-					minecraft->setScreen(new SimpleChooseLevelScreen(levelId, levelName, seed));
-					return;
-#else
-					// Read the game mode
-					bool isCreative = true;
-					if (sv.size() >= 3 && sv[2] == "survival")
-						isCreative = false;
-
-					// Start a new level with the given name and seed
-					LOGI("Creating a level with id '%s', name '%s' and seed '%d'\n", levelId.c_str(), levelName.c_str(), seed);
-					LevelSettings settings(seed, isCreative? GameType::Creative : GameType::Survival);
-					minecraft->selectLevel(levelId, levelName, settings);
-					minecraft->hostMultiplayer();
-					minecraft->setScreen(new ProgressScreen());
-					_hasStartedLevel = true;
-#endif
-				}
-				_state = _STATE_DEFAULT;
-				// Reset the world list
-				worldsList->hasPickedLevel = false;
-				worldsList->pickedIndex = -1;
-			}
-		#endif
-
-		worldsList->hasPickedLevel = false;
-		return;
-	}
 
 	worldsList->tick();
 
 	if (worldsList->hasPickedLevel) {
 		if (worldsList->pickedIndex == worldsList->levels.size()) {
 			worldsList->hasPickedLevel = false;
-			minecraft->platform()->createUserInput(DialogDefinitions::DIALOG_CREATE_NEW_WORLD);
-			_state = _STATE_CREATEWORLD;
+			minecraft->setScreen(new CreateWorldScreen());
+			return;
 		} else {
 			minecraft->selectLevel(worldsList->pickedLevel.id, worldsList->pickedLevel.name, LevelSettings::None());
 			minecraft->hostMultiplayer();
