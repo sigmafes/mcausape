@@ -103,11 +103,22 @@ export class Lobby {
 	}
 
 	allocateRoute() {
-		// 0 is reserved (the client reads it as "not connected yet" / "unjoinable"
-		// in the lobby list), so routes are drawn from 1..2^32-1.
+		// The client does not keep a route as a bare number -- RakNet keys
+		// connections by SystemAddress, so WebRakNetInstance.cpp's
+		// addressFromRoute() packs it into the low 24 bits of a synthetic
+		// 10.0.0.0/8 address (see that file for why: never 0.0.0.0 or a
+		// broadcast address, and it reads back out byte for byte). A route
+		// with anything set above bit 23 round-trips fine within the relay
+		// here, but gets silently truncated the moment a joining client turns
+		// it into a connection target, which sends it dialing a different,
+		// almost certainly empty, route -- a connect that times out with no
+		// error anywhere, because nothing was ever technically wrong, just
+		// aimed at nobody. So routes here are drawn from the same 24-bit
+		// space the client actually has room for, 1..0xFFFFFF, not the full
+		// 32 bits the wire format's header could otherwise carry.
 		let route;
 		do {
-			route = crypto.getRandomValues(new Uint32Array(1))[0] >>> 0;
+			route = crypto.getRandomValues(new Uint32Array(1))[0] & 0x00ffffff;
 		} while (route === 0 || this.sockets.has(route));
 		return route;
 	}
