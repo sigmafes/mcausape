@@ -934,10 +934,14 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Adventur
 
 void ClientSideNetworkHandler::clearChunksLoaded()
 {
-	// Init the chunk positions
+	// Init the chunk positions. CHUNK_CACHE_WIDTH (the world's width in chunks),
+	// not CHUNK_WIDTH (a chunk's width in blocks): they were both 16 in 0.6.1,
+	// so the wrong one worked until the world grew to 32 chunks a side, after
+	// which this asked for x 0..63, z 0..15 -- half the world never synced and
+	// the other half was requested out of range.
 	for (int i = 0; i < NumRequestChunks; ++i) {
-		requestNextChunkIndexList[i].x = i/CHUNK_WIDTH;
-		requestNextChunkIndexList[i].y = i%CHUNK_WIDTH;
+		requestNextChunkIndexList[i].x = i / CHUNK_CACHE_WIDTH;
+		requestNextChunkIndexList[i].y = i % CHUNK_CACHE_WIDTH;
 		chunksLoaded[i] = false;
 	}
 	numChunksLoaded = 0;
