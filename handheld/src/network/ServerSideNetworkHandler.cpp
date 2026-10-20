@@ -233,7 +233,6 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ReadyPacket* packet)
 {
 	if (!level) return;
-	LOGI("[dbg] H ReadyPacket type=%d\n", (int) packet->type);
 
 	if (packet->type == ReadyPacket::READY_CLIENTGENERATION)
 		onReady_ClientGeneration(source);
@@ -372,7 +371,6 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RequestC
 	if (!level)
         return;
 
-    { static int dbgReq = 0; ++dbgReq; if (dbgReq == 1 || dbgReq % 64 == 0) LOGI("[dbg] H RequestChunk #%d\n", dbgReq); }
     LevelChunk* chunk = level->getChunk(packet->x, packet->z);
 
 	if (!chunk)

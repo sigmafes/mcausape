@@ -141,7 +141,7 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginSta
 
 void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, StartGamePacket* packet)
 {
-	LOGI("[dbg] C StartGamePacket\n");
+	LOGI("StartGamePacket\n");
 
 #ifdef RPI
 	if (packet->gameType != GameType::Creative) {
@@ -268,7 +268,6 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, AddMobPa
 
 void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, AddPlayerPacket* packet)
 {
-	LOGI("[dbg] C AddPlayerPacket level=%p\n", level);
 	if (!level) {
 		//we skip this since we will get this player anyway when we request level
 		return;
@@ -589,7 +588,6 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChunkDat
 		loaded = true;
 		++numChunksLoaded;
 	}
-	{ static int dbgChunks = 0; ++dbgChunks; if (dbgChunks == 1 || dbgChunks % 64 == 0 || areAllChunksLoaded()) LOGI("[dbg] C chunk %d (all=%d)\n", dbgChunks, (int) areAllChunksLoaded()); }
 
 	if (areAllChunksLoaded())
 	{
@@ -654,7 +652,6 @@ void ClientSideNetworkHandler::arrangeRequestChunkOrder() {
 void ClientSideNetworkHandler::levelGenerated(Level* level)
 {
 	this->level = level;
-	LOGI("[dbg] C levelGenerated, sending READY_CLIENTGENERATION\n");
 	ReadyPacket packet(ReadyPacket::READY_CLIENTGENERATION);
 	raknetInstance->send(packet);
 
