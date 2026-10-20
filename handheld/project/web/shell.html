@@ -986,7 +986,7 @@
   // second attempt at either would fight it.
   // ---------------------------------------------------------------------------
   (function () {
-    var RELAY_URL = '';
+    var RELAY_URL = 'wss://mcausape-lobby.mrfierrocarrilgames.workers.dev/relay';
 
     var url = new URLSearchParams(location.search).get('relay');
     if (url === null) url = RELAY_URL;
@@ -1205,7 +1205,7 @@
   // thing without touching the page. ?lobby=<url> points a build at a local one.
   // ---------------------------------------------------------------------------
   (function () {
-    var LOBBY_URL = '';
+    var LOBBY_URL = 'https://mcausape-lobby.mrfierrocarrilgames.workers.dev';
 
     var url = new URLSearchParams(location.search).get('lobby');
     if (url === null) url = LOBBY_URL;
