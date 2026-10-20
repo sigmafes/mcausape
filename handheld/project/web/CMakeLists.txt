@@ -82,22 +82,10 @@ target_compile_definitions(minecraftpe PRIVATE
 
 # This code predates -Wall being survivable; silence the noise so real errors
 # stay visible.
-#
-# TEMPORARY: -g keeps DWARF debug info in the wasm binary so Chrome's "C/C++
-# DevTools Support (DWARF)" extension can show real file:line in a crash's
-# stack trace instead of raw wasm byte offsets. Revert once the crash under
-# investigation is pinned down -- it does nothing for players and is not worth
-# leaving in the shipped build.
-target_compile_options(minecraftpe PRIVATE -w -g ${EM_PORTS})
+target_compile_options(minecraftpe PRIVATE -w ${EM_PORTS})
 
 target_link_options(minecraftpe PRIVATE
     ${EM_PORTS}
-
-    # TEMPORARY, pairs with -g above: keeps DWARF through linking instead of
-    # stripping it, and skips the optimizations that scramble a stack trace
-    # past recognition. Revert both together.
-    -g
-    -O0
 
     # WebGL has no fixed-function pipeline. This emulates GLES 1.1 on top of it.
     # GL_FFP_ONLY is valid because the game never binds a shader of its own, and

@@ -1946,7 +1946,23 @@ bool Minecraft::isLevelGenerated()
 {
 	// A trip that is queued counts as not generated, so the loading screen stays
 	// up and the old level is not drawn behind it.
-	return level != NULL && !isGeneratingLevel && _pendingDim == 0;
+	//
+	// isGeneratingLevel going false and _levelGenerated() actually running are
+	// two different frames (see the generation-progress block in update()):
+	// the flag flips at the end of the frame that finishes the last prep
+	// phase, but _levelGenerated() -- which is what calls
+	// levelRenderer->setLevel(level), sizing its chunk array to this level --
+	// only runs on the *next* frame's pass through here. Between those two
+	// frames this would say "generated" a frame early, and renderLevel()
+	// would cull whatever levelRenderer was last set up for: on a world
+	// transition there is always a previous level's array still sitting
+	// there, stale but a valid size, so this read as a harmless one-frame
+	// glitch no one noticed. The first level a fresh tab ever loads -- a
+	// client joining straight into multiplayer with no single-player world
+	// before it -- has no such leftover array to fall back on, and the same
+	// one-frame gap is a null chunk array instead, which is the crash this
+	// guards against.
+	return level != NULL && !isGeneratingLevel && _hasSignaledGeneratingLevelFinished && _pendingDim == 0;
 }
 
 LevelStorageSource* Minecraft::getLevelSource()
