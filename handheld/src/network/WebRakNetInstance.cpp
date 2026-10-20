@@ -14,6 +14,7 @@
 
 #include <emscripten.h>
 #include <netinet/in.h>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -412,8 +413,26 @@ void WebRakNetInstance::resetIsBroken()
 	_peer->errorState = 0;
 }
 
+
+namespace {
+int g_rx[256], g_tx[256]; bool g_rxSeen[256], g_txSeen[256]; double g_lastDump = 0;
+void dbgCount(bool tx, int id) {
+	id &= 255; double now = emscripten_get_now();
+	if (tx) { if (!g_txSeen[id]) { g_txSeen[id] = true; printf("[dbg %.0f] first TX id=%d\n", now, id); } g_tx[id]++; }
+	else    { if (!g_rxSeen[id]) { g_rxSeen[id] = true; printf("[dbg %.0f] first RX id=%d\n", now, id); } g_rx[id]++; }
+}
+void dbgDump(bool isServer) {
+	double now = emscripten_get_now(); if (now - g_lastDump < 2000) return; g_lastDump = now;
+	char buf[2048]; int n = sprintf(buf, "[dbg %.0f] %s TX:", now, isServer ? "host" : "client");
+	for (int i = 0; i < 256; ++i) if (g_tx[i]) n += sprintf(buf + n, " %d=%d", i, g_tx[i]);
+	n += sprintf(buf + n, " | RX:");
+	for (int i = 0; i < 256; ++i) if (g_rx[i]) n += sprintf(buf + n, " %d=%d", i, g_rx[i]);
+	printf("%s\n", buf); memset(g_tx, 0, sizeof g_tx); memset(g_rx, 0, sizeof g_rx);
+}
+}
 void WebRakNetInstance::runEvents(NetEventCallback* callback)
 {
+	dbgDump(_isServer);
 	/* This is the update thread. Without it Connect() and Send() sit in the
 	   buffered-command queues for ever, nothing is resent, and nothing times
 	   out -- and incoming datagrams are never picked up either, because
@@ -459,6 +478,7 @@ void WebRakNetInstance::runEvents(NetEventCallback* callback)
 			else
 			{
 				int userPacketId = packetId - ID_USER_PACKET_ENUM;
+				dbgCount(false, packetId);
 				bool isStatusPacket = userPacketId <= PACKET_READY;
 
 				if (isStatusPacket || _isServer || _isLoggedIn) {
@@ -480,6 +500,7 @@ void WebRakNetInstance::send(Packet& packet)
 {
 	RakNet::BitStream bitStream;
 	packet.write(&bitStream);
+	dbgCount(true, bitStream.GetData()[0]);
 	if (_isServer)
 	{
 		// broadcast to all connected clients
@@ -496,6 +517,7 @@ void WebRakNetInstance::send(const RakNet::RakNetGUID& guid, Packet& packet)
 {
 	RakNet::BitStream bitStream;
 	packet.write(&bitStream);
+	dbgCount(true, bitStream.GetData()[0]);
 	_peer->Send(&bitStream, packet.priority, packet.reliability, 0, guid, false);
 }
 

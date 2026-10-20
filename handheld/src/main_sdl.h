@@ -165,6 +165,31 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_pump_net()
     that ends the connection is the peer timeout, which is deliberately long
     enough to survive a backgrounded tab, so a closed one would leave a player
     standing in everyone else's world for the whole of it. */
+
+#include "client/gui/screens/ProgressScreen.h"
+#include "world/level/LevelSettings.h"
+#include <netinet/in.h>
+extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_dbg_host()
+{
+	Minecraft* mc = g_state.app;
+	mc->selectLevel("dbgworld", "dbgworld", LevelSettings(12345, GameType::Survival));
+	mc->hostMultiplayer();
+	mc->setScreen(new ProgressScreen());
+}
+extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_dbg_join(unsigned int route)
+{
+	Minecraft* mc = g_state.app;
+	mc->locateMultiplayer();
+	PingedCompatibleServer s;
+	s.name = "dbg";
+	s.address.address.addr4.sin_family = AF_INET;
+	s.address.address.addr4.sin_addr.s_addr = htonl(0x0A000000u | (route & 0xFFFFFFu));
+	s.address.address.addr4.sin_port = htons(19132);
+	s.address.debugPort = 19132;
+	s.pingTime = 0; s.isSpecial = false;
+	mc->joinMultiplayer(s);
+	mc->setScreen(new ProgressScreen());
+}
 extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_net_leave()
 {
 	if (g_state.app && g_state.app->raknetInstance)
