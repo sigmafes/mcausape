@@ -36,11 +36,13 @@ spreads them over 40ms of real time for that reason.
 
 ## `relay.mjs` — does the switch switch?
 
-Wants only the service.
+Wants only the service -- the real one, `cloudflare/lobby`, run locally by
+`wrangler dev`. It is the same Worker code either way, Durable Object
+included, so a pass here is a pass against what actually gets deployed.
 
 ```sh
-node tools/lobby/server.js &
-node tools/wiretest/relay.mjs
+cd cloudflare/lobby && npx wrangler dev --port 8477 &
+node ../../tools/wiretest/relay.mjs
 ```
 
 Two sockets, a datagram between them, the 1400-byte case, an unknown
@@ -53,7 +55,7 @@ Wants the service, the built page on `:8000`, and `playwright-core` with a
 chromium available. Not a dependency of anything else here.
 
 ```sh
-node tools/lobby/server.js &
+(cd cloudflare/lobby && npx wrangler dev --port 8477) &
 (cd handheld/project/web/build && python3 -m http.server 8000) &
 npm i playwright-core && node tools/wiretest/browser.mjs
 ```
@@ -71,7 +73,7 @@ unfocused window is only throttled — B is opened by A with `window.open` so th
 are tabs of one window and switching really backgrounds the other.
 
 ```sh
-node tools/lobby/server.js &
+(cd cloudflare/lobby && npx wrangler dev --port 8477) &
 (cd handheld/project/web/build && python3 -m http.server 8000) &
 npm i playwright-core && xvfb-run -a node tools/wiretest/background.mjs
 ```

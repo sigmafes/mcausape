@@ -5,3 +5,5 @@ cmake-build-*/
 *.a.local
 handheld/project/web/build/
 references/
+node_modules/
+.wrangler/

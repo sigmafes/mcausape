@@ -1,0 +1,14 @@
+name = "mcausape-lobby"
+main = "src/worker.js"
+compatibility_date = "2026-01-01"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "Lobby"
+
+# Durable Objects need a migration the first time their storage class is
+# introduced. new_sqlite_classes (not new_classes) is what the Hibernation
+# WebSocket API requires -- it is backed by the DO's own SQLite storage.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Lobby"]
