@@ -225,6 +225,11 @@ WebRakNetInstance::WebRakNetInstance()
 	   world for looking something up. */
 	_peer->SetTimeoutTime(120000, RakNet::UNASSIGNED_SYSTEM_ADDRESS);
 	_peer->SetOccasionalPing(true);
+
+	// Pairs with isLatestStateOnly() below: an entity position still waiting
+	// in the send queue after half a second has been overtaken by a newer
+	// one, so it is dropped rather than sent late.
+	_peer->SetUnreliableTimeout(500);
 }
 
 WebRakNetInstance::~WebRakNetInstance()
@@ -496,6 +501,53 @@ void WebRakNetInstance::runEvents(NetEventCallback* callback)
 	}
 }
 
+namespace {
+
+/** Whether a packet only ever carries an entity's latest position or velocity.
+
+    Every Packet defaults to HIGH_PRIORITY, RELIABLE, and Mob::aiStep sends one
+    of these per mob on nearly every tick: its threshold is a degree of head
+    turn, which an idle mob passes most ticks. A survival world with ~150 mobs
+    puts close to 3000 of them a second into the host's send queue, all at the
+    same priority as everything that actually has to arrive -- AddPlayer,
+    chunks, item drops, damage. When that rate is more than the connection
+    drains, the queue only grows, and everything a visitor sees runs further
+    and further behind: measured at 80s behind within a minute of joining.
+
+    A LAN in 2013 drained it. Over a relay it does not, and none of it is worth
+    resending -- a position that is a second old is just wrong. Unreliable and
+    low priority, with the peer's unreliable timeout set in the constructor,
+    means the newest one is sent when there is room and the rest are dropped
+    instead of queued. MovePlayerPacket is left reliable: there is one per
+    player, not one per mob, and it also carries the server's corrections. */
+bool isLatestStateOnly(unsigned char id)
+{
+	switch (id - ID_USER_PACKET_ENUM) {
+	case PACKET_MOVEENTITY:
+	case PACKET_MOVEENTITY_POS:
+	case PACKET_MOVEENTITY_ROT:
+	case PACKET_MOVEENTITY_POSROT:
+	case PACKET_SETENTITYMOTION:
+		return true;
+	default:
+		return false;
+	}
+}
+
+void sendClassified(RakNet::RakPeerInterface* peer, const RakNet::BitStream& bitStream, const Packet& packet,
+                    const RakNet::AddressOrGUID& target, bool broadcast)
+{
+	PacketPriority priority = packet.priority;
+	PacketReliability reliability = packet.reliability;
+	if (isLatestStateOnly(bitStream.GetData()[0])) {
+		priority = LOW_PRIORITY;
+		reliability = UNRELIABLE;
+	}
+	peer->Send(&bitStream, priority, reliability, 0, target, broadcast);
+}
+
+} // namespace
+
 void WebRakNetInstance::send(Packet& packet)
 {
 	RakNet::BitStream bitStream;
@@ -504,12 +556,12 @@ void WebRakNetInstance::send(Packet& packet)
 	if (_isServer)
 	{
 		// broadcast to all connected clients
-		_peer->Send(&bitStream, packet.priority, packet.reliability, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+		sendClassified(_peer, bitStream, packet, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 	}
 	else
 	{
 		// send to server
-		_peer->Send(&bitStream, packet.priority, packet.reliability, 0, _serverGuid, false);
+		sendClassified(_peer, bitStream, packet, _serverGuid, false);
 	}
 }
 
@@ -518,7 +570,7 @@ void WebRakNetInstance::send(const RakNet::RakNetGUID& guid, Packet& packet)
 	RakNet::BitStream bitStream;
 	packet.write(&bitStream);
 	dbgCount(true, bitStream.GetData()[0]);
-	_peer->Send(&bitStream, packet.priority, packet.reliability, 0, guid, false);
+	sendClassified(_peer, bitStream, packet, guid, false);
 }
 
 void WebRakNetInstance::send(Packet* packet)
