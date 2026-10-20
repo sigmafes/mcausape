@@ -44,8 +44,10 @@ void PlayerRenderer::setupRotations( Entity* mob, float bob, float bodyRot, floa
 }
 
 void PlayerRenderer::renderName( Mob* mob, float x, float y, float z ){
-	//@todo: figure out how to handle HideGUI
-	if (mob != entityRenderDispatcher->cameraEntity && mob->level->adventureSettings.showNameTags) {
+	// Not gated on adventureSettings.showNameTags any more: it starts false and
+	// nothing in the game ever turns it on, so names were never drawn. The only
+	// other players are in multiplayer, which is exactly where they belong.
+	if (mob != entityRenderDispatcher->cameraEntity) {
 		renderNameTag(mob, ((Player*)mob)->name, x, y, z, 32);
 	}
 }
