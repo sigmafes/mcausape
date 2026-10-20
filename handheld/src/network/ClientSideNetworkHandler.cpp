@@ -39,7 +39,8 @@ ClientSideNetworkHandler::ClientSideNetworkHandler(Minecraft* minecraft, IRakNet
 	raknetInstance(raknetInstance),
 	level(NULL),
 	requestNextChunkPosition(0),
-    requestNextChunkIndex(0)
+    requestNextChunkIndex(0),
+	numChunksLoaded(0)
 {
 	rakPeer = raknetInstance->getPeer();
 }
@@ -66,7 +67,11 @@ void ClientSideNetworkHandler::requestNextChunk()
 
 bool ClientSideNetworkHandler::areAllChunksLoaded()
 {
-	return (requestNextChunkPosition >= (CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH));
+	// Counted on arrival, not on request. With MaxInFlightChunkRequests out at
+	// once, "the last one has been asked for" comes that many replies before
+	// "the last one is here" -- and this is what decides when buffered block
+	// updates are applied and READY_REQUESTEDCHUNKS is sent.
+	return numChunksLoaded >= NumRequestChunks;
 }
 
 bool ClientSideNetworkHandler::isChunkLoaded(int x, int z)
@@ -579,7 +584,11 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChunkDat
 	//chunk->terrainPopulated = true;
 	chunk->unsaved = false;
 
-	chunksLoaded[packet->x * CHUNK_CACHE_WIDTH + packet->z] = true;
+	bool& loaded = chunksLoaded[packet->x * CHUNK_CACHE_WIDTH + packet->z];
+	if (!loaded) {
+		loaded = true;
+		++numChunksLoaded;
+	}
 	{ static int dbgChunks = 0; ++dbgChunks; if (dbgChunks == 1 || dbgChunks % 64 == 0 || areAllChunksLoaded()) LOGI("[dbg] C chunk %d (all=%d)\n", dbgChunks, (int) areAllChunksLoaded()); }
 
 	if (areAllChunksLoaded())
@@ -931,4 +940,5 @@ void ClientSideNetworkHandler::clearChunksLoaded()
 		requestNextChunkIndexList[i].y = i%CHUNK_WIDTH;
 		chunksLoaded[i] = false;
 	}
+	numChunksLoaded = 0;
 }

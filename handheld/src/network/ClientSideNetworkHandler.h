@@ -111,6 +111,7 @@ private:
     int requestNextChunkIndex;
     IntPair requestNextChunkIndexList[NumRequestChunks];
 	bool chunksLoaded[NumRequestChunks];
+	int numChunksLoaded;
 };
 
 #endif
