@@ -83,6 +83,8 @@ public:
 	void toggle(Options* options);
 	void updateImage(Options* options);
 
+	void render(Minecraft* minecraft, int xm, int ym);
+
 	static const int ButtonId = 9999999;
 protected:
 	bool isSecondImage(bool hovered);

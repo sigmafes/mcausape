@@ -153,6 +153,7 @@ options.group.touch=Touch
 options.group.graphics=Graphics
 options.group.camera=Camera
 options.group.volume=Volume
+options.fullscreen=Fullscreen
 options.renderDistance=Render Distance
 options.renderDistance.tiny=Tiny
 options.renderDistance.short=Short

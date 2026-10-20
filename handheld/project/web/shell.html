@@ -58,51 +58,41 @@
     /* Keep the blocky textures blocky. */
     image-rendering: pixelated;
   }
-  /* The page's own controls float over the bottom edge instead of sitting under
-     the canvas and taking height away from it. They step aside while the game
-     holds the mouse, which is the moment the whole tab is meant to be the game. */
-  #chrome {
+  /* The page has nothing of its own on screen: every control is a menu item
+     in the game now. What is left is the loading line before the game is up
+     and the toast the game uses to report things that finish later. Neither
+     takes clicks -- the whole tab is the game. */
+  #status, #toast {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 8px;
-    background: rgba(0, 0, 0, 0.55);
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 32px);
+    box-sizing: border-box;
+    padding: 6px 12px;
+    font-size: 13px;
     text-align: center;
-  }
-  body.grabbed #chrome { display: none; }
-  /* In fullscreen the canvas is the only thing that should be on screen. */
-  #wrap:fullscreen #chrome { display: none; }
-
-  #status { font-size: 13px; min-height: 1.2em; }
-  #saves { display: flex; gap: 8px; align-items: center; }
-  button {
-    font: inherit;
-    font-size: 12px;
-    color: #ddd;
-    background: #333;
-    border: 1px solid #4a4a4a;
+    pointer-events: none;
     border-radius: 4px;
-    padding: 5px 12px;
-    cursor: pointer;
   }
-  button:hover:not(:disabled) { background: #3d3d3d; }
-  button:disabled { opacity: 0.4; cursor: default; }
-  #saveMsg { font-size: 12px; color: #7a9; min-height: 1.2em; }
-
-  /* The launch overlay and the exit button belong to the touch layout only. */
-  #launch, #exit { display: none; }
+  #status { top: 50%; margin-top: -1em; }
+  #status:empty { display: none; }
+  #toast {
+    bottom: max(48px, env(safe-area-inset-bottom));
+    background: rgba(0, 0, 0, 0.7);
+    color: #eee;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 15;
+  }
+  #toast.shown { opacity: 1; }
+  #toast.error { color: #f99; }
 
   /* ---------------------------------------------------------------------
      Touch layout.
 
      A phone has one useful piece of screen and the game should have all of
      it, so the canvas is pinned to the viewport rather than laid out in the
-     flow, and everything else moves into the launch overlay on top of it.
+     flow.
      --------------------------------------------------------------------- */
   html.touch, html.touch body {
     position: fixed;
@@ -117,61 +107,6 @@
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
-  /* The touch layout keeps its own controls in #launch, so the floating bar has
-     nothing left to show. */
-  html.touch #chrome { display: none; }
-
-  html.touch #launch {
-    display: flex;
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    /* Under the notch, but not under the text. */
-    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
-             max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-    box-sizing: border-box;
-    background: #1a1a1a;
-    overflow-y: auto;
-    touch-action: pan-y;
-    z-index: 10;
-  }
-  html.touch #launch.hidden { display: none; }
-  #launchTitle { font-size: 15px; letter-spacing: 0.06em; text-align: center; }
-  #launchTitle small { display: block; margin-top: 4px; color: #888; font-size: 12px; letter-spacing: 0; }
-  #playBtn {
-    font-size: 17px;
-    padding: 14px 34px;
-    background: #3b6b3b;
-    border-color: #4e8a4e;
-    color: #eaffea;
-    border-radius: 6px;
-  }
-  #playBtn:disabled { background: #333; border-color: #4a4a4a; color: #999; }
-  #rotateHint { font-size: 12px; color: #c9a227; min-height: 1.2em; text-align: center; }
-
-  /* Small, dim, and in the one corner the game draws nothing in -- the pause
-     button is top-right, the d-pad bottom-left, the hotbar along the bottom. */
-  html.touch #exit {
-    display: block;
-    position: absolute;
-    top: max(6px, env(safe-area-inset-top));
-    left: max(6px, env(safe-area-inset-left));
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    font-size: 15px;
-    line-height: 34px;
-    border-radius: 17px;
-    background: rgba(0, 0, 0, 0.35);
-    border-color: rgba(255, 255, 255, 0.25);
-    color: rgba(255, 255, 255, 0.65);
-    z-index: 5;
-  }
-  html.touch #exit.hidden { display: none; }
-
   /* ---------------------------------------------------------------------
      The game's text-entry dialog.
 
@@ -224,7 +159,17 @@
   }
   .dialogField input:focus { outline: none; border-color: #4e8a4e; }
   #dialogButtons { display: flex; gap: 8px; justify-content: flex-end; }
-  #dialogButtons button { font-size: 13px; padding: 8px 16px; }
+  #dialogButtons button {
+    font: inherit;
+    font-size: 13px;
+    padding: 8px 16px;
+    color: #ddd;
+    background: #333;
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #dialogButtons button:hover { background: #3d3d3d; }
   #dialogOk { background: #3b6b3b; border-color: #4e8a4e; color: #eaffea; }
   #dialogOk:hover:not(:disabled) { background: #457a45; }
 </style>
@@ -234,29 +179,13 @@
     <canvas id="canvas" width="854" height="480" tabindex="-1"
             oncontextmenu="event.preventDefault()"></canvas>
 
-    <div id="chrome">
-      <div id="status">Loading…</div>
-      <div id="saves">
-        <button id="fullscreenBtn">Fullscreen</button>
-        <button id="exportBtn" disabled>Download worlds</button>
-        <button id="importBtn" disabled>Restore worlds…</button>
-        <input id="importFile" type="file" accept=".zip,application/zip" hidden>
-      </div>
-      <div id="saveMsg"></div>
-    </div>
+    <div id="status">Loading…</div>
+    <div id="toast"></div>
 
-    <!-- Touch only. Populated with the save buttons at startup so there is one
-         set of them rather than two that can disagree. -->
-    <div id="launch">
-      <div id="launchTitle">
-        MINECRAFT POCKET EDITION
-        <small>v0.6.1 alpha</small>
-      </div>
-      <button id="playBtn" disabled>Loading…</button>
-      <div id="rotateHint"></div>
-    </div>
-
-    <button id="exit" class="hidden" title="Menu" aria-label="Menu">☰</button>
+    <!-- What the game's Import buttons open. Never shown; see mcpeSaves and
+         mcpeSkin below. -->
+    <input id="worldFile" type="file" accept=".zip,application/zip" multiple hidden>
+    <input id="skinFile" type="file" accept="image/png" hidden>
 
     <div id="dialog" class="hidden">
       <form id="dialogPanel" autocomplete="off">
@@ -283,12 +212,9 @@
       setStatus: function (text) { statusEl.textContent = text || ''; },
       onRuntimeInitialized: function () {
         statusEl.textContent = '';
-        document.getElementById('exportBtn').disabled = false;
-        document.getElementById('importBtn').disabled = false;
         // Nothing may call into the wasm before this point; see mcpeReady.
         window.mcpeReady = true;
         fitCanvas();
-        if (window.mcpeOnReady) window.mcpeOnReady();
       }
     };
 
@@ -418,16 +344,15 @@
     }
 
     window.mcpeFullscreen = {
+      // Whether there is any element fullscreen to ask for. An iPhone has none,
+      // and the game leaves its Fullscreen toggle out when this says so.
+      supported: function () {
+        return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+      },
       is: isFullscreen,
       enter: function () { return requestFullscreen().then(lockLandscape, lockLandscape); },
       exit: function () { unlockOrientation(); return exitFullscreen(); }
     };
-
-    document.getElementById('fullscreenBtn').addEventListener('click', function () {
-      if (isFullscreen()) window.mcpeFullscreen.exit();
-      else window.mcpeFullscreen.enter();
-      canvas.focus();
-    });
 
     // --- pointer lock (desktop only) ----------------------------------------
 
@@ -446,9 +371,6 @@
     // lock and the keypress never reaches the page. Tell the game so it stops
     // believing it still holds the cursor.
     document.addEventListener('pointerlockchange', function () {
-      // Holding the mouse means the player is in the world, so the page's own
-      // bar gets out of the way. Released, it comes back.
-      document.body.classList.toggle('grabbed', !!document.pointerLockElement);
       if (!document.pointerLockElement && window.mcpeReady && window.Module && Module._mcpe_pointerlock_lost)
         Module._mcpe_pointerlock_lost();
     });
@@ -457,81 +379,21 @@
 
   <script>
   // ---------------------------------------------------------------------------
-  // The touch front page.
+  // Touch: the page must not scroll, zoom or bounce.
   //
-  // A phone gets one screen and no keyboard, so the page has to hand the whole
-  // of it to the game and put everything else -- fullscreen, orientation, the
-  // save buttons -- behind a single tap. That tap is also the user gesture the
-  // browser insists on before it will grant fullscreen, lock the orientation or
-  // start the audio context, which is why they all happen together.
+  // Those gestures belong to the game. There used to be a launch screen here
+  // whose one big button doubled as the user gesture for fullscreen; the game's
+  // own Options > Graphics > Fullscreen is that gesture now, and the game starts
+  // straight away.
   // ---------------------------------------------------------------------------
   (function () {
     if (!window.mcpeTouch) return;
 
-    var launch  = document.getElementById('launch');
-    var playBtn = document.getElementById('playBtn');
-    var exitBtn = document.getElementById('exit');
-    var rotate  = document.getElementById('rotateHint');
-
-    // One set of save controls, moved rather than duplicated.
-    launch.appendChild(document.getElementById('saves'));
-    launch.appendChild(document.getElementById('saveMsg'));
-    document.getElementById('fullscreenBtn').remove();
-
-    function portrait() {
-      return window.innerHeight > window.innerWidth;
-    }
-
-    function updateRotateHint() {
-      rotate.textContent = portrait() ? 'Turn your phone sideways to play' : '';
-    }
-    updateRotateHint();
-    window.addEventListener('resize', updateRotateHint);
-    window.addEventListener('orientationchange', updateRotateHint);
-
-    window.mcpeOnReady = function () {
-      playBtn.disabled = false;
-      playBtn.textContent = '▶  Play fullscreen';
-    };
-
-    function show() {
-      launch.classList.remove('hidden');
-      exitBtn.classList.add('hidden');
-      updateRotateHint();
-    }
-
-    function hide() {
-      launch.classList.add('hidden');
-      exitBtn.classList.remove('hidden');
-      window.fitCanvas();
-    }
-
-    playBtn.addEventListener('click', function () {
-      // Hide first: fullscreen may be refused (an iPhone has no element
-      // fullscreen) and the game should start regardless.
-      hide();
-      window.mcpeFullscreen.enter();
-    });
-
-    exitBtn.addEventListener('click', function () {
-      window.mcpeFullscreen.exit();
-      show();
-    });
-
-    // Deliberately not re-shown when fullscreen ends. Fullscreen goes away for
-    // reasons that have nothing to do with wanting the menu -- naming a world
-    // opens a prompt(), and Chrome drops fullscreen for any modal dialog -- and
-    // putting the launch screen back over a running game each time is worse
-    // than sitting in the browser's own chrome. The button is the way back.
-
-    // The page itself must not scroll, zoom or bounce -- those gestures belong
-    // to the game. The overlays are the exception: both the launch screen and
-    // the text dialog can be taller than a phone held sideways, especially with
-    // the keyboard up, and a panel you cannot scroll to the bottom of is a
-    // button you cannot press.
+    // The text dialog is the exception: it can be taller than a phone held
+    // sideways with the keyboard up, and a panel you cannot scroll to the
+    // bottom of is a button you cannot press.
     var dialogPanel = document.getElementById('dialogPanel');
     document.addEventListener('touchmove', function (e) {
-      if (!launch.classList.contains('hidden') && launch.contains(e.target)) return;
       if (dialogPanel && dialogPanel.contains(e.target)) return;
       e.preventDefault();
     }, { passive: false });
@@ -545,21 +407,53 @@
 
   <script>
   // ---------------------------------------------------------------------------
-  // Save export / import.
+  // A line over the game for the results of things that finish after the click
+  // that started them: a download, an import, a skin that would not load.
+  // ---------------------------------------------------------------------------
+  (function () {
+    var el = document.getElementById('toast');
+    var timer = null;
+    window.mcpeToast = function (text, isError) {
+      el.textContent = text;
+      el.classList.toggle('error', !!isError);
+      el.classList.add('shown');
+      clearTimeout(timer);
+      timer = setTimeout(function () { el.classList.remove('shown'); }, 4000);
+    };
+  })();
+  </script>
+
+  <script>
+  // ---------------------------------------------------------------------------
+  // World export / import, and the profile skin.
   //
   // Worlds live in IndexedDB, which the browser is free to evict and which any
-  // "clear browsing data" wipes. These two buttons move the save tree in and out
-  // as an ordinary .zip so a world can be kept, backed up or moved to another
-  // machine. Written by hand rather than pulled from a library so the page stays
-  // a single self-contained file with no external requests.
+  // "clear browsing data" wipes. The world list's Export and Import buttons
+  // move one world out, or any number in, as an ordinary .zip, so a world can
+  // be kept, backed up or moved to another machine. Written by hand rather than
+  // pulled from a library so the page stays one file with no external requests.
+  //
+  // The skin is a PNG kept beside the worlds, so it survives a reload the same
+  // way they do, and decoded here because the browser already has a PNG
+  // decoder and the game does not need a second one.
+  //
+  // The game calls all of this through WebBridge.cpp, from a button handler,
+  // which is late enough to be a frame after the click and early enough to
+  // still count as one: a file picker opens only from a user gesture.
   // ---------------------------------------------------------------------------
   (function () {
     var SAVES = '/saves';
-    var msgEl = document.getElementById('saveMsg');
+    var WORLDS = SAVES + '/games/com.mojang/minecraftWorlds';
+    var SKIN = SAVES + '/mcpe_skin.png';
 
-    function say(text, isError) {
-      msgEl.textContent = text;
-      msgEl.style.color = isError ? '#d77' : '#7a9';
+    function toast(text, isError) {
+      if (window.mcpeToast) window.mcpeToast(text, isError);
+    }
+
+    function flush() {
+      return new Promise(function (resolve, reject) {
+        Module.FS.syncfs(false, function (err) { err ? reject(err) : resolve(); });
+      });
     }
 
     // --- zip primitives ------------------------------------------------------
@@ -605,6 +499,115 @@
       };
     }
 
+    // [{path, data}] -> a zip Blob.
+    async function buildZip(files) {
+      var stamp = dosDateTime(new Date());
+      var chunks = [], central = [], offset = 0;
+
+      for (var i = 0; i < files.length; i++) {
+        var f = files[i];
+        var nameBytes = new TextEncoder().encode(f.path);
+        var raw = f.data;
+        var crc = crc32(raw);
+
+        var packed = await deflateRaw(raw);
+        var method = 8;
+        if (!packed || packed.length >= raw.length) { packed = raw; method = 0; }
+
+        var local = new Uint8Array(30 + nameBytes.length);
+        var lv = new DataView(local.buffer);
+        lv.setUint32(0, 0x04034b50, true);
+        lv.setUint16(4, 20, true);
+        lv.setUint16(8, method, true);
+        lv.setUint16(10, stamp.time, true);
+        lv.setUint16(12, stamp.date, true);
+        lv.setUint32(14, crc, true);
+        lv.setUint32(18, packed.length, true);
+        lv.setUint32(22, raw.length, true);
+        lv.setUint16(26, nameBytes.length, true);
+        local.set(nameBytes, 30);
+
+        var cd = new Uint8Array(46 + nameBytes.length);
+        var cv = new DataView(cd.buffer);
+        cv.setUint32(0, 0x02014b50, true);
+        cv.setUint16(4, 20, true);
+        cv.setUint16(6, 20, true);
+        cv.setUint16(10, method, true);
+        cv.setUint16(12, stamp.time, true);
+        cv.setUint16(14, stamp.date, true);
+        cv.setUint32(16, crc, true);
+        cv.setUint32(20, packed.length, true);
+        cv.setUint32(24, raw.length, true);
+        cv.setUint16(28, nameBytes.length, true);
+        cv.setUint32(42, offset, true);
+        cd.set(nameBytes, 46);
+
+        chunks.push(local, packed);
+        central.push(cd);
+        offset += local.length + packed.length;
+      }
+
+      var centralSize = central.reduce(function (n, c) { return n + c.length; }, 0);
+      var eocd = new Uint8Array(22);
+      var ev = new DataView(eocd.buffer);
+      ev.setUint32(0, 0x06054b50, true);
+      ev.setUint16(8, central.length, true);
+      ev.setUint16(10, central.length, true);
+      ev.setUint32(12, centralSize, true);
+      ev.setUint32(16, offset, true);
+
+      return new Blob(chunks.concat(central, [eocd]), { type: 'application/zip' });
+    }
+
+    // A zip's file entries as [{path, data}], directories and anything that
+    // would climb out of where it is unpacked left out.
+    async function readZip(file) {
+      var buf = new Uint8Array(await file.arrayBuffer());
+      var dv = new DataView(buf.buffer);
+
+      // Find the end-of-central-directory record by scanning backwards.
+      var eocd = -1;
+      for (var i = buf.length - 22; i >= 0 && i > buf.length - 65558; i--) {
+        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+      }
+      if (eocd < 0) throw new Error('not a zip file');
+
+      var count = dv.getUint16(eocd + 10, true);
+      var pos = dv.getUint32(eocd + 16, true);
+      var out = [];
+
+      for (var n = 0; n < count; n++) {
+        if (dv.getUint32(pos, true) !== 0x02014b50) throw new Error('bad central directory');
+
+        var method     = dv.getUint16(pos + 10, true);
+        var compSize   = dv.getUint32(pos + 20, true);
+        var nameLen    = dv.getUint16(pos + 28, true);
+        var extraLen   = dv.getUint16(pos + 30, true);
+        var commentLen = dv.getUint16(pos + 32, true);
+        var localAt    = dv.getUint32(pos + 42, true);
+        var name = new TextDecoder().decode(buf.subarray(pos + 46, pos + 46 + nameLen));
+        pos += 46 + nameLen + extraLen + commentLen;
+
+        name = name.replace(/\\/g, '/');
+        if (name.endsWith('/')) continue;
+        if (name.startsWith('/') || name.split('/').indexOf('..') !== -1) continue;
+        // What macOS's Finder adds to every zip it makes.
+        if (name.startsWith('__MACOSX/') || name.split('/').pop() === '.DS_Store') continue;
+
+        // The local header's name/extra lengths are authoritative for finding
+        // where the data actually starts, and may differ from the central copy.
+        var localNameLen  = dv.getUint16(localAt + 26, true);
+        var localExtraLen = dv.getUint16(localAt + 28, true);
+        var start = localAt + 30 + localNameLen + localExtraLen;
+        var data = buf.subarray(start, start + compSize);
+
+        if (method === 8) data = await inflateRaw(data);
+        else if (method !== 0) throw new Error('unsupported compression in ' + name);
+        out.push({ path: name, data: data });
+      }
+      return out;
+    }
+
     // --- walking the emscripten filesystem -----------------------------------
 
     function listFiles(dir, prefix, out) {
@@ -632,161 +635,166 @@
       });
     }
 
-    // --- export --------------------------------------------------------------
+    function exists(path) {
+      try { Module.FS.stat(path); return true; } catch (e) { return false; }
+    }
 
-    async function exportSaves() {
-      var files = listFiles(SAVES, '', []);
-      if (!files.length) { say('No worlds to download yet.', true); return; }
-
-      say('Packing ' + files.length + ' files…');
-
-      var stamp = dosDateTime(new Date());
-      var chunks = [], central = [], offset = 0;
-
-      for (var i = 0; i < files.length; i++) {
-        var f = files[i];
-        var nameBytes = new TextEncoder().encode(f.path);
-        var raw = f.data;
-        var crc = crc32(raw);
-
-        var packed = await deflateRaw(raw);
-        var method = 8;
-        if (!packed || packed.length >= raw.length) { packed = raw; method = 0; }
-
-        var local = new Uint8Array(30 + nameBytes.length);
-        var lv = new DataView(local.buffer);
-        lv.setUint32(0, 0x04034b50, true);
-        lv.setUint16(4, 20, true);
-        lv.setUint16(6, 0, true);
-        lv.setUint16(8, method, true);
-        lv.setUint16(10, stamp.time, true);
-        lv.setUint16(12, stamp.date, true);
-        lv.setUint32(14, crc, true);
-        lv.setUint32(18, packed.length, true);
-        lv.setUint32(22, raw.length, true);
-        lv.setUint16(26, nameBytes.length, true);
-        lv.setUint16(28, 0, true);
-        local.set(nameBytes, 30);
-
-        var cd = new Uint8Array(46 + nameBytes.length);
-        var cv = new DataView(cd.buffer);
-        cv.setUint32(0, 0x02014b50, true);
-        cv.setUint16(4, 20, true);
-        cv.setUint16(6, 20, true);
-        cv.setUint16(8, 0, true);
-        cv.setUint16(10, method, true);
-        cv.setUint16(12, stamp.time, true);
-        cv.setUint16(14, stamp.date, true);
-        cv.setUint32(16, crc, true);
-        cv.setUint32(20, packed.length, true);
-        cv.setUint32(24, raw.length, true);
-        cv.setUint16(28, nameBytes.length, true);
-        cv.setUint32(42, offset, true);
-        cd.set(nameBytes, 46);
-
-        chunks.push(local, packed);
-        central.push(cd);
-        offset += local.length + packed.length;
-      }
-
-      var centralSize = central.reduce(function (n, c) { return n + c.length; }, 0);
-      var eocd = new Uint8Array(22);
-      var ev = new DataView(eocd.buffer);
-      ev.setUint32(0, 0x06054b50, true);
-      ev.setUint16(8, central.length, true);
-      ev.setUint16(10, central.length, true);
-      ev.setUint32(12, centralSize, true);
-      ev.setUint32(16, offset, true);
-
-      var blob = new Blob(chunks.concat(central, [eocd]), { type: 'application/zip' });
+    function download(blob, filename) {
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = 'mcpe-worlds-' + new Date().toISOString().slice(0, 10) + '.zip';
+      a.download = filename;
       a.click();
       setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-
-      say('Downloaded ' + files.length + ' files (' + (blob.size / 1048576).toFixed(1) + ' MB).');
     }
 
-    // --- import --------------------------------------------------------------
+    // --- worlds --------------------------------------------------------------
 
-    async function importSaves(file) {
-      var buf = new Uint8Array(await file.arrayBuffer());
-      var dv = new DataView(buf.buffer);
+    // One world, as <id>/level.dat, <id>/chunks.dat and so on: unzipped, it is
+    // a folder named after the world, and the import below reads it back.
+    async function exportWorld(id) {
+      var files = listFiles(WORLDS + '/' + id, id, []);
+      if (!files.length) { toast('Nothing to export in ' + id, true); return; }
+      toast('Packing ' + id + '…');
+      var blob = await buildZip(files);
+      download(blob, id + '.zip');
+      toast('Exported ' + id + ' (' + (blob.size / 1048576).toFixed(1) + ' MB)');
+    }
 
-      // Find the end-of-central-directory record by scanning backwards.
-      var eocd = -1;
-      for (var i = buf.length - 22; i >= 0 && i > buf.length - 65558; i--) {
-        if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
-      }
-      if (eocd < 0) throw new Error('not a zip file');
-
-      var count = dv.getUint16(eocd + 10, true);
-      var pos = dv.getUint32(eocd + 16, true);
-      var written = 0;
-
-      for (var n = 0; n < count; n++) {
-        if (dv.getUint32(pos, true) !== 0x02014b50) throw new Error('bad central directory');
-
-        var method     = dv.getUint16(pos + 10, true);
-        var compSize   = dv.getUint32(pos + 20, true);
-        var nameLen    = dv.getUint16(pos + 28, true);
-        var extraLen   = dv.getUint16(pos + 30, true);
-        var commentLen = dv.getUint16(pos + 32, true);
-        var localAt    = dv.getUint32(pos + 42, true);
-        var name = new TextDecoder().decode(buf.subarray(pos + 46, pos + 46 + nameLen));
-        pos += 46 + nameLen + extraLen + commentLen;
-
-        if (name.endsWith('/')) continue;
-        // Refuse anything that would escape the save directory.
-        if (name.startsWith('/') || name.split('/').indexOf('..') !== -1) continue;
-
-        // The local header's name/extra lengths are authoritative for finding
-        // where the data actually starts, and may differ from the central copy.
-        var localNameLen  = dv.getUint16(localAt + 26, true);
-        var localExtraLen = dv.getUint16(localAt + 28, true);
-        var start = localAt + 30 + localNameLen + localExtraLen;
-        var data = buf.subarray(start, start + compSize);
-
-        if (method === 8) data = await inflateRaw(data);
-        else if (method !== 0) throw new Error('unsupported compression in ' + name);
-
-        var full = SAVES + '/' + name;
-        mkdirTree(full.slice(0, full.lastIndexOf('/')));
-        Module.FS.writeFile(full, data);
-        written++;
-      }
-
-      // Push straight through to IndexedDB, then reload so the game re-reads the
-      // world list from a clean start rather than from whatever it had cached.
-      await new Promise(function (resolve, reject) {
-        Module.FS.syncfs(false, function (err) { err ? reject(err) : resolve(); });
+    // A world is wherever a level.dat is, so this takes the zips the export
+    // above makes, a zip of a bare world folder, and the whole-saves backups the
+    // page's old "Download worlds" button made (games/com.mojang/...) alike.
+    // A world whose folder name is taken comes in beside it, not over it.
+    async function importZip(file, taken) {
+      var entries = await readZip(file);
+      var roots = [];
+      entries.forEach(function (e) {
+        var parts = e.path.split('/');
+        if (parts.pop() === 'level.dat') roots.push(parts.join('/'));
       });
+      if (!roots.length) throw new Error('no world in ' + file.name);
 
-      say('Restored ' + written + ' files. Reloading…');
-      setTimeout(function () { location.reload(); }, 1200);
+      var imported = 0;
+      roots.forEach(function (root) {
+        var base = root ? root.split('/').pop() : file.name.replace(/\.zip$/i, '');
+        // What the game itself refuses in a folder name.
+        var id = base.replace(/[\/\n\r\t\0\f`?*\\<>|":]/g, '') || 'imported';
+        while (taken[id]) id += '-';
+        taken[id] = true;
+
+        var prefix = root ? root + '/' : '';
+        entries.forEach(function (e) {
+          if (prefix && e.path.indexOf(prefix) !== 0) return;
+          var rel = e.path.slice(prefix.length);
+          var full = WORLDS + '/' + id + '/' + rel;
+          mkdirTree(full.slice(0, full.lastIndexOf('/')));
+          Module.FS.writeFile(full, e.data);
+        });
+        imported++;
+      });
+      return imported;
     }
 
-    // --- wiring --------------------------------------------------------------
+    async function importWorlds(files) {
+      var taken = {};
+      try { Module.FS.readdir(WORLDS).forEach(function (n) { taken[n] = true; }); }
+      catch (e) { /* no worlds yet */ }
 
-    var importFile = document.getElementById('importFile');
+      var total = 0, failed = [];
+      for (var i = 0; i < files.length; i++) {
+        try { total += await importZip(files[i], taken); }
+        catch (e) { failed.push(files[i].name); console.error('mcpe: import', files[i].name, e); }
+      }
+      if (total) {
+        await flush();
+        changed = true;
+      }
+      if (failed.length)
+        toast((total ? 'Imported ' + total + '; could not read ' : 'Could not read ') + failed.join(', '), true);
+      else
+        toast('Imported ' + total + (total === 1 ? ' world' : ' worlds'));
+    }
 
-    document.getElementById('exportBtn').addEventListener('click', function () {
-      exportSaves().catch(function (e) { say('Download failed: ' + e.message, true); });
+    var changed = false;
+    var worldFile = document.getElementById('worldFile');
+    worldFile.addEventListener('change', function () {
+      var files = Array.prototype.slice.call(worldFile.files);
+      worldFile.value = '';
+      if (!files.length) return;
+      toast('Importing…');
+      importWorlds(files).catch(function (e) { toast('Import failed: ' + e.message, true); });
     });
 
-    document.getElementById('importBtn').addEventListener('click', function () {
-      importFile.click();
-    });
+    window.mcpeSaves = {
+      exportWorld: function (id) {
+        exportWorld(id).catch(function (e) { toast('Export failed: ' + e.message, true); });
+      },
+      importWorlds: function () { worldFile.click(); },
+      // Read by the world list each tick; true once per finished import.
+      takeChanged: function () { var c = changed; changed = false; return c; }
+    };
 
-    importFile.addEventListener('change', function () {
-      var file = importFile.files[0];
+    // --- skin ----------------------------------------------------------------
+
+    // PNG bytes -> {w, h, rgba}. premultiplyAlpha 'none' matters: the outer
+    // layer is mostly see-through pixels, and premultiplying would round the
+    // colour out of every one of them.
+    async function decodeSkin(blob) {
+      var bmp = await createImageBitmap(blob, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+      var w = bmp.width, h = bmp.height;
+      if (w !== 64 || (h !== 64 && h !== 32)) {
+        bmp.close && bmp.close();
+        throw new Error('a skin is 64x64 or 64x32 pixels; this is ' + w + 'x' + h);
+      }
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(bmp, 0, 0);
+      bmp.close && bmp.close();
+      return { w: w, h: h, rgba: ctx.getImageData(0, 0, w, h).data };
+    }
+
+    // Copies the pixels into the module's heap for the length of one call;
+    // Minecraft::setLocalSkin keeps its own copy.
+    function giveToGame(img) {
+      if (!window.mcpeReady || !Module._mcpe_skin_set) return;
+      var ptr = Module._malloc(img.rgba.length);
+      (Module.HEAPU8 || HEAPU8).set(img.rgba, ptr);
+      Module._mcpe_skin_set(ptr, img.w, img.h);
+      Module._free(ptr);
+    }
+
+    var skinFile = document.getElementById('skinFile');
+    skinFile.addEventListener('change', function () {
+      var file = skinFile.files[0];
+      skinFile.value = '';
       if (!file) return;
-      say('Restoring from ' + file.name + '…');
-      importSaves(file).catch(function (e) { say('Restore failed: ' + e.message, true); });
-      importFile.value = '';
+      (async function () {
+        var img = await decodeSkin(file);
+        Module.FS.writeFile(SKIN, new Uint8Array(await file.arrayBuffer()));
+        giveToGame(img);
+        await flush();
+        toast('Skin changed');
+      })().catch(function (e) { toast('Not a skin: ' + e.message, true); });
     });
+
+    window.mcpeSkin = {
+      pick: function () { skinFile.click(); },
+      reset: function () {
+        if (exists(SKIN)) {
+          try { Module.FS.unlink(SKIN); } catch (e) { /* gone already */ }
+          flush().catch(function () {});
+        }
+        toast('Skin reset');
+      },
+      loadSaved: function () {
+        if (!exists(SKIN)) return;
+        var bytes = Module.FS.readFile(SKIN);
+        decodeSkin(new Blob([bytes], { type: 'image/png' }))
+          .then(giveToGame)
+          .catch(function (e) { console.error('mcpe: saved skin unreadable', e); });
+      }
+    };
   })();
   </script>
 

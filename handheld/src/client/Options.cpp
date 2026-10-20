@@ -47,6 +47,7 @@ void Options::initDefaultValues() {
 	//skin     = "Default";
 	username = "Steve";
 	serverVisible = true;
+	fullscreen = false;
 
 	keyUp	 = KeyMapping("key.forward", Keyboard::KEY_W);
 	keyLeft  = KeyMapping("key.left", Keyboard::KEY_A);
@@ -173,7 +174,8 @@ const Options::Option
 	Options::Option::USE_TOUCHSCREEN	 (16, "options.usetouchscreen", false, true),
 	Options::Option::USE_TOUCH_JOYPAD	 (17, "options.usetouchpad", false, true),
 	Options::Option::DESTROY_VIBRATION   (18, "options.destroyvibration", false, true),
-	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false);
+	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false),
+	Options::Option::FULLSCREEN			 (20, "options.fullscreen", false, true);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -226,7 +228,7 @@ void Options::update()
         //LOGI("reading key: %s (%s)\n", key.c_str(), value.c_str());
         
 		// Multiplayer
-		if (key == OptionStrings::Multiplayer_Username) username = value;
+		if (key == OptionStrings::Multiplayer_Username) username = sanitizeUsername(value);
 		if (key == OptionStrings::Multiplayer_ServerVisible) readBool(value, serverVisible);
 
 		// Controls
@@ -341,6 +343,9 @@ void Options::save()
 {
 	StringVector stringVec;
 	// Game
+	// Read back by update() since 2013 but never written, so it could only
+	// ever be the "Steve" from initDefaultValues -- which is who everyone was.
+	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_Username, username);
 	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_ServerVisible, serverVisible);
 	addOptionToSaveOutput(stringVec, OptionStrings::Game_DifficultyLevel, difficulty);
 
@@ -410,6 +415,23 @@ void Options::save()
 	//    e.printStackTrace();
 	//}
 }
+void Options::addOptionToSaveOutput(StringVector& stringVector, std::string name, const std::string& stringValue) {
+	stringVector.push_back(name + ":" + stringValue);
+}
+
+std::string Options::sanitizeUsername(const std::string& name) {
+	std::string out;
+	for (unsigned int i = 0; i < name.size() && out.size() < 16; ++i) {
+		const char c = name[i];
+		if (c >= 32 && c < 127)
+			out += c;
+	}
+	// Leading/trailing spaces would make two names that look alike.
+	while (!out.empty() && out[0] == ' ') out.erase(0, 1);
+	while (!out.empty() && out[out.size() - 1] == ' ') out.erase(out.size() - 1);
+	return out.empty() ? std::string("Steve") : out;
+}
+
 void Options::addOptionToSaveOutput(StringVector& stringVector, std::string name, bool boolValue) {
 	std::stringstream ss;
 	ss << name << ":" << boolValue;

@@ -11,6 +11,7 @@
 #include "../platform/input/Keyboard.h"
 #include "../util/StringUtils.h"
 #include "OptionsFile.h"
+#include "../platform/web/WebBridge.h"
 
 class Minecraft;
 typedef std::vector<std::string> StringVector;
@@ -48,6 +49,7 @@ public:
 		static const Option DESTROY_VIBRATION;
 
 		static const Option PIXELS_PER_MILLIMETER;
+		static const Option FULLSCREEN;
 
 		/*
         static Option* getItem(int id) {
@@ -122,6 +124,11 @@ public:
 	bool useMouseForDigging;
 	bool isLeftHanded;
 	bool destroyVibration;
+	// The browser's fullscreen, mirrored so it can sit in the options as a
+	// toggle. Never saved: a page cannot go fullscreen without a click, so
+	// there is nothing to restore at startup, and the browser can leave it
+	// (Escape) without asking -- OptionsScreen reads it back when it opens.
+	bool fullscreen;
     //std::string skin;
 
     KeyMapping keyUp;
@@ -251,6 +258,10 @@ public:
 		if (option == &Option::USE_TOUCHSCREEN) useTouchScreen = !useTouchScreen;
 		if (option == &Option::USE_TOUCH_JOYPAD) isJoyTouchArea = !isJoyTouchArea;
 		if (option == &Option::DESTROY_VIBRATION) destroyVibration = !destroyVibration;
+		if (option == &Option::FULLSCREEN) {
+			fullscreen = !fullscreen;
+			WebBridge::setFullscreen(fullscreen);
+		}
 		if (option == &Option::ANAGLYPH) {
             anaglyph3d = !anaglyph3d;
             //minecraft->textures.reloadAll();
@@ -314,6 +325,8 @@ public:
 			return isJoyTouchArea;
 		if (item == &Option::DESTROY_VIBRATION)
 			return destroyVibration;
+		if (item == &Option::FULLSCREEN)
+			return fullscreen;
 		return false;
 	}
 
@@ -355,6 +368,12 @@ public:
 	void addOptionToSaveOutput(StringVector& stringVector, std::string name, bool boolValue);
 	void addOptionToSaveOutput(StringVector& stringVector, std::string name, float floatValue);
 	void addOptionToSaveOutput(StringVector& stringVector, std::string name, int intValue);
+	void addOptionToSaveOutput(StringVector& stringVector, std::string name, const std::string& stringValue);
+
+	/** What a typed player name becomes before it is kept: at most 16
+	    characters -- what Minecraft allows, and what fits a name tag -- of
+	    printable ASCII, which is all the font has. Blank comes back as "Steve". */
+	static std::string sanitizeUsername(const std::string& name);
 	void notifyOptionUpdate(const Option* option, bool value);
 	void notifyOptionUpdate(const Option* option, float value);
 	void notifyOptionUpdate(const Option* option, int value);

@@ -103,6 +103,12 @@ private:
 	std::string getUniqueLevelName(const std::string& level);
 
 	ImageButton bDelete;
+	// Either side of Delete, moving a world in or out of the browser as a .zip.
+	// IndexedDB is the only place a world lives otherwise, and any "clear
+	// browsing data" empties it. These used to be HTML buttons laid over the
+	// game; hidden off the web, where the saves are ordinary files.
+	TButton bExport;
+	TButton bImport;
 	TButton bCreate;
 	THeader bHeader;
 	TButton bBack;

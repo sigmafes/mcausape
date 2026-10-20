@@ -151,6 +151,15 @@ void OptionButton::updateImage(Options* options) {
 	}
 }
 
+void OptionButton::render(Minecraft* minecraft, int xm, int ym) {
+	// Read the setting every frame rather than only when this button flips it.
+	// Fullscreen can change behind the button's back -- Escape, or the browser
+	// refusing the request -- and a toggle that keeps showing the old state
+	// is worse than none.
+	updateImage(&minecraft->options);
+	super::render(minecraft, xm, ym);
+}
+
 void OptionButton::mouseClicked( Minecraft* minecraft, int x, int y, int buttonNum ) {
 	if(buttonNum == MouseAction::ACTION_LEFT) {
 		if(clicked(minecraft, x, y)) {

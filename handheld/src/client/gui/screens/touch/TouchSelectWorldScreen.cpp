@@ -10,6 +10,7 @@
 #include "../../../../util/StringUtils.h"
 #include "../../../../util/Mth.h"
 #include "../../../../platform/input/Mouse.h"
+#include "../../../../platform/web/WebBridge.h"
 #include "../../../../Performance.h"
 
 #include <algorithm>
@@ -277,6 +278,8 @@ void TouchWorldSelectionList::tweenInited() {
 //
 SelectWorldScreen::SelectWorldScreen()
 :	bDelete (1, ""),
+	bExport (5, "Export"),
+	bImport (6, "Import"),
 	bCreate (2, "Create new"),
 	bBack   (3, "Back"),
 	bHeader (0, "Select world"),
@@ -320,11 +323,19 @@ void SelectWorldScreen::init()
 	buttons.push_back(&bCreate);
 	buttons.push_back(&bBack);
 	buttons.push_back(&bHeader);
+	if (WebBridge::supported()) {
+		buttons.push_back(&bExport);
+		buttons.push_back(&bImport);
+	}
 
 	_mouseHasBeenUp = !Mouse::getButtonState(MouseAction::ACTION_LEFT);
 
 	tabButtons.push_back(&bWorldView);
 	tabButtons.push_back(&bDelete);
+	if (WebBridge::supported()) {
+		tabButtons.push_back(&bExport);
+		tabButtons.push_back(&bImport);
+	}
 	tabButtons.push_back(&bCreate);
 	tabButtons.push_back(&bBack);
 }
@@ -338,6 +349,10 @@ void SelectWorldScreen::setupPositions() {
 
 	// Center buttons
 	bDelete.x   = (width - bDelete.width) / 2;
+	bExport.y = bImport.y = bDelete.y;
+	bExport.height = bImport.height = bDelete.height;
+	bExport.x = bDelete.x - 6 - bExport.width;
+	bImport.x = bDelete.x + bDelete.width + 6;
 	bCreate.x   = width - bCreate.width;//width / 2					- bCreate.w / 2;
 	bBack.x     = 0;//width / 2 + 4 + bCreate.w - bBack.w / 2;
 	bHeader.x   = bBack.width;
@@ -359,6 +374,15 @@ void SelectWorldScreen::buttonClicked(Button* button)
 			LOGI("level: %s, %s\n", level.id.c_str(), level.name.c_str());
 			minecraft->setScreen( new TouchDeleteWorldScreen(level) );
 		}
+	}
+	if (button->id == bExport.id) {
+		if (isIndexValid(worldsList->selectedItem))
+			WebBridge::exportWorld(worldsList->levels[worldsList->selectedItem].id);
+	}
+	if (button->id == bImport.id) {
+		// The page reads, unpacks and saves the file, then says so through
+		// takeWorldsChanged() -- see tick().
+		WebBridge::importWorlds();
 	}
 	if (button->id == bBack.id) {
 		minecraft->cancelLocateMultiplayer();
@@ -387,6 +411,12 @@ bool SelectWorldScreen::isIndexValid( int index )
 
 void SelectWorldScreen::tick()
 {
+	// An import finished: the list on screen was read before it, so build the
+	// screen again rather than teach the carousel to grow in place.
+	if (WebBridge::takeWorldsChanged() && !_hasStartedLevel) {
+		minecraft->screenChooser.setScreen(SCREEN_SELECTWORLD);
+		return;
+	}
 
 	worldsList->tick();
 
@@ -414,6 +444,7 @@ void SelectWorldScreen::tick()
 	}
 
 	bDelete.active = isIndexValid(worldsList->selectedItem);
+	bExport.active = bDelete.active;
 }
 
 void SelectWorldScreen::render( int xm, int ym, float a )

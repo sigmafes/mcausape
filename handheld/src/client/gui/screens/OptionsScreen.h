@@ -30,7 +30,33 @@ public:
 	virtual void mouseClicked( int x, int y, int buttonNum );
 	virtual void mouseReleased( int x, int y, int buttonNum );
 	virtual void tick();
+	virtual void keyPressed(int eventKey);
+	virtual void keyboardNewChar(char inputChar);
+	virtual bool handleBackEvent(bool isDown);
 private:
+	void close();
+
+	// The Profile tab is drawn by this screen rather than built from an
+	// OptionsGroup: a text box and two action buttons are not options, and
+	// the panes only know how to show those.
+	void layoutProfile();
+	void renderProfile();
+	void renderSkinFace(int x, int y, int size);
+	void commitName();
+	bool profileShown() const { return selectedCategory == ProfileCategory; }
+
+	static const int ProfileCategory = 0;
+	static const int MaxNameLength = 16;
+
+	Touch::TButton* bImportSkin;
+	Touch::TButton* bResetSkin;
+	std::string nameDraft;
+	bool nameFocused;
+	bool awaitingName;	// the touch dialog for the name is open
+	int ticks;
+	int nameX, nameY, nameW, nameH;
+	int skinY;
+
 	Touch::THeader* bHeader;
 	ImageButton* btnClose;
 	std::vector<Touch::TButton*> categoryButtons;

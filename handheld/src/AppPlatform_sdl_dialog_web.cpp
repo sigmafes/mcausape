@@ -99,6 +99,11 @@ void AppPlatform_sdl::showDialog(int dialogId, const std::string& defaultValue)
 		mcpe_dialog_open("Rename world", "Rename", "New name", defaultValue.c_str(), "", "");
 		break;
 
+	case DialogDefinitions::DIALOG_PLAYER_NAME:
+		_dialogFields = 1;
+		mcpe_dialog_open("Player name", "OK", "Name (up to 16 letters)", defaultValue.c_str(), "", "");
+		break;
+
 	case DialogDefinitions::DIALOG_NEW_CHAT_MESSAGE:
 		_dialogFields = 1;
 		mcpe_dialog_open("Chat", "Send", "Message", defaultValue.c_str(), "", "");

@@ -14,6 +14,8 @@ public:
 	// screen underneath it.
 	static const int DIALOG_CREATE_WORLD_NAME = 5;
 	static const int DIALOG_CREATE_WORLD_SEED = 6;
+	// The player name box in Options > Profile, on touch -- same reasoning.
+	static const int DIALOG_PLAYER_NAME = 7;
     static const int DIALOG_DEMO_FEATURE_DISABLED = 98;
 };
 
