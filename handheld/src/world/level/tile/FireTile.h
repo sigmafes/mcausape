@@ -82,6 +82,10 @@ public:
         if (age < 15) {
             level->setData(x, y, z, age + 1);
             level->addToTickNextTick(x, y, z, id, getTickDelay());
+        } else if (infiniBurn) {
+            // Fire on netherrack never goes out, and keeps working at full age:
+            // it goes on trying to catch whatever flammable is next to it.
+            level->addToTickNextTick(x, y, z, id, getTickDelay());
         }
         if (!infiniBurn && !isValidFireLocation(level, x, y, z)) {
             if (!level->isSolidBlockingTile(x, y - 1, z) || age > 3) level->setTile(x, y, z, 0);
@@ -152,6 +156,7 @@ public:
     }
 
     void neighborChanged(Level* level, int x, int y, int z, int type) {
+        if (level->getTile(x, y - 1, z) == Tile::netherrack->id) return;
         if (!level->isSolidBlockingTile(x, y - 1, z) && !isValidFireLocation(level, x, y, z)) {
             level->setTile(x, y, z, 0);
             return;
@@ -159,7 +164,8 @@ public:
     }
 
     void onPlace(Level* level, int x, int y, int z) {
-        if (!level->isSolidBlockingTile(x, y - 1, z) && !isValidFireLocation(level, x, y, z)) {
+        if (level->getTile(x, y - 1, z) != Tile::netherrack->id &&
+            !level->isSolidBlockingTile(x, y - 1, z) && !isValidFireLocation(level, x, y, z)) {
             level->setTile(x, y, z, 0);
             return;
         }

@@ -262,7 +262,8 @@ void Gui::setNowPlaying(const std::string& string) {
 void Gui::displayClientMessage(const std::string& messageId) {
 	//Language language = Language.getInstance();
 	//std::string languageString = language.getElement(messageId);
-	addMessage(std::string("Client message: ") + messageId);
+	// Chat lines arrive here too, already in "<name> message" form, so no label.
+	addMessage(messageId);
 }
 
 void Gui::renderVignette(float br, int w, int h) {

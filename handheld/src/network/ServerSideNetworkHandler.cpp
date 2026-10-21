@@ -675,6 +675,23 @@ void ServerSideNetworkHandler::allowIncomingConnections( bool doAllow )
 		raknetInstance->announceServer(minecraft->options.username);
 	} else {
 		raknetInstance->announceServer("");
+		// Invisible means closed, not just unlisted: whoever is already in is
+		// sent out. Their guids are collected first -- onDisconnect removes the
+		// player from the very list being walked.
+		std::vector<RakNet::RakNetGUID> visitors;
+		if (level) {
+			for (unsigned int i = 0; i < level->players.size(); ++i)
+				if (level->players[i]->owner != rakPeer->GetMyGUID())
+					visitors.push_back(level->players[i]->owner);
+		}
+		for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
+			visitors.push_back(_pendingPlayers[i]->owner);
+		for (unsigned int i = 0; i < visitors.size(); ++i) {
+			// Tells them (they get the disconnection screen); a local close
+			// raises no event here, so the player is removed by hand.
+			rakPeer->CloseConnection(visitors[i], true);
+			onDisconnect(visitors[i]);
+		}
 	}
 	_allowIncoming = doAllow;
 }

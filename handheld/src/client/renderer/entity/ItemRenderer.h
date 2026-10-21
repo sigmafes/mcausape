@@ -26,7 +26,6 @@ public:
 	static void renderGuiItemDecorations(const ItemInstance* item, float x, float y);
 
 	static void blit(float x, float y, float sx, float sy, float w, float h);
-	static int  getAtlasPos(const ItemInstance* item);
 
 	static void teardown_static();
 private:

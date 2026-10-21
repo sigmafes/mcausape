@@ -9,6 +9,8 @@
 #include "../level/material/Material.h"
 #include "../level/tile/Tile.h"
 #include "../entity/player/Player.h"
+#include "../phys/HitResult.h"
+#include "../phys/Vec3.h"
 
 // A bucket: empty, or carrying one source block of water or lava. Ported from the
 // Console Edition's BucketItem; this is the only way to carry a liquid, and
@@ -27,21 +29,47 @@ public:
 		setMaxStackSize(1);
 	}
 
+	/** The empty bucket scoops up the liquid it is aimed at.
+
+	    This is use(), not useOn(): the ray the game aims blocks with skips
+	    liquids, so useOn() is only ever called with the block *behind* the water
+	    and an empty bucket could never take any. This casts its own ray that
+	    stops at a liquid source (Level::clip with liquid set; flowing liquid has
+	    no source to take). The direction is the player's aim, which a visitor's
+	    use travels to the host with, so it works the same in a joined world. */
+	/*@Override*/
+	ItemInstance* use(ItemInstance* instance, Level* level, Player* player) {
+		if (content != 0)
+			return instance;
+
+		Vec3 dir = player->aimDirection;
+		if (dir.dot(dir) < 0.01f)
+			dir = player->getViewVector(1);
+		const Vec3 from(player->x, player->y, player->z);
+		HitResult hit = level->clip(from, from + dir.normalized() * 5.0f, true);
+		if (!hit.isHit() || hit.type != TILE)
+			return instance;
+
+		const int x = hit.x, y = hit.y, z = hit.z;
+		const Material* m = level->getMaterial(x, y, z);
+		if ((m != Material::water && m != Material::lava) || level->getData(x, y, z) != 0)
+			return instance;
+
+		const int tile = level->getTile(x, y, z);
+		level->setTile(x, y, z, 0);
+		// In creative the bucket is not used up either way, so it stays empty,
+		// as in Minecraft: the liquid goes, the bucket does not fill.
+		if (!player->abilities.instabuild)
+			instance->id = (tile == Tile::lava->id)? Item::bucket_lava->id : Item::bucket_water->id;
+		return instance;
+	}
+
+	/** A full bucket pours into the free block past the face that was clicked. */
 	/*@Override*/
 	bool useOn(ItemInstance* instance, Player* player, Level* level, int x, int y, int z, int face, float clickX, float clickY, float clickZ) {
-		if (content == 0) {
-			// Empty: only a still source (data 0) of water or lava can be scooped up.
-			const Material* m = level->getMaterial(x, y, z);
-			if ((m == Material::water || m == Material::lava) && level->getData(x, y, z) == 0) {
-				int tile = level->getTile(x, y, z);
-				level->setTile(x, y, z, 0);
-				instance->id = (tile == Tile::lava->id)? Item::bucket_lava->id : Item::bucket_water->id;
-				return true;
-			}
+		if (content == 0)
 			return false;
-		}
 
-		// Full: poured into the free block past the face that was clicked.
 		switch (face) {
 			case Facing::DOWN : y--; break;
 			case Facing::UP   : y++; break;
@@ -55,7 +83,11 @@ public:
 			return false;
 
 		level->setTileAndData(x, y, z, content, 0);
-		instance->id = Item::bucket_empty->id;
+		// Creative has an endless supply: emptying it was what left both the
+		// water and the lava bucket empty for good (until the world was
+		// re-entered and the inventory refilled).
+		if (!player->abilities.instabuild)
+			instance->id = Item::bucket_empty->id;
 		return true;
 	}
 

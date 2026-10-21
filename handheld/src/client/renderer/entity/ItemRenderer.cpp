@@ -123,113 +123,45 @@ void ItemRenderer::render(Entity* itemEntity_, float x, float y, float z, float 
 }
 
 
-// @note: _18 -> a,b,c,-1,   a,b,c-1, ...
-static const signed short _5[] = {5, 84, 83, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _6[] = {139, 140, 141, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _17[] = {16, 17, 18, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _18[] = {79, 80, 81, -1, 79, 80, 81, -1, 79, 80, 81, -1, 79, 80, 81, -1};
-static const signed short _24[] = {11, 12, 13, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _35[] = {52, 59, 58, 57, 56, 55, 54, 53, 67, 66, 65, 64, 63, 62, 61, 60};
-static const signed short _44[] = {28, 32, 30, 29, 31, 33, 85, 86, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _98[] = {1, 2, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _155[] = {34, 36, 35, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _52[] = {246, 247, 248, 249, 250, 251, 252, 253, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _182[] = {243, 244, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _263[] = {230, 151, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-static const signed short _351[] = {-1, 152, 154, -1, 193, 215, 216, -1, -1, 217, 218, 219, 220, 221, 222, 144};
-
-static const signed short _mapper[] = {-1, 7, 9, 8, 0, -2, -2, -1, -1, -1, -1, -1, 14, 15, 39, 38, 37, -2, -2, -1, 49, 41, 46, -1, -2, -1, -1, -1, -1, -1, 235, -1, -1, -1, -1, -2, -1, 134, 135, 136, 137, 43, 44, -1, -2, 6, 76, 71, 4, 47, 129, -1, -2, 22, 74, -1, 40, 45, 72, -1, -1, 75, -1, -1, -1, 128, -1, 21, -1, -1, -1, -1, -1, 42, -1, -1, -1, -1, -1, -1, 48, 77, 10, 236, -1, 69, -1, 20, 89, 50, -1, -1, -1, -1, -1, -1, 68, -1, -2, -1, -1, -1, 130, 78, -1, -1, -1, 70, 23, 25, -1, -1, 19, 242, 26, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 24, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 241, -1, -2, 27, 87, 88, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 73, -1, 51, -1, -1, -1, -1, -1, 82, -1, -1, 174, 173, 175, 231, 234, 147, 190, -2, 153, 150, 149, 146, 185, 166, 164, 167, 186, 170, 169, 171, 187, 177, 176, 178, 165, 195, 194, 188, 181, 180, 182, 189, 191, 228, 168, 172, 145, 179, 183, 142, 233, 232, 198, 200, 201, 202, -1, -1, -1, -1, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 192, 156, 157, 133, -1, 148, 131, -1, -1, -1, -1, -1, -1, -1, 226, -1, 199, -1, 159, 158, 138, 224, 225, -1, -1, -1, -1, -1, -1, -1, 227, -1, -1, -2, 223, 229, -1, 132, -1, -1, -1, 184, 196, -1, 143, 160, 161, 162, 163, -1, -1, -1, -1, -1, 245, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 155, 197};
-
-#define IRMAPCASE(x) case x: return  _##x [item->getAuxValue() & 15]
-
-int ItemRenderer::getAtlasPos(const ItemInstance* item) {
-	int id = item->id;
-	if (id < 0 || id >= sizeof(_mapper) / sizeof(const signed short))
-		return -1;
-
-	int texId = _mapper[id];
-	if (texId != -2)
-		return texId;
-
-	switch(id) {
-		IRMAPCASE(5);
-		IRMAPCASE(6);
-		IRMAPCASE(17);
-		IRMAPCASE(18);
-		IRMAPCASE(24);
-		IRMAPCASE(35);
-		IRMAPCASE(44);
-		IRMAPCASE(98);
-		IRMAPCASE(155);
-		IRMAPCASE(182);
-		IRMAPCASE(52);
-		IRMAPCASE(263);
-		IRMAPCASE(351);
-	default:
-		break;
-	}
-	return -1;
-}
-
 /*static*/
 void ItemRenderer::renderGuiItem(Font* font, Textures* textures, const ItemInstance* item, float x, float y, bool fancy) {
 	renderGuiItem(font, textures, item, x, y, 16, 16, fancy);
 }
+
+/** Draws one item in a menu: blocks as the small 3D cube (or stairs, fence...)
+    the world renders, everything else as its 16x16 icon.
+
+    This used to read pre-rendered pictures out of gui/gui_blocks.png so a whole
+    hotbar or inventory could go in one batch. That atlas had to be redrawn by
+    hand for every block and item added -- an item with no entry in it (the
+    buckets) was drawn as a red square -- and it is why a retextured block
+    looked right in the world and wrong in the inventory. Drawing from the same
+    terrain.png / items.png the world uses has none of those problems; the price
+    is one draw per item instead of one per screen, which a few dozen small
+    quads do not notice.
+
+    Callers batch with Tesselator::beginOverride(), which holds every vertex
+    until the end; the item cannot join that, since it binds its own texture, so
+    the batch is flushed first and reopened after. Nothing queued ahead of an
+    item needs the texture bound at that moment, because only items are ever
+    queued before one. */
 void ItemRenderer::renderGuiItem(Font* font, Textures* textures, const ItemInstance* item, float x, float y, float w, float h, bool fancy) {
 	if (item == NULL) {
 		//LOGW("item is NULL @ ItemRenderer::renderGuiItem\n");
 		return;
 	}
-	const int id = item->id;
-	if (!Item::items[id])
+	if (!Item::items[item->id])
 		return;
 
-	int i = getAtlasPos(item);
-
-	if (i < 0) {
-		Tesselator& t = Tesselator::instance;
-		if (!t.isOverridden())
-			renderGuiItemCorrect(font, textures, item, int(x), int(y));
-		else {
-			// @huge @attn @todo @fix:	This is just guess-works..
-			//							it we're batching for saving the
-			//							buffer, this will fail miserably
-			t.endOverrideAndDraw();
-			glDisable2(GL_TEXTURE_2D);
-			fillRect(t, x, y, w, h, 0xff0000);
-			glEnable2(GL_TEXTURE_2D);
-			renderGuiItemCorrect(font, textures, item, int(x), int(y));
-			t.beginOverride();
-		}
-		return;
-	}
-
-	textures->loadAndBindTexture("gui/gui_blocks.png");
-	float u0, u1, v0, v1;
-	if (i < 128) {
-		const float P = 48.0f / 512.0f;
-		u0 = (float)(i%10) * P;
-		v0 = (float)(i/10) * P;
-		u1 = u0 + P;
-		v1 = v0 + P;
-	} else {
-		i -= 128;
-		const float P = 16.0f / 512.0f;
-		u0 = float(i & 31) * P;
-		v0 = 27 * P + float(i >> 5) * P; // 27 "icon" rows down
-		u1 = u0 + P;
-		v1 = v0 + P;
-	}
-
-	const float blitOffset = 0;
 	Tesselator& t = Tesselator::instance;
-	t.begin();
-	t.colorABGR( item->count>0? 0xffffffff : 0x60ffffff);
-	t.vertexUV(x,     y + h, blitOffset, u0, v1);
-	t.vertexUV(x + w, y + h, blitOffset, u1, v1);
-	t.vertexUV(x + w, y,     blitOffset, u1, v0);
-	t.vertexUV(x,     y,     blitOffset, u0, v0);
-	t.draw();
+	const bool batching = t.isOverridden();
+	if (batching)
+		t.endOverrideAndDraw();
+
+	renderGuiItemCorrect(font, textures, item, int(x), int(y));
+
+	if (batching)
+		t.beginOverride();
 }
 
 void ItemRenderer::renderGuiItemDecorations(const ItemInstance* item, float x, float y) {
