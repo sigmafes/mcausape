@@ -4,6 +4,7 @@
 #include "../Options.h"
 #include "../renderer/Textures.h"
 #include "../renderer/Tesselator.h"
+#include "../renderer/gles.h"
 #include "../../util/Mth.h"
 #include <cstring>
 
@@ -326,6 +327,13 @@ void Font::drawSlow( const char* str, float x, float y, int color, bool darken /
 	}
 
 	_textures->loadAndBindTexture(fontName);
+
+	// The glyph atlas is black wherever there is no letter, and only its alpha
+	// cuts that out. Whether blending is on was left to whoever drew last, so
+	// text drawn straight after something that turned it off -- the world list,
+	// a button -- came out as a black box with letters in it.
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	Tesselator& t = Tesselator::instance;
 	t.begin();
