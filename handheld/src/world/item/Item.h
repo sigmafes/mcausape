@@ -181,6 +181,7 @@ public:
 
 	static Item* melon;
 	static Item* seeds_melon;
+	static Item* seeds_pumpkin;
 
     static Item* dye_powder;
     static Item* bone;

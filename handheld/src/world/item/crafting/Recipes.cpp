@@ -34,6 +34,17 @@ Recipes::Recipes()
 
 		definition('#', Item::reeds));
 
+	addShapedRecipe(ItemInstance(Item::seeds_pumpkin, 4), //
+		"#", //
+
+		definition('#', Tile::pumpkin));
+
+	addShapedRecipe(ItemInstance(Tile::litPumpkin, 1), //
+		"A", //
+		"B", //
+
+		definition('A', Tile::pumpkin, 'B', Tile::torch));
+
 	addShapedRecipe(ItemInstance(Item::blazePowder, 2), //
 		"#", //
 

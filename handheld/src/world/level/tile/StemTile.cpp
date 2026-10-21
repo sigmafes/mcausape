@@ -135,8 +135,9 @@ void StemTile::spawnResources( Level* level, int x, int y, int z, int data, floa
 	}
 
 	Item* seed = NULL;
-	//if (fruit == Tile::pumpkin) seed = Item::seeds_pumpkin;
+	if (fruit == Tile::pumpkin) seed = Item::seeds_pumpkin;
 	if (fruit == Tile::melon) seed = Item::seeds_melon;
+	if (seed == NULL) return;
 	for (int i = 0; i < 3; i++) {
 		if (level->random.nextInt(5 * 3) > data) continue;
 		popResource(level, x, y, z, ItemInstance(seed));

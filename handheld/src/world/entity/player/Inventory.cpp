@@ -255,6 +255,8 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(((Tile*)Tile::mushroom2)));
 		addItem(new ItemInstance(Tile::cactus));
 		addItem(new ItemInstance(Tile::melon));
+		addItem(new ItemInstance(Tile::pumpkin));
+		addItem(new ItemInstance(Tile::litPumpkin));
 		addItem(new ItemInstance(Item::reeds));
 		Sel[8] = addItem(new ItemInstance(Tile::sapling, 1, 0));
 		addItem(new ItemInstance(Tile::sapling, 1, 1));
@@ -265,6 +267,7 @@ void Inventory::setupDefault() {
 
 		addItem(new ItemInstance(Item::seeds_wheat));
 		addItem(new ItemInstance(Item::seeds_melon));
+		addItem(new ItemInstance(Item::seeds_pumpkin));
 		addItem(new ItemInstance(Item::netherStalkSeeds));
 		addItem(new ItemInstance(Item::netherbrick));
 		addItem(new ItemInstance(Item::netherQuartz));

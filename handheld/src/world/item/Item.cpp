@@ -144,6 +144,7 @@ Item* Item::yellowDust = NULL;
 
 Item* Item::melon = NULL;
 Item* Item::seeds_melon = NULL;
+Item* Item::seeds_pumpkin = NULL;
 
 Item* Item::dye_powder = NULL;
 Item* Item::bone = NULL;
@@ -286,6 +287,7 @@ void Item::initItems() {
 	//Item::diode = (new TilePlanterItem(100, Tile::diode_off))->setIcon(6, 5)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("diode");
 	Item::shears = (ShearsItem*)(new ShearsItem(103))->setIcon(13, 5)->setCategory(ItemCategory::Tools)->setDescriptionId("shears");
 	Item::melon = (new FoodItem(104, 2, false))->setIcon(13, 6)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("melon");
+	Item::seeds_pumpkin = (new SeedItem(105, Tile::pumpkinStem->id, Tile::farmland->id))->setIcon(13, 3)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("seeds_pumpkin");
 	Item::seeds_melon = (new SeedItem(106, Tile::melonStem->id, Tile::farmland->id))->setIcon(14, 3)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("seedsMelon");
 	Item::beef_raw = (new FoodItem(107, 3, /*FoodConstants.FOOD_SATURATION_LOW,*/ true))->setIcon(9, 6)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("beefRaw");
 	Item::beef_cooked = (new FoodItem(108, 8, /*FoodConstants.FOOD_SATURATION_GOOD,*/ true))->setIcon(10, 6)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("beefCooked");
