@@ -725,7 +725,20 @@
       importWorlds(files).catch(function (e) { toast('Import failed: ' + e.message, true); });
     });
 
+    // One flush at a time; a request that comes in while one runs is run once
+    // more afterwards, so nothing written after it started is left behind.
+    var flushing = false, flushAgain = false;
+    function flushSoon() {
+      if (flushing) { flushAgain = true; return; }
+      flushing = true;
+      flush().catch(function () {}).then(function () {
+        flushing = false;
+        if (flushAgain) { flushAgain = false; flushSoon(); }
+      });
+    }
+
     window.mcpeSaves = {
+      flush: flushSoon,
       exportWorld: function (id) {
         exportWorld(id).catch(function (e) { toast('Export failed: ' + e.message, true); });
       },

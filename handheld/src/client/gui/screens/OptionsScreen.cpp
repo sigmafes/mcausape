@@ -348,6 +348,9 @@ void OptionsScreen::commitName() {
 		return;
 	minecraft->options.username = name;
 	minecraft->options.save();
+	// To the browser's storage now: it otherwise only copies out when the tab
+	// is hidden, which closing the tab or the browser may not leave time for.
+	WebBridge::flushSaves();
 }
 
 void OptionsScreen::keyPressed(int eventKey) {

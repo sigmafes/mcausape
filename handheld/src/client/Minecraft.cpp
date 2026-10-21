@@ -40,6 +40,7 @@
 #include "gui/Font.h"
 #include "gui/screens/RenameMPLevelScreen.h"
 #include "sound/SoundEngine.h"
+#include "../platform/web/WebBridge.h"
 #endif
 #ifdef __EMSCRIPTEN__
 	#include <emscripten.h>
@@ -114,6 +115,7 @@
 #include "gui/Font.h"
 #include "gui/screens/RenameMPLevelScreen.h"
 #include "sound/SoundEngine.h"
+#include "../platform/web/WebBridge.h"
 #endif
 
 static void checkGlError(const char* tag) {
@@ -1701,6 +1703,8 @@ void Minecraft::reloadOptions() {
 		_reloadInput();
 
 	user->name = options.username;
+	// Options were just written; see WebBridge::flushSaves.
+	WebBridge::flushSaves();
 
 	LOGI("Reloading-options\n");
 

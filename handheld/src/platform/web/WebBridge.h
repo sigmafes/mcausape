@@ -43,6 +43,12 @@ namespace WebBridge
 	/// stale and should be read again.
 	bool takeWorldsChanged();
 
+	/// Writes the saves (worlds, options, skin) through to the browser's
+	/// storage now. The game writes ordinary files, which only reach the
+	/// in-memory copy; the page copies that out when the tab is hidden, which a
+	/// closing tab or browser does not always get to finish.
+	void flushSaves();
+
 	/// A line of text over the game for a few seconds -- the results of the
 	/// above, which finish long after the click that started them.
 	void toast(const std::string& text);

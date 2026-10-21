@@ -34,6 +34,9 @@ EM_JS(void, mcpe_web_world_import, (), {
 EM_JS(int, mcpe_web_worlds_changed, (), {
 	return (window.mcpeSaves && window.mcpeSaves.takeChanged()) ? 1 : 0;
 });
+EM_JS(void, mcpe_web_flush, (), {
+	if (window.mcpeSaves) window.mcpeSaves.flush();
+});
 EM_JS(void, mcpe_web_toast, (const char* text), {
 	if (window.mcpeToast) window.mcpeToast(UTF8ToString(text));
 });
@@ -50,6 +53,7 @@ namespace WebBridge
 	void exportWorld(const std::string& id) { mcpe_web_world_export(id.c_str()); }
 	void importWorlds()					{ mcpe_web_world_import(); }
 	bool takeWorldsChanged()			{ return mcpe_web_worlds_changed() != 0; }
+	void flushSaves()					{ mcpe_web_flush(); }
 	void toast(const std::string& text)	{ mcpe_web_toast(text.c_str()); }
 }
 
@@ -67,6 +71,7 @@ namespace WebBridge
 	void exportWorld(const std::string&) {}
 	void importWorlds()					{}
 	bool takeWorldsChanged()			{ return false; }
+	void flushSaves()					{}
 	void toast(const std::string&)		{}
 }
 
