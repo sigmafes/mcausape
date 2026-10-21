@@ -96,7 +96,11 @@ try {
 	// Visitor joins.
 	const visitor = await openTab(browser, 'visitor');
 	const t0 = Date.now();
-	await call(visitor, 'mcpe_test_join', route);
+	// Read again: the host's relay socket can have reconnected (new route)
+	// while the visitor's tab was loading.
+	const route2 = await host.evaluate(() => window.mcpeNet.route());
+	if (route2 !== route) console.log(`host route changed ${route} -> ${route2}`);
+	await call(visitor, 'mcpe_test_join', route2);
 	let lastLog = 0;
 	const moved = await waitFor(async () => {
 		const s = await state(visitor);
