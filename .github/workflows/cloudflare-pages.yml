@@ -52,13 +52,16 @@ jobs:
           cp handheld/project/web/build/menu.mp3 site/ 2>/dev/null || true
           ls -lh site
 
-      # The first deploy creates the Pages project if it does not exist yet.
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           PROJECT: ${{ vars.CF_PAGES_PROJECT || 'mcausape' }}
         run: |
+          # `pages deploy` does not create a missing project when it cannot
+          # ask (no terminal in CI) -- it fails with "Project not found". An
+          # existing project makes this a harmless error, so it is allowed to.
+          npx --yes wrangler@3 pages project create "$PROJECT" --production-branch main || true
           npx --yes wrangler@3 pages deploy site \
             --project-name "$PROJECT" \
             --branch main \
