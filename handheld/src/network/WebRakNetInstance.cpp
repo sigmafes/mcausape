@@ -10,6 +10,7 @@
 #include "../raknet/BitStream.h"
 #include "../raknet/MessageIdentifiers.h"
 #include "../raknet/GetTime.h"
+#include "../raknet/RakNetStatistics.h"
 #include "../AppConstants.h"
 
 #include <emscripten.h>
@@ -33,6 +34,16 @@ EM_JS(void, mcpe_lobby_announce, (const char* name, const char* world), {
 
 EM_JS(void, mcpe_lobby_leave, (), {
 	if (window.mcpeLobby) window.mcpeLobby.leave();
+});
+
+/// Follows the host a visitor joined in the lobby; route 0 stops it.
+EM_JS(void, mcpe_lobby_watch_host, (unsigned int route), {
+	if (window.mcpeLobby && window.mcpeLobby.watchHost) window.mcpeLobby.watchHost(route >>> 0);
+});
+
+/// 0 fine or unknown, 1 the host's relay socket closed, 2 no longer listed.
+EM_JS(int, mcpe_lobby_host_state, (), {
+	return (window.mcpeLobby && window.mcpeLobby.hostState) ? window.mcpeLobby.hostState() : 0;
 });
 
 /// Starts and stops the poll that keeps the list fresh while the card is open.
@@ -204,6 +215,10 @@ WebRelayTransport g_transport;
 
 WebRakNetInstance::WebRakNetInstance()
 :	_peer(NULL),
+	_hostRoute(0),
+	_hostGoneSent(false),
+	_lastHeardMs(0),
+	_lastBytesIn(0),
 	_listing(false),
 	_isServer(false),
 	_isLoggedIn(false)
@@ -348,8 +363,44 @@ bool WebRakNetInstance::connect(const char* host, int port)
 	return (connectResult == RakNet::CONNECTION_ATTEMPT_STARTED);
 }
 
+/** RakNet only notices a host that vanished without a word after its two
+    minute timeout, kept long on purpose (see the constructor) so that a host
+    whose tab is merely in the background is not thrown out. The lobby knows
+    sooner and without that doubt: the relay socket of a closed or crashed tab
+    closes, and its entry's route turns to 0 on the spot.
+
+    An entry missing altogether is weaker -- the host left on purpose, or the
+    lobby's in-memory list was lost or expired a host whose background tab
+    heartbeats slowly -- so that one also needs twenty seconds in which
+    nothing at all, not even a RakNet ping, arrived from the host. */
+void WebRakNetInstance::checkHostGone(NetEventCallback* callback)
+{
+	if (_hostGoneSent || !callback) return;
+
+	const unsigned int now = RakNet::GetTimeMS();
+	RakNet::RakNetStatistics stats;
+	const RakNet::SystemAddress host = _peer->GetSystemAddressFromGuid(_serverGuid);
+	if (host != RakNet::UNASSIGNED_SYSTEM_ADDRESS && _peer->GetStatistics(host, &stats)) {
+		const unsigned long long bytesIn = stats.runningTotal[RakNet::ACTUAL_BYTES_RECEIVED];
+		if (bytesIn != _lastBytesIn) {
+			_lastBytesIn = bytesIn;
+			_lastHeardMs = now;
+		}
+	}
+
+	const int state = mcpe_lobby_host_state();
+	if (state == 1 || (state == 2 && now - _lastHeardMs > 20000)) {
+		_hostGoneSent = true;
+		mcpe_lobby_watch_host(0);
+		callback->onDisconnect(_serverGuid);
+	}
+}
+
 void WebRakNetInstance::disconnect()
 {
+	_hostRoute = 0;
+	mcpe_lobby_watch_host(0);
+
 	/* Shutdown(n) with n>0 spins for n milliseconds waiting for the remote
 	   systems to go inactive, and expects the update thread to be flushing
 	   disconnection notifications while it waits. There is no update thread, so
@@ -435,6 +486,9 @@ void WebRakNetInstance::runEvents(NetEventCallback* callback)
 	if (_peer)
 		asRakPeer(_peer)->RunUpdateCycleOnce();
 
+	if (!_isServer && _hostRoute)
+		checkHostGone(callback);
+
 	RakNet::Packet* currentEvent;
 
 	while ((currentEvent = _peer->Receive()) != NULL)
@@ -454,6 +508,11 @@ void WebRakNetInstance::runEvents(NetEventCallback* callback)
 					break;
 				case ID_CONNECTION_REQUEST_ACCEPTED:
 					_serverGuid = currentEvent->guid;
+					_hostRoute = routeFromAddress(currentEvent->systemAddress);
+					_hostGoneSent = false;
+					_lastHeardMs = RakNet::GetTimeMS();
+					_lastBytesIn = 0;
+					mcpe_lobby_watch_host(_hostRoute);
 					callback->onConnect(currentEvent->guid);
 					break;
 				case ID_CONNECTION_ATTEMPT_FAILED:
@@ -505,7 +564,7 @@ namespace {
     resending -- a position that is a second old is just wrong. Unreliable and
     low priority, with the peer's unreliable timeout set in the constructor,
     means the newest one is sent when there is room and the rest are dropped
-    instead of queued. MovePlayerPacket is left reliable: there is one per
+    instead of queued. (Now high priority rather than low; see sendClassified.) MovePlayerPacket is left reliable: there is one per
     player, not one per mob, and it also carries the server's corrections. */
 bool isLatestStateOnly(unsigned char id)
 {
@@ -527,7 +586,11 @@ void sendClassified(RakNet::RakPeerInterface* peer, const RakNet::BitStream& bit
 	PacketPriority priority = packet.priority;
 	PacketReliability reliability = packet.reliability;
 	if (isLatestStateOnly(bitStream.GetData()[0])) {
-		priority = LOW_PRIORITY;
+		// High, not low: the world stream (ChunkDataPacket, low) is what is
+		// queued behind these, and a position that waits out the unreliable
+		// timeout behind it is dropped -- mobs and players froze while a
+		// visitor was still loading. They are a few bytes each.
+		priority = HIGH_PRIORITY;
 		reliability = UNRELIABLE;
 	}
 	peer->Send(&bitStream, priority, reliability, packet.orderingChannel, target, broadcast);

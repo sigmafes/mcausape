@@ -99,6 +99,14 @@ private:
 	RakNet::RakPeerInterface* _peer;
 	RakNet::RakNetGUID        _serverGuid;
 
+	/// Visitor only: tells the game the host has gone once the lobby says so.
+	void checkHostGone(NetEventCallback* callback);
+
+	unsigned int    _hostRoute;
+	bool            _hostGoneSent;
+	unsigned int    _lastHeardMs;
+	unsigned long long _lastBytesIn;
+
 	ServerList _servers;
 	bool       _listing;
 	bool       _isServer;

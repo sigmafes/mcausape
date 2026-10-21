@@ -104,6 +104,12 @@ try {
 		return s.ready && s.client;
 	}, 300000, 250);
 	check('visitor can play', !!moved.value, `${moved.ms} ms after join`);
+	// While the rest of the world is still streaming in: a live edit must not
+	// wait behind it.
+	const early = [sx + 2, sy + 1, sz + 6];
+	await call(host, 'mcpe_test_set', OVERWORLD, ...early, STONE, 0);
+	const earlySeen = await waitFor(async () => { const b = await block(visitor, OVERWORLD, ...early); return b && b.id === STONE; }, 60000, 50);
+	check('live edit while loading', !!earlySeen.value && earlySeen.ms < 2000, `${earlySeen.ms} ms`);
 	const allChunks = await waitFor(async () => (await state(visitor)).chunks >= 1024, 600000, 500);
 	check('visitor has every chunk', !!allChunks.value, `${Date.now() - t0} ms after join`);
 	await sleep(2000);

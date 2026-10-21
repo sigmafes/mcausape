@@ -1312,6 +1312,8 @@
         .catch(function () { others = []; });
     }
 
+    var hostWatch = null, hostWatchRoute = 0, hostWatchId = null, hostWatchState = 0;
+
     window.addEventListener('pagehide', function () {
       if (beat) post({ id: id, gone: true });
     });
@@ -1362,6 +1364,42 @@
         if (poll) { clearInterval(poll); poll = null; }
         others = [];
       },
+
+      // A visitor watching the host it joined. The host's relay socket
+      // closing (tab closed, crashed, network gone) turns its lobby entry's
+      // route to 0 at once, which RakNet would only notice after its two
+      // minute timeout. 0 = fine or unknown, 1 = its socket is gone,
+      // 2 = no longer listed (left, or the lobby forgot it: the game asks for
+      // silence from the host too before believing that one).
+      watchHost: function (route) {
+        if (hostWatch) { clearInterval(hostWatch); hostWatch = null; }
+        hostWatchRoute = route >>> 0;
+        hostWatchId = null;
+        hostWatchState = 0;
+        if (!url || !hostWatchRoute) return;
+        hostWatch = setInterval(function () {
+          fetch(url + '/list', { cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+              if (!data || !data.players) return;
+              var players = data.players, entry = null, i;
+              for (i = 0; i < players.length; i++) {
+                if (hostWatchId ? players[i].id === hostWatchId
+                                : ((players[i].route || 0) >>> 0) === hostWatchRoute) { entry = players[i]; break; }
+              }
+              if (!hostWatchId) {
+                // Not seen yet: nothing to compare against.
+                if (entry) hostWatchId = entry.id;
+                return;
+              }
+              if (!entry) hostWatchState = 2;
+              else hostWatchState = (((entry.route || 0) >>> 0) === hostWatchRoute) ? 0 : 1;
+            })
+            .catch(function () { /* a lobby that is down says nothing either way */ });
+        }, POLL_MS);
+      },
+
+      hostState: function () { return hostWatchState; },
 
       // Flat records rather than JSON: the reader is C++03 with no parser in it.
       records: function () {

@@ -703,7 +703,9 @@ void ServerSideNetworkHandler::sendChunkTo(const RakNet::RakNetGUID& to, Level* 
 	LevelChunk* chunk = level->getChunk(x, z);
 	if (!chunk) return;
 	ChunkDataPacket packet(x, z, chunk);
-	packet.priority = MEDIUM_PRIORITY;
+	// Lowest: everything live in the world (block changes, movement, chat)
+	// goes ahead of the stream.
+	packet.priority = LOW_PRIORITY;
 	packet.reliability = RELIABLE_ORDERED;
 	packet.orderingChannel = 1;
 	raknetInstance->send(to, packet);
@@ -712,7 +714,7 @@ void ServerSideNetworkHandler::sendChunkTo(const RakNet::RakNetGUID& to, Level* 
 	const LevelChunk::TEMap& teMap = chunk->getTileEntityMap();
 	for (LevelChunk::TEMapCIterator cit = teMap.begin(); cit != teMap.end(); ++cit) {
 		if (Packet* p = cit->second->getUpdatePacket()) {
-			p->priority = MEDIUM_PRIORITY;
+			p->priority = LOW_PRIORITY;
 			p->reliability = RELIABLE_ORDERED;
 			p->orderingChannel = 1;
 			raknetInstance->send(to, p);
@@ -761,7 +763,9 @@ double ServerSideNetworkHandler::sendBufferBytes(const RakNet::RakNetGUID& to)
     of the rest of the world. */
 void ServerSideNetworkHandler::pumpStreams()
 {
-	const double MaxQueued = 96 * 1024;
+	// Small: a chunk is ~5-15KB compressed, and whatever is queued is what
+	// a live packet may wait behind in the relay's socket.
+	const double MaxQueued = 32 * 1024;
 	// A chunk the host has never made (an old world's Nether) is generated
 	// here, on the frame: a few milliseconds of it a tick, not a stall.
 	const RakNet::TimeMS start = RakNet::GetTimeMS();
