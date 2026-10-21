@@ -79,6 +79,7 @@ public:
 	virtual void handle(const RakNet::RakNetGUID& source, SignUpdatePacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, ExtPacket* packet);
+	virtual void tick();
 private:
 
 	void requestNextChunk();
@@ -97,6 +98,8 @@ private:
 	RakNet::RakNetGUID serverGuid;
 	/// The host sent us away and said why; its closing the connection is not news.
 	bool _kicked;
+	/// Next chunk of the Nether-wide light pass, or -1 when none is running.
+	int _lightChunk;
 
 	BlockUpdateList	bufferedBlockUpdates;
 	int	requestNextChunkPosition;

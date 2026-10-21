@@ -46,6 +46,7 @@ ClientSideNetworkHandler::ClientSideNetworkHandler(Minecraft* minecraft, IRakNet
 	raknetInstance(raknetInstance),
 	level(NULL),
 	_kicked(false),
+	_lightChunk(-1),
 	requestNextChunkPosition(0),
     requestNextChunkIndex(0),
 	numChunksLoaded(0)
@@ -180,6 +181,7 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, StartGam
 		// Nothing the old level says is for us any more, and its entities and
 		// the others' skins stay behind with it.
 		this->level = NULL;
+		_lightChunk = -1;
 		clearChunksLoaded();
 		bufferedBlockUpdates.clear();
 		PlayerSkins::releaseAllBut(PlayerSkins::localSkin);
@@ -547,6 +549,20 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChunkDat
 	if (!chunk || chunk->isEmpty())
 	{
 		LOGI("Failed to find write-able chunk\n");
+		// Still counted and the next one asked for: stopping here stalled the
+		// whole join, and with it every block update held back for the chunks
+		// that had not come.
+		bool& skipped = chunksLoaded[packet->x * CHUNK_CACHE_WIDTH + packet->z];
+		if (!skipped) {
+			skipped = true;
+			++numChunksLoaded;
+		}
+		if (areAllChunksLoaded()) {
+			ReadyPacket ready(ReadyPacket::READY_REQUESTEDCHUNKS);
+			raknetInstance->send(ready);
+		} else {
+			requestNextChunk();
+		}
 		return;
 	}
 
@@ -663,10 +679,31 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChunkDat
 		++numChunksLoaded;
 	}
 
+	// Changes that came for this chunk before it did go in now, not when the
+	// last chunk of the world is here.
+	for (unsigned int i = 0; i < bufferedBlockUpdates.size(); ) {
+		const SBufferedBlockUpdate& update = bufferedBlockUpdates[i];
+		if ((update.x >> 4) == packet->x && (update.z >> 4) == packet->z) {
+			int tileId = Tile::transformToValidBlockId(update.blockId, update.x, update.y, update.z);
+			if (update.setData)
+				level->setTileAndData(update.x, update.y, update.z, tileId, update.blockData);
+			else
+				level->setTile(update.x, update.y, update.z, tileId);
+			bufferedBlockUpdates.erase(bufferedBlockUpdates.begin() + i);
+		} else {
+			++i;
+		}
+	}
+
 	if (areAllChunksLoaded())
 	{
 		ReadyPacket packet(ReadyPacket::READY_REQUESTEDCHUNKS);
 		raknetInstance->send(packet);
+
+		// The Nether's light (fire, lava, glowstone) was worked out before the
+		// host's blocks went in; do it again over the whole world.
+		if (level->dimension->hasCeiling)
+			_lightChunk = 0;
 
 		for (unsigned int i = 0; i < bufferedBlockUpdates.size(); i++)
 		{
@@ -1008,6 +1045,19 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Adventur
 	//assert(level != NULL && "level is NULL @ handle(AdventureSettingsPacket*)");
 
     packet->fillIn(level->adventureSettings);
+}
+
+void ClientSideNetworkHandler::tick()
+{
+	// The light pass above, a few chunks a tick so the game does not stop for it.
+	if (_lightChunk < 0 || !level) return;
+	const int Max = CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH;
+	for (int n = 0; n < 6 && _lightChunk < Max; ++n, ++_lightChunk) {
+		const int cx = _lightChunk / CHUNK_CACHE_WIDTH;
+		const int cz = _lightChunk % CHUNK_CACHE_WIDTH;
+		level->updateLight(LightLayer::Block, cx * 16, 0, cz * 16, cx * 16 + 15, 127, cz * 16 + 15);
+	}
+	if (_lightChunk >= Max) _lightChunk = -1;
 }
 
 void ClientSideNetworkHandler::clearChunksLoaded()
