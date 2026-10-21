@@ -35,6 +35,20 @@ La conclusión es que el diseño de 0.6.1 (cada cliente genera su mundo y recibe
 diferencias) supone una generación determinista y una LAN rápida. En la web no
 se cumple ninguna de las dos, y cada arreglo puntual tapa un caso y deja otro.
 
+## Estado (Deploy 67)
+
+Fases 0 a 3 hechas. Banco de pruebas (`tools/mptest`), todo PASS:
+
+| Comprobación | Resultado |
+|---|---|
+| Visitante puede moverse | 2,8 s tras entrar |
+| Todos los chunks del Overworld | 22 s |
+| Ediciones previas (bloque, datos, glowstone) y su luz | iguales al host |
+| Viaje al Nether | 0,3 s hasta moverse; 49 s todos los chunks |
+| Ediciones y luz del Nether | iguales al host |
+| Vuelta al Overworld | 26 s |
+| Bloque en vivo con 100 cerdos | 189 ms |
+
 ## Plan
 
 Cada fase se compila, se despliega y se prueba por separado. El orden importa:
