@@ -2019,7 +2019,11 @@ void Minecraft::_levelGenerated()
 	gui.onLevelGenerated();
 #endif
 
-	level->validateSpawn();
+	// A visitor's chunks are blank until the host's arrive, and validateSpawn
+	// walks around looking for solid ground until it finds some: forever, on
+	// an empty level. The host gave the position; there is nothing to check.
+	if (!level->isClientSide)
+		level->validateSpawn();
 	level->loadPlayer(player, true);
 	// level.dat was written during generation with nobody in the level, so write
 	// it again now that the player is in, or a reload would start him at spawn.
