@@ -24,8 +24,12 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 	// the keyboard variant of the block picker is the one that closes on Escape.
 	bool touchMenus = _mc->useTouchscreen();
 #if defined(MC_WASM)
+	// The title screen is the plain button list on every device: three big
+	// square cards were never wanted over it. The world and join lists keep
+	// the touch layout.
+	if (id == SCREEN_STARTMENU)
+		touchMenus = false;
 	switch (id) {
-	case SCREEN_STARTMENU:
 	case SCREEN_SELECTWORLD:
 	case SCREEN_JOINGAME:
 		touchMenus = true;

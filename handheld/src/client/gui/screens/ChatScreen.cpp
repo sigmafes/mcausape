@@ -65,6 +65,85 @@ static std::string lower(std::string s) {
 	return s;
 }
 
+/// "Flint and Steel" / "flint-and-steel" / "Flint_And_Steel" -> "flint_and_steel".
+static std::string normalizeName(const std::string& in) {
+	std::string out;
+	for (unsigned int i = 0; i < in.size(); ++i) {
+		const char c = in[i];
+		if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
+			out += c;
+		else if (c >= 'A' && c <= 'Z')
+			out += (char) (c + 32);
+		else if (c == ' ' || c == '-' || c == '_') {
+			if (!out.empty() && out[out.size() - 1] != '_') out += '_';
+		}
+	}
+	while (!out.empty() && out[out.size() - 1] == '_') out.erase(out.size() - 1);
+	return out;
+}
+
+/** The id of the item a /give name stands for, or 0 (none) / -1 (several fit).
+
+    Names are the ones the game shows -- "Flint and Steel", "Diamond Block" --
+    written in lower case with underscores, plus the "minecraft:" form and the
+    internal names ("flintAndSteel"). "Block of Diamond" is also taken as
+    "diamond_block", the way Minecraft spells every metal block. An exact match
+    wins; otherwise a name that only one item starts with does. */
+static int findItemByName(const std::string& typed, std::string& ambiguous) {
+	std::string want = normalizeName(typed);
+	if (want.compare(0, 10, "minecraft_") == 0 || want.compare(0, 10, "minecraft:") == 0)
+		want = want.substr(10);
+	// A ':' is dropped by normalizeName, so "minecraft:grass" arrives as "minecraftgrass".
+	if (want.compare(0, 9, "minecraft") == 0 && want.size() > 9) {
+		want = want.substr(9);
+		if (!want.empty() && want[0] == '_') want.erase(0, 1);
+	}
+	if (want.empty()) return 0;
+
+	int prefixHit = 0, prefixCount = 0;
+	ambiguous.clear();
+	for (int id = 1; id < Item::MAX_ITEMS; ++id) {
+		Item* item = Item::items[id];
+		if (!item) continue;
+
+		std::vector<std::string> names;
+		names.push_back(normalizeName(item->getName()));
+		// "tile.stoneBrick" / "flintAndSteel" -> the part after the last dot.
+		std::string internal = item->getDescriptionId();
+		const std::string::size_type dot = internal.rfind('.');
+		if (dot != std::string::npos) internal = internal.substr(dot + 1);
+		names.push_back(normalizeName(internal));
+		// camelCase internal names: break before each capital.
+		std::string spaced;
+		for (unsigned int i = 0; i < internal.size(); ++i) {
+			if (internal[i] >= 'A' && internal[i] <= 'Z' && i > 0) spaced += '_';
+			spaced += internal[i];
+		}
+		names.push_back(normalizeName(spaced));
+		// "block_of_diamond" -> "diamond_block"
+		const std::string pre = "block_of_";
+		if (names[0].compare(0, pre.size(), pre) == 0)
+			names.push_back(names[0].substr(pre.size()) + "_block");
+
+		bool prefix = false;
+		for (unsigned int n = 0; n < names.size(); ++n) {
+			if (names[n].empty()) continue;
+			if (names[n] == want) return id;
+			if (names[n].compare(0, want.size(), want) == 0) prefix = true;
+		}
+		if (prefix) {
+			++prefixCount;
+			prefixHit = id;
+			if (prefixCount <= 4) {
+				if (!ambiguous.empty()) ambiguous += ", ";
+				ambiguous += normalizeName(item->getName());
+			}
+		}
+	}
+	if (prefixCount == 1) return prefixHit;
+	return prefixCount > 1 ? -1 : 0;
+}
+
 ChatScreen::ChatScreen()
 :	ticks(0)
 {
@@ -206,9 +285,22 @@ void ChatScreen::runCommand(const std::string& line)
 
 	if (cmd == "give") {
 		int id = 0, count = 1, aux = 0;
-		if (words.size() < 2 || !parseInt(words[1], id)) {
-			feedback("Uso: /give <id> [cantidad] [dato]");
+		if (words.size() < 2) {
+			feedback("Uso: /give <id o nombre> [cantidad] [dato]");
 			return;
+		}
+		// A number is an id; anything else is looked up by name.
+		if (!parseInt(words[1], id)) {
+			std::string options;
+			id = findItemByName(words[1], options);
+			if (id == -1) {
+				feedback("Varios items coinciden: " + options);
+				return;
+			}
+			if (id == 0) {
+				feedback("Item desconocido: " + words[1]);
+				return;
+			}
 		}
 		if (words.size() >= 3 && (!parseInt(words[2], count) || count < 1)) {
 			feedback("La cantidad debe ser un numero mayor que 0.");
@@ -224,10 +316,13 @@ void ChatScreen::runCommand(const std::string& line)
 			return;
 		}
 
-		if (!player->inventory->add(new ItemInstance(id, count, aux)))
+		if (!player->inventory->add(new ItemInstance(id, count, aux))) {
 			feedback("El inventario esta lleno.");
-		else
-			feedback("Entregado: id " + words[1] + " x" + (words.size() >= 3 ? words[2] : std::string("1")));
+		} else {
+			std::ostringstream msg;
+			msg << "Entregado: " << Item::items[id]->getName() << " (id " << id << ") x" << count;
+			feedback(msg.str());
+		}
 		return;
 	}
 

@@ -55,7 +55,7 @@ void StartMenuScreen::init()
 		tabButtons.push_back(&bBuy);
 	#endif
 
-	copyright = "\xffMojang AB";//. Do not distribute!";
+	copyright = "";
 
 	#ifdef PRE_ANDROID23
 		std::string versionString = Common::getGameVersionString("j");
@@ -73,7 +73,7 @@ void StartMenuScreen::init()
 		#ifdef RPI
 			version = "v0.1.1 alpha";//(MCPE " + versionString + " compatible)";
 		#else
-			version = versionString;
+			version = "mcausape 1.0";
 		#endif
 	#endif
 
@@ -147,40 +147,13 @@ void StartMenuScreen::render( int xm, int ym, float a )
 	renderBackground();
 
 #if defined(RPI)
-	TextureId id = minecraft->textures->loadTexture("gui/pi_title.png");
-#else
-	TextureId id = minecraft->textures->loadTexture("gui/title.png");
-#endif
-	const TextureData* data = minecraft->textures->getTemporaryTextureData(id);
-
-	if (data) {
-		minecraft->textures->bind(id);
-
-		const float x = (float)width / 2;
-		const float y = 4;
-		//const float scale = Mth::Min(
-		const float wh = Mth::Min((float)width/2.0f, (float)data->w / 2);
-		const float scale = 2.0f * wh / (float)data->w;
-		const float h = scale * (float)data->h;
-
-		// Render title text
-		Tesselator& t = Tesselator::instance;
-		glColor4f2(1, 1, 1, 1);
-		t.begin();
-		t.vertexUV(x-wh, y+h, blitOffset, 0, 1);
-		t.vertexUV(x+wh, y+h, blitOffset, 1, 1);
-		t.vertexUV(x+wh, y+0, blitOffset, 1, 0);
-		t.vertexUV(x-wh, y+0, blitOffset, 0, 0);
-		t.draw();
-	}
-
-#if defined(RPI)
 	if (Textures::isTextureIdValid(minecraft->textures->loadAndBindTexture("gui/logo/raknet_high_72.png")))
 		blit(0, height - 12, 0, 0, 43, 12, 256, 72+72);
 #endif
 
-	drawString(font, version, versionPosX, 62, /*50,*/ 0xffcccccc);//0x666666);
-	drawString(font, copyright, copyrightPosX, height - 10, 0xffffff);
+	// The name is the whole heading now: there is no logo above it, and no
+	// publisher line at the bottom.
+	drawString(font, version, versionPosX, bHost.y - 16, 0xffcccccc);
 
 	Screen::render(xm, ym, a);
 }
