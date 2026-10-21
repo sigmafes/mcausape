@@ -272,14 +272,64 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::bucket_water));
 		addItem(new ItemInstance(Item::bucket_lava));
 		addItem(new ItemInstance(Item::dye_powder, 1, DyePowderItem::WHITE));
-		addItem(new ItemInstance(Item::hoe_iron));
 		addItem(new ItemInstance(Item::flintAndSteel));
+		addItem(new ItemInstance((Item*)Item::shears));
+
+		// Every weapon, tool and set of armour, a material at a time.
 #ifdef RPI
 		Sel[0] = addItem(new ItemInstance(Item::sword_iron));
 #else
+		addItem(new ItemInstance(Item::sword_wood));
+		addItem(new ItemInstance(Item::sword_stone));
 		addItem(new ItemInstance(Item::sword_iron));
+		addItem(new ItemInstance(Item::sword_gold));
+		addItem(new ItemInstance(Item::sword_emerald));
 #endif
 		addItem(new ItemInstance(Item::bow));
+		addItem(new ItemInstance(Item::arrow));
+
+		addItem(new ItemInstance(Item::shovel_wood));
+		addItem(new ItemInstance(Item::pickAxe_wood));
+		addItem(new ItemInstance(Item::hatchet_wood));
+		addItem(new ItemInstance(Item::hoe_wood));
+		addItem(new ItemInstance(Item::shovel_stone));
+		addItem(new ItemInstance(Item::pickAxe_stone));
+		addItem(new ItemInstance(Item::hatchet_stone));
+		addItem(new ItemInstance(Item::hoe_stone));
+		addItem(new ItemInstance(Item::shovel_iron));
+		addItem(new ItemInstance(Item::pickAxe_iron));
+		addItem(new ItemInstance(Item::hatchet_iron));
+		addItem(new ItemInstance(Item::hoe_iron));
+		addItem(new ItemInstance(Item::shovel_gold));
+		addItem(new ItemInstance(Item::pickAxe_gold));
+		addItem(new ItemInstance(Item::hatchet_gold));
+		addItem(new ItemInstance(Item::hoe_gold));
+		addItem(new ItemInstance(Item::shovel_emerald));
+		addItem(new ItemInstance(Item::pickAxe_emerald));
+		addItem(new ItemInstance(Item::hatchet_emerald));
+		addItem(new ItemInstance(Item::hoe_emerald));
+
+		addItem(new ItemInstance(Item::helmet_cloth));
+		addItem(new ItemInstance(Item::chestplate_cloth));
+		addItem(new ItemInstance(Item::leggings_cloth));
+		addItem(new ItemInstance(Item::boots_cloth));
+		addItem(new ItemInstance(Item::helmet_chain));
+		addItem(new ItemInstance(Item::chestplate_chain));
+		addItem(new ItemInstance(Item::leggings_chain));
+		addItem(new ItemInstance(Item::boots_chain));
+		addItem(new ItemInstance(Item::helmet_iron));
+		addItem(new ItemInstance(Item::chestplate_iron));
+		addItem(new ItemInstance(Item::leggings_iron));
+		addItem(new ItemInstance(Item::boots_iron));
+		addItem(new ItemInstance(Item::helmet_gold));
+		addItem(new ItemInstance(Item::chestplate_gold));
+		addItem(new ItemInstance(Item::leggings_gold));
+		addItem(new ItemInstance(Item::boots_gold));
+		addItem(new ItemInstance(Item::helmet_diamond));
+		addItem(new ItemInstance(Item::chestplate_diamond));
+		addItem(new ItemInstance(Item::leggings_diamond));
+		addItem(new ItemInstance(Item::boots_diamond));
+
 		addItem(new ItemInstance(Item::sign));
 	} else {
 // Survival starts empty. The Windows build used to hand out a developer kit
