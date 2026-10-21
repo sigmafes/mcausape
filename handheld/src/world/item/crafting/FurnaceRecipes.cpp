@@ -42,6 +42,7 @@ FurnaceRecipes::FurnaceRecipes()
 	addFurnaceRecipe(Item::porkChop_raw->id,ItemInstance(Item::porkChop_cooked));
 	addFurnaceRecipe(Item::beef_raw->id,    ItemInstance(Item::beef_cooked));
 	addFurnaceRecipe(Item::chicken_raw->id, ItemInstance(Item::chicken_cooked));
+	addFurnaceRecipe(Item::potato->id,      ItemInstance(Item::bakedPotato));
 	//addFurnaceRecipe(Item::fish_raw->id,    ItemInstance(Item::fish_cooked));
 	addFurnaceRecipe(Tile::stoneBrick->id,  ItemInstance(Tile::rock));
 	addFurnaceRecipe(Item::clay->id,        ItemInstance(Item::brick));

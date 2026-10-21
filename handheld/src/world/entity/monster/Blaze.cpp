@@ -32,9 +32,10 @@ int Blaze::getDeathLoot() {
 }
 
 void Blaze::dropDeathLoot() {
-	int count = random.nextInt(3);
+	// A rod or none; the powder comes from crafting it. It used to drop glowstone dust.
+	int count = random.nextInt(2);
 	for (int i = 0; i < count; i++)
-		spawnAtLocation(Item::yellowDust->id, 1);
+		spawnAtLocation(Item::blazeRod->id, 1);
 }
 
 void Blaze::aiStep() {

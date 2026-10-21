@@ -330,6 +330,53 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::leggings_diamond));
 		addItem(new ItemInstance(Item::boots_diamond));
 
+		// Materials and food, so nothing a recipe needs has to be found first.
+		addItem(new ItemInstance(Item::stick));
+		addItem(new ItemInstance(Item::string));
+		addItem(new ItemInstance(Item::feather));
+		addItem(new ItemInstance(Item::flint));
+		addItem(new ItemInstance(Item::coal, 1, CoalItem::STONE_COAL));
+		addItem(new ItemInstance(Item::coal, 1, CoalItem::CHAR_COAL));
+		addItem(new ItemInstance(Item::ironIngot));
+		addItem(new ItemInstance(Item::goldIngot));
+		addItem(new ItemInstance(Item::goldNugget));
+		addItem(new ItemInstance(Item::emerald));
+		addItem(new ItemInstance(Item::brick));
+		addItem(new ItemInstance(Item::clay));
+		addItem(new ItemInstance(Item::leather));
+		addItem(new ItemInstance(Item::paper));
+		addItem(new ItemInstance(Item::book));
+		addItem(new ItemInstance(Item::snowBall));
+		addItem(new ItemInstance(Item::slimeBall));
+		addItem(new ItemInstance(Item::bone));
+		addItem(new ItemInstance(Item::sugar));
+		addItem(new ItemInstance(Item::egg));
+		addItem(new ItemInstance(Item::sulphur));
+		addItem(new ItemInstance(Item::yellowDust));
+		addItem(new ItemInstance(Item::blazeRod));
+		addItem(new ItemInstance(Item::blazePowder));
+		addItem(new ItemInstance(Item::magmaCream));
+		addItem(new ItemInstance(Item::glassBottle));
+		addItem(new ItemInstance(Item::waterBottle));
+		addItem(new ItemInstance(Item::compass));
+		addItem(new ItemInstance(Item::clock));
+		addItem(new ItemInstance(Item::wheat));
+		addItem(new ItemInstance(Item::bread));
+		addItem(new ItemInstance(Item::apple));
+		addItem(new ItemInstance(Item::carrot));
+		addItem(new ItemInstance(Item::goldenCarrot));
+		addItem(new ItemInstance(Item::potato));
+		addItem(new ItemInstance(Item::bakedPotato));
+		addItem(new ItemInstance(Item::porkChop_raw));
+		addItem(new ItemInstance(Item::porkChop_cooked));
+		addItem(new ItemInstance(Item::beef_raw));
+		addItem(new ItemInstance(Item::beef_cooked));
+		addItem(new ItemInstance(Item::chicken_raw));
+		addItem(new ItemInstance(Item::chicken_cooked));
+		addItem(new ItemInstance(Item::melon));
+		for (int dye = 0; dye < 16; ++dye)
+			addItem(new ItemInstance(Item::dye_powder, 1, dye));
+
 		addItem(new ItemInstance(Item::sign));
 	} else {
 // Survival starts empty. The Windows build used to hand out a developer kit

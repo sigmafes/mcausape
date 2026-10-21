@@ -105,6 +105,17 @@ Item* Item::bucket_empty = NULL;
 Item* Item::bucket_water = NULL;
 Item* Item::bucket_lava = NULL;
 
+Item* Item::goldNugget = NULL;
+Item* Item::blazeRod = NULL;
+Item* Item::blazePowder = NULL;
+Item* Item::magmaCream = NULL;
+Item* Item::carrot = NULL;
+Item* Item::potato = NULL;
+Item* Item::bakedPotato = NULL;
+Item* Item::goldenCarrot = NULL;
+Item* Item::glassBottle = NULL;
+Item* Item::waterBottle = NULL;
+
 //Item* Item::minecart = NULL;
 //Item* Item::saddle = NULL;
 Item* Item::door_iron = NULL;
@@ -283,6 +294,18 @@ void Item::initItems() {
 
 	Item::netherbrick = (new Item(149))->setIcon(5, 9)->setDescriptionId("netherbrickItem")->setCategory(ItemCategory::Structures);
 	Item::netherQuartz = (new Item(150))->setIcon(5, 10)->setDescriptionId("netherquartz")->setCategory(ItemCategory::Mechanisms);
+	// Console Edition items, with the vanilla ids minus 256.
+	Item::blazeRod = (new Item(113))->setIcon(12, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("blazeRod")->handEquipped();
+	Item::goldNugget = (new Item(115))->setIcon(12, 7)->setCategory(ItemCategory::Tools)->setDescriptionId("goldNugget");
+	Item::waterBottle = (new BottleItem(117, true))->setIcon(11, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("emptyPotion");
+	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
+	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");
+	Item::magmaCream = (new Item(122))->setIcon(13, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("magmaCream");
+	Item::carrot = (new FoodItem(135, 3, false))->setIcon(8, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
+	Item::potato = (new FoodItem(136, 1, false))->setIcon(7, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potato");
+	Item::bakedPotato = (new FoodItem(137, 5, false))->setIcon(6, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potatoBaked");
+	Item::goldenCarrot = (new FoodItem(140, 6, false))->setIcon(6, 9)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrotGolden");
+
 	Item::netherStalkSeeds = (new SeedItem(116, Tile::netherStalk->id, Tile::hellSand->id))->setIcon(13, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("netherStalkSeeds");
 
 	//Item::record_01 = (new RecordingItem(2000, "13"))->setIcon(0, 15)->setCategory(ItemCategory::Decorations)->setDescriptionId("record");

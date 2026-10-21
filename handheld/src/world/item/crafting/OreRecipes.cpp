@@ -32,14 +32,14 @@ void OreRecipes::addRecipes(Recipes* r)
 			definition('#', from));
 	}
 
-	//r->addShapedRecipe(ItemInstance(Item::goldIngot), //
-	//	"###", //
-	//	"###", //
-	//	"###", //
+	r->addShapedRecipe(ItemInstance(Item::goldIngot), //
+		"###", //
+		"###", //
+		"###", //
 
-	//	definition('#', Item::goldNugget));
-	//r->addShapedRecipe(ItemInstance(Item::goldNugget, 9), //
-	//    "#", //
+		definition('#', Item::goldNugget));
+	r->addShapedRecipe(ItemInstance(Item::goldNugget, 9), //
+		"#", //
 
-	//  definition('#', Item::goldIngot));
+		definition('#', Item::goldIngot));
 }

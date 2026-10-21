@@ -34,6 +34,30 @@ Recipes::Recipes()
 
 		definition('#', Item::reeds));
 
+	addShapedRecipe(ItemInstance(Item::blazePowder, 2), //
+		"#", //
+
+		definition('#', Item::blazeRod));
+
+	addShapedRecipe(ItemInstance(Item::magmaCream, 1), //
+		"#", //
+		"X", //
+
+		definition('#', Item::blazePowder, 'X', Item::slimeBall));
+
+	addShapedRecipe(ItemInstance(Item::glassBottle, 3), //
+		"# #", //
+		" # ", //
+
+		definition('#', Tile::glass));
+
+	addShapedRecipe(ItemInstance(Item::goldenCarrot, 1), //
+		"###", //
+		"#X#", //
+		"###", //
+
+		definition('#', Item::goldNugget, 'X', Item::carrot));
+
 	addShapedRecipe(ItemInstance(Item::book, 1), //
 		"#", //
 		"#", //

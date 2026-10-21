@@ -110,10 +110,10 @@ std::string PigZombie::getDeathSound() {
 }
 
 void PigZombie::dropDeathLoot() {
+	// A nugget or none, as in the Console Edition (it used to be a whole ingot).
 	int count = random.nextInt(2);
 	for(int i = 0; i < count; ++i) {
-		// We really should spawn gold nuggets instead of ingots.
-		spawnAtLocation(Item::goldIngot->id, 1);
+		spawnAtLocation(Item::goldNugget->id, 1);
 	}
 }
 

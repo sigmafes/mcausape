@@ -3,6 +3,7 @@
 #include "../../level/Level.h"
 #include "../EntityTypes.h"
 #include "../player/Player.h"
+#include "../../item/Item.h"
 
 MagmaCube::MagmaCube(Level* level)
 :	super(level),
@@ -91,3 +92,11 @@ void MagmaCube::causeFallDamage(float distance) {
 
 std::string MagmaCube::getHurtSound() { return "mob.magmacube.small"; }
 std::string MagmaCube::getDeathSound() { return "mob.magmacube.small"; }
+
+// Magma cream, one time in four (the Console Edition's nextInt(4) - 2, which is a
+// negative number three times in four).
+void MagmaCube::dropDeathLoot() {
+	int count = random.nextInt(4) - 2;
+	for (int i = 0; i < count; i++)
+		spawnAtLocation(Item::magmaCream->id, 1);
+}

@@ -202,6 +202,17 @@ public:
 	static Item* netherQuartz;
 	static Item* netherStalkSeeds;
 
+	static Item* goldNugget;
+	static Item* blazeRod;
+	static Item* blazePowder;
+	static Item* magmaCream;
+	static Item* carrot;
+	static Item* potato;
+	static Item* bakedPotato;
+	static Item* goldenCarrot;
+	static Item* glassBottle;
+	static Item* waterBottle;
+
     static Item* record_01;
     static Item* record_02;
 

@@ -20,6 +20,7 @@ public:
 	void causeFallDamage(float distance);
 
 protected:
+	void dropDeathLoot();
 	std::string getHurtSound();
 	std::string getDeathSound();
 
