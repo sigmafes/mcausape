@@ -21,6 +21,8 @@
 #include "../client/skin/PlayerSkins.h"
 #include "../server/ServerCommands.h"
 #include "LevelNet.h"
+#include "../raknet/RakNetStatistics.h"
+#include <algorithm>
 #include "../world/level/LevelListener.h"
 #include "../world/level/dimension/Dimension.h"
 #include "../world/level/tile/PortalTile.h"
@@ -353,7 +355,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 
 	RakNet::BitStream bitStream;
 	LoginStatusPacket(loginStatus).write(&bitStream);
-	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+	sendWorld(source, bitStream);
 
 	if (LoginStatus::Success != loginStatus)
 		return;
@@ -379,6 +381,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	session.transferring = false;
 	session.portalCooldown = 0;
 	session.griefNotice = 0;
+	session.streamPos = 0;
+	session.streamLevel = NULL;
 	session.creative = minecraft->isCreativeMode();
 	_sessions.push_back(session);
 	applyGameMode(newPlayer, session.creative);
@@ -409,7 +413,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
             level->dimension->id
         ).write(&bitStream);
 
-        rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+        sendWorld(source, bitStream);
 	}
 }
 
@@ -441,7 +445,7 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 
 	// send level info
 	SetTimePacket(level->getTime()).write(&bitStream);
-	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+	sendWorld(source, bitStream);
 
 	// send all pre-existing players to the new player
 	const PlayerList& players = level->players;
@@ -450,12 +454,12 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 
         bitStream.Reset();
         AddPlayerPacket(player).write(&bitStream);
-        rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+        sendWorld(source, bitStream);
 
         if (player->getArmorTypeHash()) {
             bitStream.Reset();
             PlayerArmorEquipmentPacket(player).write(&bitStream);
-            rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+            sendWorld(source, bitStream);
         }
 
 		sendSkin(player, source, false);
@@ -481,7 +485,7 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 		if(packet != NULL) {
 			bitStream.Reset();
 			packet->write(&bitStream);
-			rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+			sendWorld(source, bitStream);
 			delete packet;
 		}
 	}
@@ -492,7 +496,7 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 	bitStream.Reset();
 	SetSpawnPositionPacket spawnPacket(level->getSharedSpawnPos());
 	raknetInstance->send(source, spawnPacket);
-	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+	sendWorld(source, bitStream);
 	*/
 
 	// broadcast the new player to all other players
@@ -507,6 +511,9 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 
 	broadcastPlayerList();
 	announceLobbyInfo();
+
+	// Its world, nearest first, from now on (pumpStreams).
+	startStream(source, level, newPlayer);
 }
 
 //
@@ -514,27 +521,12 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 //
 void ServerSideNetworkHandler::onReady_RequestedChunks(const RakNet::RakNetGUID& source)
 {
+	// Every chunk is there (each brought its tile entities along).
 	if (Player* joined = getPlayer(source)) {
 		if (_access.authOn() && !isAuthed(joined))
 			sendMessage(joined, _access.hasAccount(joined->name)
 				? "Este mundo pide autenticacion: usa /login <contrasena>."
 				: "Este mundo pide autenticacion: usa /register <contrasena>.");
-	}
-
-	Level* level = levelOf(source);
-	if (!level) return;
-
-	RakNet::BitStream bitStream;
-	// Send all TileEntities to the new player
-	for (unsigned int i = 0; i < level->tileEntities.size(); ++i) {
-		TileEntity* e = level->tileEntities[i];
-		Packet* packet = e->getUpdatePacket();
-		if (packet != NULL) {
-			bitStream.Reset();
-			packet->write(&bitStream);
-			rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
-			delete packet;
-		}
 	}
 }
 
@@ -614,6 +606,8 @@ void ServerSideNetworkHandler::travelVisitor(Player* player, int dimension, bool
 	// dimension, then asks for it, and onReady_ClientGeneration adds it.
 	s->transferring = true;
 	s->portalCooldown = 40;
+	s->stream.clear();
+	s->streamPos = 0;
 	_pendingPlayers.push_back(player);
 
 	const int gameType = s->creative ? GameType::Creative : GameType::Survival;
@@ -679,32 +673,109 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBl
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RequestChunkPacket* packet)
 {
+	// Chunks are sent by the host now (startStream); one asked for is still
+	// answered, the same way.
 	Level* level = levelOf(source);
-	if (!level)
-        return;
+	if (!level) return;
+	if (packet->x < 0 || packet->z < 0 || packet->x >= CHUNK_CACHE_WIDTH || packet->z >= CHUNK_CACHE_WIDTH) return;
+	sendChunkTo(source, level, packet->x, packet->z);
+}
 
-    LevelChunk* chunk = level->getChunk(packet->x, packet->z);
+void ServerSideNetworkHandler::sendWorld(const RakNet::RakNetGUID& to, RakNet::BitStream& bits)
+{
+	rakPeer->Send(&bits, HIGH_PRIORITY, RELIABLE_ORDERED, 0, to, false);
+}
 
-	if (!chunk)
-        return;
+void ServerSideNetworkHandler::sendChunkTo(const RakNet::RakNetGUID& to, Level* level, int x, int z)
+{
+	// Finished first: a chunk is populated once its neighbours exist, and the
+	// populating of the ones before it writes into it too. Making the 3x3
+	// around it does both.
+	for (int dx = -1; dx <= 1; ++dx)
+		for (int dz = -1; dz <= 1; ++dz)
+			if (x + dx >= 0 && z + dz >= 0 && x + dx < CHUNK_CACHE_WIDTH && z + dz < CHUNK_CACHE_WIDTH)
+				level->getChunk(x + dx, z + dz);
+	// And lit: light from what was just made is still queued.
+	for (int i = 0; i < 64 && level->updateLights(); ++i)
+		;
 
-	ChunkDataPacket cpacket(chunk->x, chunk->z, chunk);
+	LevelChunk* chunk = level->getChunk(x, z);
+	if (!chunk) return;
+	ChunkDataPacket packet(x, z, chunk);
+	packet.priority = MEDIUM_PRIORITY;
+	packet.reliability = RELIABLE_ORDERED;
+	packet.orderingChannel = 1;
+	raknetInstance->send(to, packet);
 
-	RakNet::BitStream bitStream;
-	cpacket.write(&bitStream);
-	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
-    //LOGI("RequestChunkPacket @ (%d, %d). %d bytes\n", packet->x, packet->z, cpacket.chunkData.GetNumberOfBytesUsed());
-	//LOGI("size: %d\n", bitStream.GetNumberOfBytesUsed());
+	// Its tile entities after it, on the same channel, so the chunk is there.
+	const LevelChunk::TEMap& teMap = chunk->getTileEntityMap();
+	for (LevelChunk::TEMapCIterator cit = teMap.begin(); cit != teMap.end(); ++cit) {
+		if (Packet* p = cit->second->getUpdatePacket()) {
+			p->priority = MEDIUM_PRIORITY;
+			p->reliability = RELIABLE_ORDERED;
+			p->orderingChannel = 1;
+			raknetInstance->send(to, p);
+		}
+	}
+}
 
-    const LevelChunk::TEMap& teMap = chunk->getTileEntityMap();
-    for (LevelChunk::TEMapCIterator cit = teMap.begin(); cit != teMap.end(); ++cit) {
-        TileEntity* te = cit->second;
-        if (Packet* p = te->getUpdatePacket()) {
-            bitStream.Reset();
-            p->write(&bitStream);
-            raknetInstance->send(source, p);
-        }
-    }
+/// Sorts chunk indices by their distance from one chunk.
+struct ChunkDistance {
+	int cx, cz;
+	ChunkDistance(int cx, int cz) : cx(cx), cz(cz) {}
+	bool operator()(int a, int b) const {
+		const int ax = a % CHUNK_CACHE_WIDTH - cx, az = a / CHUNK_CACHE_WIDTH - cz;
+		const int bx = b % CHUNK_CACHE_WIDTH - cx, bz = b / CHUNK_CACHE_WIDTH - cz;
+		return ax * ax + az * az < bx * bx + bz * bz;
+	}
+};
+
+void ServerSideNetworkHandler::startStream(const RakNet::RakNetGUID& to, Level* level, Player* player)
+{
+	Session* s = sessionOf(to);
+	if (!s) return;
+	s->stream.clear();
+	for (int i = 0; i < CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH; ++i)
+		s->stream.push_back(i);
+	std::sort(s->stream.begin(), s->stream.end(),
+		ChunkDistance(Mth::floor(player->x / 16.0f), Mth::floor(player->z / 16.0f)));
+	s->streamPos = 0;
+	s->streamLevel = level;
+}
+
+double ServerSideNetworkHandler::sendBufferBytes(const RakNet::RakNetGUID& to)
+{
+	RakNet::RakNetStatistics stats;
+	if (!rakPeer->GetStatistics(rakPeer->GetSystemAddressFromGuid(to), &stats))
+		return 0;
+	double total = 0;
+	for (int i = 0; i < NUMBER_OF_PRIORITIES; ++i)
+		total += stats.bytesInSendBuffer[i];
+	return total;
+}
+
+/** A few chunks a tick to each visitor still loading, and only while what is
+    already queued for it is small: RakNet sends as fast as the relay takes it,
+    and a queue kept short is what lets a block change or a chat line go ahead
+    of the rest of the world. */
+void ServerSideNetworkHandler::pumpStreams()
+{
+	const double MaxQueued = 96 * 1024;
+	for (unsigned int i = 0; i < _sessions.size(); ++i) {
+		Session& s = _sessions[i];
+		if (s.streamPos >= s.stream.size()) continue;
+		Player* p = getPlayer(s.guid);
+		if (!p || p->level != s.streamLevel) {
+			// Gone, or somewhere else now (its next level starts its own).
+			if (!p) { s.stream.clear(); s.streamPos = 0; }
+			continue;
+		}
+		for (int n = 0; n < 6 && s.streamPos < s.stream.size(); ++n) {
+			if (sendBufferBytes(s.guid) > MaxQueued) break;
+			const int index = s.stream[s.streamPos++];
+			sendChunkTo(s.guid, s.streamLevel, index % CHUNK_CACHE_WIDTH, index / CHUNK_CACHE_WIDTH);
+		}
+	}
 }
 
 void ServerSideNetworkHandler::levelGenerated( Level* level )
@@ -1112,9 +1183,7 @@ void ServerSideNetworkHandler::sendSkin(Player* player, const RakNet::RakNetGUID
 		redistributeIn(player->level, &packet, target);
 		return;
 	}
-	RakNet::BitStream bs;
-	packet.write(&bs);
-	rakPeer->Send(&bs, MEDIUM_PRIORITY, RELIABLE_ORDERED, 0, target, false);
+	raknetInstance->send(target, packet);
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChatPacket* packet)
@@ -1404,6 +1473,8 @@ void ServerSideNetworkHandler::announceLobbyInfo()
 
 void ServerSideNetworkHandler::tick()
 {
+	pumpStreams();
+
 	for (unsigned int i = 0; i < _sessions.size(); ++i)
 		if (_sessions[i].griefNotice > 0) --_sessions[i].griefNotice;
 

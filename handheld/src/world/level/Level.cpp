@@ -2151,6 +2151,11 @@ void Level::removeAllPendingEntityRemovals() {
 }
 */
 
+void Level::setChunkSource(ChunkSource* source) {
+	delete _chunkSource;
+	_chunkSource = source;
+}
+
 ChunkSource* Level::getChunkSource() {
     return _chunkSource;
 }

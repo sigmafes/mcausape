@@ -189,6 +189,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_net_leave()
 #include "world/level/MobSpawner.h"
 #include "network/ServerSideNetworkHandler.h"
 #include "network/ClientSideNetworkHandler.h"
+#include "client/player/LocalPlayer.h"
 #include <netinet/in.h>
 
 static char g_testOut[512];

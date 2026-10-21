@@ -268,19 +268,19 @@ void RakNetInstance::send(Packet& packet) {
 	if (_isServer)
 	{
 		// broadcast to all connected clients
-		rakPeer->Send(&bitStream, packet.priority, packet.reliability, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+		rakPeer->Send(&bitStream, packet.priority, packet.reliability, packet.orderingChannel, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 	}
 	else
 	{
 		// send to server
-		rakPeer->Send(&bitStream, packet.priority, packet.reliability, 0, serverGuid, false);
+		rakPeer->Send(&bitStream, packet.priority, packet.reliability, packet.orderingChannel, serverGuid, false);
 	}
 }
 
 void RakNetInstance::send(const RakNet::RakNetGUID& guid, Packet& packet) {
 	RakNet::BitStream bitStream;
 	packet.write(&bitStream);
-	rakPeer->Send(&bitStream, packet.priority, packet.reliability, 0, guid, false);
+	rakPeer->Send(&bitStream, packet.priority, packet.reliability, packet.orderingChannel, guid, false);
 }
 
 

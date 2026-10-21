@@ -155,6 +155,9 @@ public:
 
 	PacketPriority priority;
 	PacketReliability reliability;
+	/// RakNet ordering channel: 0 for the world as it changes, 1 for whole chunks
+	/// (so a stream of them never holds a live change up behind it).
+	char orderingChannel;
 };
 
 

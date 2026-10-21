@@ -84,10 +84,9 @@ public:
 	int chunksReceived() const { return numChunksLoaded; }
 private:
 
-	void requestNextChunk();
-    void arrangeRequestChunkOrder();
 
 	bool isChunkLoaded(int x, int z);
+	bool ringLoaded();
 	bool areAllChunksLoaded();
 	void clearChunksLoaded();
 private:
@@ -100,25 +99,15 @@ private:
 	RakNet::RakNetGUID serverGuid;
 	/// The host sent us away and said why; its closing the connection is not news.
 	bool _kicked;
-	/// Next chunk of the Nether-wide light pass, or -1 when none is running.
-	int _lightChunk;
+	/// Until the chunks around the player have come, it is kept where it was put.
+	static const int RingRadius = 4;
+	bool _holding;
+	float _holdX, _holdY, _holdZ;
 
 	BlockUpdateList	bufferedBlockUpdates;
-	int	requestNextChunkPosition;
 
     static const int NumRequestChunks = CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH;
 
-    // How many RequestChunkPacket/ChunkDataPacket round trips run at once.
-    // Each reply requests exactly one more (see the ChunkDataPacket handler),
-    // so seeding this many up front is what keeps that many in flight the
-    // whole way through -- one at a time was a non-issue on a real LAN's
-    // sub-millisecond round trips, but over a relay with real internet
-    // latency, 576 chunks done one after another is most of what made
-    // joining take minutes.
-    static const int MaxInFlightChunkRequests = 16;
-
-    int requestNextChunkIndex;
-    IntPair requestNextChunkIndexList[NumRequestChunks];
 	bool chunksLoaded[NumRequestChunks];
 	int numChunksLoaded;
 };

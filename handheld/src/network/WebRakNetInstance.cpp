@@ -530,7 +530,7 @@ void sendClassified(RakNet::RakPeerInterface* peer, const RakNet::BitStream& bit
 		priority = LOW_PRIORITY;
 		reliability = UNRELIABLE;
 	}
-	peer->Send(&bitStream, priority, reliability, 0, target, broadcast);
+	peer->Send(&bitStream, priority, reliability, packet.orderingChannel, target, broadcast);
 }
 
 } // namespace

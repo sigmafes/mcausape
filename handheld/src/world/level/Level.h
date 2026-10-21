@@ -248,6 +248,9 @@ public:
 	void setSpawnSettings(bool spawnEnemies, bool spawnFriendlies);
 
 	ChunkSource* getChunkSource();
+	/// Replaces the chunk source made in the constructor (a visitor's level
+	/// holds the host's chunks instead of generating its own).
+	void setChunkSource(ChunkSource* source);
 	LevelStorage* getLevelStorage();
     LevelData* getLevelData();
 

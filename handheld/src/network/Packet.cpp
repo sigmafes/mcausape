@@ -6,7 +6,8 @@
 
 Packet::Packet()
 :	priority(HIGH_PRIORITY),
-	reliability(RELIABLE)
+	reliability(RELIABLE),
+	orderingChannel(0)
 {}
 
 Packet* MinecraftPackets::createPacket(int id)

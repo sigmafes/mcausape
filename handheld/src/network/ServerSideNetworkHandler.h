@@ -144,6 +144,15 @@ private:
 	Hook* hookOf(Level* level);
 	std::vector<Level*> levels();
 	void redistributeIn(Level* level, Packet* packet, const RakNet::RakNetGUID& exclude);
+	/// The one place an already-written packet goes out raw: ordered world
+	/// state, high priority, channel 0. Everything else is raknetInstance->send.
+	void sendWorld(const RakNet::RakNetGUID& to, RakNet::BitStream& bits);
+	/// One chunk (and its tile entities) to one visitor, on the chunk channel.
+	void sendChunkTo(const RakNet::RakNetGUID& to, Level* level, int x, int z);
+	/// Starts sending a visitor every chunk of its level, nearest first.
+	void startStream(const RakNet::RakNetGUID& to, Level* level, Player* player);
+	void pumpStreams();
+	double sendBufferBytes(const RakNet::RakNetGUID& to);
 	void sendHostTo(const RakNet::RakNetGUID& target, bool broadcastInLevel, Level* level);
 
 	/// To everyone in the sender's level but the sender.
@@ -177,6 +186,10 @@ private:
 		bool transferring;	///< going through a portal: not joining
 		int griefNotice;	///< ticks until it may be told again
 		int portalCooldown;	///< ticks before its next portal trip counts
+		/// The chunks of its level still to send it, nearest first.
+		std::vector<int> stream;
+		unsigned int streamPos;
+		Level* streamLevel;
 	};
 	std::vector<Session> _sessions;
 	Session* sessionOf(const RakNet::RakNetGUID& guid);

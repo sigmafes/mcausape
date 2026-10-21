@@ -358,9 +358,15 @@ void Minecraft::setLevel(Level* level, const std::string& message /* ="" */, Loc
 			// thread, so the frame in between paints ProgressScreen and the bar
 			// moves. Running it here would block the page's only thread for the
 			// whole generation and nothing would be drawn at all.
-			isGeneratingLevel = true;
-			_prepInProgress = true;
-			prepareLevelBegin();
+			if (level->isClientSide) {
+				// A visitor makes nothing: its chunks come from the host
+				// (ClientChunkSource), so the level is ready as it is.
+				isGeneratingLevel = false;
+			} else {
+				isGeneratingLevel = true;
+				_prepInProgress = true;
+				prepareLevelBegin();
+			}
 #else
 			// Non-threaded
 			generateLevel("Currently not used", level);
