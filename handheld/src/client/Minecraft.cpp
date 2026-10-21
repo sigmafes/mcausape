@@ -1104,6 +1104,12 @@ void Minecraft::tick(int nTick, int maxTick) {
 				// Visitors travel by their own packets (see ServerSideNetworkHandler);
 				// a request their portal left here is for nobody to answer.
 				otherLevel->takePortalTravelRequest();
+				// Its chunks are saved by its storage's tick, but its entities
+				// only when it closes: a host whose tab died with visitors in
+				// the Nether lost every mob, item and dropped thing there. Once
+				// a minute, like a world's own save on pause.
+				if (otherLevel->getTime() % 1200 == 0)
+					otherLevel->saveGame();
 			}
 #ifndef STANDALONE_SERVER
 			TIMER_POP_PUSH("animateTick");
