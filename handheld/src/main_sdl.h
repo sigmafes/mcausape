@@ -190,6 +190,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_net_leave()
 #include "network/ServerSideNetworkHandler.h"
 #include "network/ClientSideNetworkHandler.h"
 #include "client/player/LocalPlayer.h"
+#include "client/User.h"
 #include <netinet/in.h>
 
 static char g_testOut[512];
@@ -219,6 +220,8 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_test_join(unsigned int route)
 {
 	Minecraft* mc = g_state.app;
 	if (!mc) return;
+	// Two fresh tabs are both "Steve", and the host refuses a name it has.
+	mc->user->name = "Visitor";
 	mc->locateMultiplayer();
 	PingedCompatibleServer s;
 	s.name = "test";
