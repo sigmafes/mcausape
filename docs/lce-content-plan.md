@@ -44,3 +44,13 @@ Each phase compiles, is committed and deployed on its own.
 
 Potions, enchanting, brewing screens, rotten flesh, the poisonous potato, pumpkin
 pie, carrot on a stick, naturally generated pumpkins.
+
+## State
+
+Phases 1-6 are in. Spare cells used in `terrain.png`: (13,10)/(13,11) spruce door
+(upper/lower), (7,13)/(7,14) birch door, (11,10) spruce and (12,10) birch trapdoor,
+(14,11) enchanting table side, (9,13) its underside. In `items.png`: (0,9) spruce
+door, (1,9) birch door, (2,9) brewing stand. Tile ids: 139 cobblestone wall, 143
+mossy wall, 141/142 carrots/potatoes, 160-167 spruce/birch fence, gate, trapdoor,
+door; 116 enchanting table, 117 brewing stand. The enchanting table's diamonds are
+`Item::emerald` (the 0.6.1 name).

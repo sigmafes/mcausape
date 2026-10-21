@@ -6,6 +6,7 @@
 class Tile;
 class FenceTile;
 class WallTile;
+class BrewingStandTile;
 class FireTile;
 class FenceGateTile;
 class ThinFenceTile;
@@ -33,6 +34,7 @@ public:
 	bool tesselateDoorInWorld(Tile* tt, int x, int y, int z);
 	bool tesselateFenceInWorld(FenceTile* tt, int x, int y, int z);
 	bool tesselateWallInWorld(WallTile* tt, int x, int y, int z);
+	bool tesselateBrewingStandInWorld(BrewingStandTile* tt, int x, int y, int z);
 	bool tesselateFireInWorld(FireTile* tt, int x, int y, int z);
 	bool tesselateThinFenceInWorld(ThinFenceTile* tt, int x, int y, int z);
 	bool tesselateFenceGateInWorld(FenceGateTile* tt, int x, int y, int z);

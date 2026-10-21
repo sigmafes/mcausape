@@ -8,6 +8,7 @@
 #include "../../world/level/tile/LiquidTile.h"
 #include "../../world/level/tile/FenceTile.h"
 #include "../../world/level/tile/WallTile.h"
+#include "../../world/level/tile/BrewingStandTile.h"
 #include "../../world/level/tile/FireTile.h"
 #include "../../world/level/tile/FenceGateTile.h"
 #include "../../world/level/tile/ThinFenceTile.h"
@@ -170,6 +171,8 @@ bool TileRenderer::tesselateInWorld( Tile* tt, int x, int y, int z )
 		return tesselateStairsInWorld((StairTile*)tt, x, y, z);
     } else if (shape == Tile::SHAPE_FENCE) {
         return tesselateFenceInWorld((FenceTile*)tt, x, y, z);
+	} else if (shape == Tile::SHAPE_BREWING_STAND) {
+		return tesselateBrewingStandInWorld((BrewingStandTile*)tt, x, y, z);
 	} else if (shape == Tile::SHAPE_WALL) {
 		return tesselateWallInWorld((WallTile*)tt, x, y, z);
 	} else if (shape == Tile::SHAPE_FENCE_GATE) {
@@ -1196,6 +1199,25 @@ bool TileRenderer::tesselateCactusInWorld(Tile* tt, int x, int y, int z, float r
     }
 
     return changed;
+}
+
+bool TileRenderer::tesselateBrewingStandInWorld(BrewingStandTile* tt, int x, int y, int z) {
+	// The rod, then three pads under it in the base's picture.
+	tt->drawingBase = false;
+	tt->setShape(7 / 16.0f, 0, 7 / 16.0f, 9 / 16.0f, 14 / 16.0f, 9 / 16.0f);
+	tesselateBlockInWorld(tt, x, y, z);
+
+	tt->drawingBase = true;
+	tt->setShape(9 / 16.0f, 0, 5 / 16.0f, 15 / 16.0f, 2 / 16.0f, 11 / 16.0f);
+	tesselateBlockInWorld(tt, x, y, z);
+	tt->setShape(1 / 16.0f, 0, 1 / 16.0f, 7 / 16.0f, 2 / 16.0f, 7 / 16.0f);
+	tesselateBlockInWorld(tt, x, y, z);
+	tt->setShape(1 / 16.0f, 0, 9 / 16.0f, 7 / 16.0f, 2 / 16.0f, 15 / 16.0f);
+	tesselateBlockInWorld(tt, x, y, z);
+
+	tt->drawingBase = false;
+	tt->setShape(7 / 16.0f, 0, 7 / 16.0f, 9 / 16.0f, 14 / 16.0f, 9 / 16.0f);
+	return true;
 }
 
 bool TileRenderer::tesselateWallInWorld(WallTile* tt, int x, int y, int z) {

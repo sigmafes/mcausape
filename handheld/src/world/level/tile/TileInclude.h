@@ -34,6 +34,8 @@
 #include "MelonTile.h"
 #include "PumpkinTile.h"
 #include "WallTile.h"
+#include "EnchantTableTile.h"
+#include "BrewingStandTile.h"
 #include "RootCropTile.h"
 #include "MultiTextureTile.h"
 #include "Mushroom.h"

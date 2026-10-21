@@ -229,6 +229,8 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::trapdoor));
 		addItem(new ItemInstance(Tile::fence));
 		addItem(new ItemInstance(Tile::fenceGate));
+		addItem(new ItemInstance(Tile::enchantTable));
+		addItem(new ItemInstance(Item::brewingStand));
 		addItem(new ItemInstance(Tile::cobbleWall));
 		addItem(new ItemInstance(Tile::mossyCobbleWall));
 		addItem(new ItemInstance(Item::door_spruce));

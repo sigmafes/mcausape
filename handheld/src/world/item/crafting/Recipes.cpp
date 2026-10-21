@@ -82,6 +82,19 @@ Recipes::Recipes()
 
 		definition('#', Item::stick));
 
+	addShapedRecipe(ItemInstance(Tile::enchantTable, 1), //
+		" B ", //
+		"D#D", //
+		"###", //
+
+		definition('B', Item::book, 'D', Item::emerald, '#', Tile::obsidian));
+
+	addShapedRecipe(ItemInstance(Item::brewingStand, 1), //
+		" B ", //
+		"###", //
+
+		definition('B', Item::blazeRod, '#', Tile::stoneBrick));
+
 	addShapedRecipe(ItemInstance(Tile::cobbleWall, 6), //
 		"###", //
 		"###", //

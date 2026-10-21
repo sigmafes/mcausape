@@ -148,6 +148,7 @@ public:
 
     static Item* sign;
     static Item* door_wood;
+    static Item* brewingStand;
     static Item* door_spruce;
     static Item* door_birch;
 
