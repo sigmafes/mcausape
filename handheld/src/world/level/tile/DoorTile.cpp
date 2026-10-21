@@ -4,8 +4,22 @@
 #include "../../item/Item.h"
 #include "../../entity/player/Player.h"
 
+Item* DoorTile::getDoorItem() {
+	if (doorItem != NULL) return *doorItem;
+	return material == Material::metal ? Item::door_iron : Item::door_wood;
+}
+
+DoorTile::DoorTile(int id, const Material* material, int tex_, Item** item)
+:	super(id, material),
+	doorItem(item)
+{
+	tex = tex_;
+	super::setShape(0, 0, 0, 1, 1, 1);
+}
+
 DoorTile::DoorTile(int id, const Material* material)
-:	super(id, material)
+:	super(id, material),
+	doorItem(NULL)
 {
 	tex = 1 + 6 * 16;
 	if (material == Material::metal) tex++;
@@ -176,11 +190,7 @@ void DoorTile::neighborChanged(Level* level, int x, int y, int z, int type) {
 	} else {
 		if (level->getTile(x, y - 1, z) != id) {
 			level->setTile(x, y, z, 0);
-			if(material == Material::metal) {
-				popResource(level, x, y, z, ItemInstance(Item::door_iron));
-			} else {
-				popResource(level, x, y, z, ItemInstance(Item::door_wood));
-			}
+			popResource(level, x, y, z, ItemInstance(getDoorItem()));
 		}
 		if (type > 0 && type != id) {
 			neighborChanged(level, x, y - 1, z, type);
@@ -190,8 +200,7 @@ void DoorTile::neighborChanged(Level* level, int x, int y, int z, int type) {
 
 int DoorTile::getResource(int data, Random* random) {
 	if ((data & 8) != 0) return 0;
-	if (material == Material::metal) return Item::door_iron->id;
-	return Item::door_wood->id;
+	return getDoorItem()->id;
 }
 
 HitResult DoorTile::clip(Level* level, int xt, int yt, int zt, const Vec3& a, const Vec3& b) {

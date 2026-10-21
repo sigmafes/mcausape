@@ -6,7 +6,7 @@ class TrapDoorTile : public Tile {
 	typedef Tile super;
 
 public:
-	TrapDoorTile(int id, const Material* material);
+	TrapDoorTile(int id, const Material* material, int tex = -1);
 	bool blocksLight();
 	bool isSolidRender();
 	bool isCubeShaped();

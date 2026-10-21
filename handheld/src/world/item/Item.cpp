@@ -100,6 +100,8 @@ Item* Item::painting = NULL;
 
 Item* Item::sign = NULL;
 Item* Item::door_wood = NULL;
+Item* Item::door_spruce = NULL;
+Item* Item::door_birch = NULL;
 
 Item* Item::bucket_empty = NULL;
 Item* Item::bucket_water = NULL;
@@ -258,6 +260,8 @@ void Item::initItems() {
 	Item::bucket_lava = (new BucketItem(71, Tile::lava->id))->setIcon(12, 4)->setCategory(ItemCategory::Tools)->setDescriptionId("bucketLava")->setCraftingRemainingItem(Item::bucket_empty);
 	//Item::minecart = (new MinecartItem(72, Minecart.RIDEABLE))->setIcon(7, 8)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("minecart");
 	//Item::saddle = (new SaddleItem(73))->setIcon(8, 6)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("saddle");
+	Item::door_spruce = (new DoorItem(151, Material::wood, &Tile::door_spruce))->setIcon(0, 9)->setCategory(ItemCategory::Structures)->setDescriptionId("doorSpruce");
+	Item::door_birch = (new DoorItem(152, Material::wood, &Tile::door_birch))->setIcon(1, 9)->setCategory(ItemCategory::Structures)->setDescriptionId("doorBirch");
 	Item::door_iron = (new DoorItem(74, Material::metal))->setIcon(12, 2)->setCategory(ItemCategory::Structures)->setDescriptionId("doorIron");
 	//Item::redStone = (new RedStoneItem(75))->setIcon(8, 3)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("redstone");
 	Item::snowBall = (new SnowballItem(76))->setIcon(14, 0)->setCategory(ItemCategory::Decorations)->setDescriptionId("snowball");

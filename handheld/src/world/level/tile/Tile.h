@@ -204,6 +204,14 @@ public:
     static Tile* fence;
 	static Tile* stairs_brick;
 	static Tile* fenceGate;
+	static Tile* fence_spruce;
+	static Tile* fence_birch;
+	static Tile* fenceGate_spruce;
+	static Tile* fenceGate_birch;
+	static Tile* trapdoor_spruce;
+	static Tile* trapdoor_birch;
+	static Tile* door_spruce;
+	static Tile* door_birch;
     static Tile* pumpkin;
 	static Tile* pumpkinStem;
 	static Tile* carrots;

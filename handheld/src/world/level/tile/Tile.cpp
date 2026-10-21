@@ -150,6 +150,14 @@ const int STONE_BRICK_TEXTURE_COUNT = 3;
 
 Tile* Tile::fence       = NULL;
 Tile* Tile::fenceGate   = NULL;
+Tile* Tile::fence_spruce = NULL;
+Tile* Tile::fence_birch = NULL;
+Tile* Tile::fenceGate_spruce = NULL;
+Tile* Tile::fenceGate_birch = NULL;
+Tile* Tile::trapdoor_spruce = NULL;
+Tile* Tile::trapdoor_birch = NULL;
+Tile* Tile::door_spruce = NULL;
+Tile* Tile::door_birch = NULL;
 
 Tile* Tile::info_updateGame1 = NULL;
 Tile* Tile::info_updateGame2 = NULL;
@@ -271,8 +279,19 @@ void Tile::initTiles() {
 	pumpkin = (new PumpkinTile(86, false))->init()->setDestroyTime(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkin");
 	litPumpkin = (new PumpkinTile(91, true))->init()->setDestroyTime(1.0f)->setLightEmission(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("litpumpkin");
 	pumpkinStem = (new StemTile(104, Tile::pumpkin))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkinStem");
-	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setDescriptionId("carrots");
-	potatoes = (new RootCropTile(142, 7 + 12 * 16, 11 + 12 * 16, &Item::potato))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setDescriptionId("potatoes");
+	// Spruce and birch carpentry: the planks' own pictures for fences and gates,
+	// the oak door and trapdoor recoloured into spare cells of terrain.png.
+	const int SPRUCE_TEX = 11 + 16 * 11, BIRCH_TEX = 12 + 16 * 11;
+	fence_spruce = (new FenceTile(160, SPRUCE_TEX))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("fenceSpruce");
+	fence_birch  = (new FenceTile(161, BIRCH_TEX))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("fenceBirch");
+	fenceGate_spruce = (new FenceGateTile(162, SPRUCE_TEX))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("fenceGateSpruce");
+	fenceGate_birch  = (new FenceGateTile(163, BIRCH_TEX))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("fenceGateBirch");
+	trapdoor_spruce = (new TrapDoorTile(164, Material::wood, 11 + 16 * 10))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorSpruce");
+	trapdoor_birch  = (new TrapDoorTile(165, Material::wood, 12 + 16 * 10))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorBirch");
+	door_spruce = (new DoorTile(166, Material::wood, 13 + 16 * 11, &Item::door_spruce))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorSpruce");
+	door_birch  = (new DoorTile(167, Material::wood, 7 + 16 * 14, &Item::door_birch))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorBirch");
+	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
+	potatoes = (new RootCropTile(142, 7 + 12 * 16, 11 + 12 * 16, &Item::potato))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potatoes");
 	melonStem = (new StemTile(105, Tile::melon))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkinStem");//->sendTileData();
 	fenceGate = (new FenceGateTile(107, 4))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("fenceGate");//->sendTileData();
 	stairs_brick = (new StairTile(108, Tile::redBrick))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsBrick");//->sendTileData();

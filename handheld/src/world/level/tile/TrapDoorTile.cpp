@@ -2,9 +2,10 @@
 #include "../material/Material.h"
 #include "../Level.h"
 #include "LevelEvent.h"
-TrapDoorTile::TrapDoorTile( int id, const Material* material ) : super(id, material) {
+TrapDoorTile::TrapDoorTile( int id, const Material* material, int tex_ ) : super(id, material) {
 	tex = 4 + 5 * 16;
 	if(material == Material::metal) tex++;
+	if (tex_ >= 0) tex = tex_;
 	float r = 0.5f;
 	float h = 1.0f;
 	super::setShape(0.5f - r, 0, 0.5f - r, 0.5f + r, h, 0.5f + r);
@@ -98,7 +99,7 @@ void TrapDoorTile::neighborChanged( Level* level, int x, int y, int z, int type 
 
 	if (!attachesTo(level->getTile(xt, y, zt))) {
 		level->setTile(x, y, z, 0);
-		popResource(level, x, y, z, ItemInstance(Tile::trapdoor));
+		popResource(level, x, y, z, ItemInstance(this));
 	}
 
 	bool signal = level->hasNeighborSignal(x, y, z);

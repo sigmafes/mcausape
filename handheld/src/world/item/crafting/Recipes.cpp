@@ -102,7 +102,7 @@ Recipes::Recipes()
 		"#W#", //
 		"#W#", //
 
-		definition('#', Item::stick, 'W', Tile::wood));
+		definition('#', Item::stick, 'W', ItemInstance(Tile::wood, 1, WoodTile::OAK_PLANKS)));
 
 	//addShapedRecipe(ItemInstance(Tile::recordPlayer, 1), //
 	//	"###", //
@@ -213,13 +213,47 @@ Recipes::Recipes()
 		"##", //
 		"##", //
 
-		definition('#', Tile::wood));
+		definition('#', ItemInstance(Tile::wood, 1, WoodTile::OAK_PLANKS)));
 
 	addShapedRecipe(ItemInstance(Tile::trapdoor, 2), //
 		"###", //
 		"###", //
 
-		definition('#', Tile::wood));
+		definition('#', ItemInstance(Tile::wood, 1, WoodTile::OAK_PLANKS)));
+
+	// Spruce and birch: the same shapes from their own planks. Fences, which
+	// oak makes from sticks alone, take planks and sticks.
+	{
+		Tile* fences[2] = { Tile::fence_spruce, Tile::fence_birch };
+		Tile* gates[2] = { Tile::fenceGate_spruce, Tile::fenceGate_birch };
+		Tile* traps[2] = { Tile::trapdoor_spruce, Tile::trapdoor_birch };
+		Item* doors[2] = { Item::door_spruce, Item::door_birch };
+		const int planks[2] = { WoodTile::SPRUCE_PLANKS, WoodTile::BIRCH_PLANKS };
+		for (int i = 0; i < 2; i++) {
+			ItemInstance plank(Tile::wood, 1, planks[i]);
+			addShapedRecipe(ItemInstance(fences[i], 3), //
+				"W#W", //
+				"W#W", //
+
+				definition('W', plank, '#', Item::stick));
+			addShapedRecipe(ItemInstance(gates[i], 1), //
+				"#W#", //
+				"#W#", //
+
+				definition('#', Item::stick, 'W', plank));
+			addShapedRecipe(ItemInstance(traps[i], 2), //
+				"###", //
+				"###", //
+
+				definition('#', plank));
+			addShapedRecipe(ItemInstance(doors[i], 1), //
+				"##", //
+				"##", //
+				"##", //
+
+				definition('#', plank));
+		}
+	}
 
 	//addShapedRecipe(ItemInstance(Item::door_iron, 1), //
 	//	"##", //

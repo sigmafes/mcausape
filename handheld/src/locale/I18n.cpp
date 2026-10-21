@@ -74,7 +74,7 @@ std::string I18n::getDescriptionString( const ItemInstance& item )
 	// Handle special cases
 	if (item.id == Tile::cloth->id)
 		return get(item.getAuxValue()? "desc.wool" : "desc.woolstring");
-	else if (item.id == Tile::fenceGate->id)
+	else if (item.id == Tile::fenceGate->id || item.id == Tile::fenceGate_spruce->id || item.id == Tile::fenceGate_birch->id)
 		return I18n::get("desc.fence");
 	else if (item.id == Tile::stoneSlabHalf->id || item.id == Tile::stoneSlabHalf2->id)
 		return I18n::get("desc.slab");

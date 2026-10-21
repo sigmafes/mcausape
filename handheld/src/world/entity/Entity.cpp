@@ -305,7 +305,7 @@ void Entity::move(float xa, float ya, float za) {
         int t = level->getTile(xt, yt, zt);
         if (t == 0) {
             int under = level->getTile(xt, yt-1, zt);
-            if (Tile::fence->id == under || Tile::fenceGate->id == under) {
+            if (Tile::fence->id == under || Tile::fenceGate->id == under || Tile::fence_spruce->id == under || Tile::fence_birch->id == under || Tile::fenceGate_spruce->id == under || Tile::fenceGate_birch->id == under) {
                 t = under;
             }
         }
@@ -547,7 +547,7 @@ void Entity::checkFallDamage( float ya, bool onGround )
 				int yt = Mth::floor(y - 0.2f - heightOffset);
 				int zt = Mth::floor(z);
 				int t = level->getTile(xt, yt, zt);
-				if (t == 0 && level->getTile(xt, yt - 1, zt) == Tile::fence->id) {
+				if (t == 0 && (level->getTile(xt, yt - 1, zt) == Tile::fence->id || level->getTile(xt, yt - 1, zt) == Tile::fence_spruce->id || level->getTile(xt, yt - 1, zt) == Tile::fence_birch->id)) {
 					t = level->getTile(xt, yt - 1, zt);
 				}
 

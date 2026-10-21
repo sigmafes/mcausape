@@ -16,10 +16,22 @@ class DoorItem: public Item
 {
 	typedef Item super;
     const Material* material;
+    Tile** tilePtr;
 public:
     DoorItem(int id, const Material* material)
     :   super(id),
-        material(material)
+        material(material),
+        tilePtr(NULL)
+    {
+        maxDamage = 64;
+        maxStackSize = 1;
+    }
+
+    /** A wooden door that places its own tile; Tile::door_* are not built yet when the items are. */
+    DoorItem(int id, const Material* material, Tile** tile)
+    :   super(id),
+        material(material),
+        tilePtr(tile)
     {
         maxDamage = 64;
         maxStackSize = 1;
@@ -31,7 +43,8 @@ public:
 
 		Tile* tile;
 
-		if (material == Material::wood) tile = Tile::door_wood;
+		if (tilePtr != NULL) tile = *tilePtr;
+		else if (material == Material::wood) tile = Tile::door_wood;
 		else tile = Tile::door_iron;
 		//if (!player->mayUseItemAt(x, y, z, face, instance) || !player->mayUseItemAt(x, y + 1, z, face, instance)) return false;
 		if (!tile->mayPlace(level, x, y, z)) return false;

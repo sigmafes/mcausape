@@ -25,6 +25,8 @@ public:
 	static const int C_RIGHT_HINGE_MASK = 16;
 
 	DoorTile(int id, const Material* material);
+	/** A wooden door in another picture (the lower half's cell; the upper is the cell above) that drops its own item. */
+	DoorTile(int id, const Material* material, int tex, Item** item);
 	int getTexture(LevelSource* level, int x, int y, int z, int face);
 
 	bool blocksLight();
@@ -56,6 +58,12 @@ public:
     bool mayPlace(Level* level, int x, int y, int z, unsigned char face);
 
 	static int getCompositeData(LevelSource* level, int x, int y, int z);
+
+	/// The door item this tile drops: its own, or the oak or iron default.
+	Item* getDoorItem();
+
+private:
+	Item** doorItem;
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL_TILE__DoorTile_H__*/

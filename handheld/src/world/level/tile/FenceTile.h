@@ -99,9 +99,13 @@ public:
         return Tile::SHAPE_FENCE;
     }
 
+    static bool isGate(int tile) {
+        return tile == Tile::fenceGate->id || tile == Tile::fenceGate_spruce->id || tile == Tile::fenceGate_birch->id;
+    }
+
     bool connectsTo(LevelSource* level, int x, int y, int z) {
         int tile = level->getTile(x, y, z);
-        if (tile == id || tile == Tile::fenceGate->id) {
+        if (tile == id || isGate(tile)) {
             return true;
         }
         Tile* tileInstance = Tile::tiles[tile];

@@ -229,6 +229,14 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::trapdoor));
 		addItem(new ItemInstance(Tile::fence));
 		addItem(new ItemInstance(Tile::fenceGate));
+		addItem(new ItemInstance(Item::door_spruce));
+		addItem(new ItemInstance(Item::door_birch));
+		addItem(new ItemInstance(Tile::trapdoor_spruce));
+		addItem(new ItemInstance(Tile::trapdoor_birch));
+		addItem(new ItemInstance(Tile::fence_spruce));
+		addItem(new ItemInstance(Tile::fence_birch));
+		addItem(new ItemInstance(Tile::fenceGate_spruce));
+		addItem(new ItemInstance(Tile::fenceGate_birch));
 
 		addItem(new ItemInstance(Tile::netherFence));
 		// One spawner per kind, so each can be tested without commands.
