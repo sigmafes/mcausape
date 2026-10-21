@@ -489,7 +489,9 @@ void Player::_init() {
 }
 
 float Player::getWalkingSpeedModifier() {
-	return 1.0f;
+	// Sprinting is 30% faster, as in Minecraft; the field of view widens with
+	// it for free (LocalPlayer::getFieldOfViewModifier reads this).
+	return isSprinting() ? 1.3f : 1.0f;
 }
 
 

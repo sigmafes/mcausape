@@ -56,6 +56,8 @@ public:
 
     virtual bool isSneaking();
     virtual void setSneaking(bool value);
+    bool isSprinting();
+    void setSprinting(bool value);
 
     virtual float getHeadHeight();
 

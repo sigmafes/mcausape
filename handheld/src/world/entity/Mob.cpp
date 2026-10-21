@@ -1105,6 +1105,14 @@ bool Mob::isSleeping() {
     return false;
 }
 
+bool Mob::isSprinting() {
+    return getSharedFlag(SharedFlagsInformation::FLAG_SPRINTING);
+}
+
+void Mob::setSprinting(bool value) {
+    setSharedFlag(SharedFlagsInformation::FLAG_SPRINTING, value);
+}
+
 void Mob::setSneaking(bool value) {
     setSharedFlag(SharedFlagsInformation::FLAG_SNEAKING, value);
 }

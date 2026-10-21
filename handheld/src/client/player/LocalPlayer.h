@@ -80,6 +80,10 @@ public:
 protected:
 	Minecraft* minecraft;
 	int jumpTriggerTime;
+	// Sprint: ticks left in which a second press of forward counts as a double
+	// tap, and whether forward was down last tick.
+	int sprintTriggerTime;
+	bool wasForward;
 	int ascendTriggerTime;
 	int descendTriggerTime;
 	bool ascending, descending;

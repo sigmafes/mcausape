@@ -170,6 +170,7 @@ void LocalPlayer::tick() {
 /*public*/
 void LocalPlayer::aiStep() {
 	jumpTriggerTime--;
+	sprintTriggerTime--;
 	ascendTriggerTime--;
 	descendTriggerTime--;
 
@@ -183,6 +184,22 @@ void LocalPlayer::aiStep() {
         if (ySlideOffset < 0.2f) ySlideOffset = 0.2f;
     }
 #endif
+
+	// Sprint: forward pressed twice in quick succession, or forward with left
+	// Ctrl held. Ends when forward is let go, on crouching or using an item, or
+	// on running into something -- so it never has to be switched off by hand.
+	// Touch has no key to double-tap (the pad is analogue), so it never starts.
+	const bool forward = input->ya > 0;
+	if (!minecraft->useTouchscreen()) {
+		if (forward && !wasForward) {
+			if (sprintTriggerTime > 0) setSprinting(true);
+			else sprintTriggerTime = 7;
+		}
+		if (forward && input->sprintHeld) setSprinting(true);
+	}
+	wasForward = forward;
+	if (isSprinting() && (!forward || input->sneaking || isUsingItem() || horizontalCollision))
+		setSprinting(false);
 
 	// Everyone else draws this player crouching from the shared flag, not from
 	// our input, which only the touch controls ever copied into it. Keep the
@@ -396,6 +413,8 @@ void LocalPlayer::reset() {
 void LocalPlayer::_init() {
 	autoJumpTime		= 0;
 	jumpTriggerTime		= 0;
+	sprintTriggerTime	= 0;
+	wasForward			= false;
 	ascendTriggerTime	= 0;
 	descendTriggerTime	= 0;
 	ascending	= false;

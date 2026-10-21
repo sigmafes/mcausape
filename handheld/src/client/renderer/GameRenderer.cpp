@@ -460,13 +460,12 @@ void GameRenderer::moveCameraToPlayer(float a) {
         } else {
             float yRot = player->yRot;
             float xRot = player->xRot/* + 180.0f*/;
-            // Front view: the camera swings round to the other side of the
-            // player (this is where it is placed and clipped against blocks)...
+            // Front view: only the collision test below uses the reversed
+            // angle, to find how far the camera can sit on the far side of the
+            // player; the rotation that actually aims it is further down.
             const bool front = mc->options.thirdPersonFront;
-            if (front) {
+            if (front)
                 yRot += 180.0f;
-                xRot = -xRot;
-            }
             float xd = -Mth::sin(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float zd = Mth::cos(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float yd = -Mth::sin(xRot / 180 * Mth::PI) * cameraDist;
@@ -489,13 +488,9 @@ void GameRenderer::moveCameraToPlayer(float a) {
 
 			//glRotatef2(180, 0, 1, 0);
 
-			glRotatef2(player->xRot - xRot, 1, 0, 0);
-            glRotatef2(player->yRot - yRot, 0, 1, 0);
+            // Nothing else turns the view: it keeps the player's own direction
+            // (see below), which is what points the camera at them from the front.
             glTranslatef2(0, 0, (float) -cameraDist);
-            glRotatef2(yRot - player->yRot, 0, 1, 0);
-            glRotatef2(xRot - player->xRot, 1, 0, 0);
-            // ...and turns to face them, instead of looking the way they do.
-            if (front) glRotatef2(180, 0, 1, 0);
         }
     } else {
         glTranslatef2(0, 0, -0.1f);
@@ -503,7 +498,9 @@ void GameRenderer::moveCameraToPlayer(float a) {
 
     if (!mc->options.fixedCamera) {
         glRotatef2(player->xRotO + (player->xRot - player->xRotO) * a, 1.0f, 0.0f, 0.0f);
-        glRotatef2(player->yRotO + (player->yRot - player->yRotO) * a + 180, 0, 1, 0);
+        // The half turn is what puts the camera behind the player; leaving it out
+        // in front view is what turns it round to face them.
+        glRotatef2(player->yRotO + (player->yRot - player->yRotO) * a + ((mc->options.thirdPersonView && mc->options.thirdPersonFront) ? 0 : 180), 0, 1, 0);
 		//if (_t_keepPic > 0)
 	}
     glTranslatef2(0, heightOffset, 0);

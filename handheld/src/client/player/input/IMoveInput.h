@@ -16,6 +16,7 @@ protected:
 		wasJumping(false),
 		jumping(false),
 		sneaking(false),
+		sprintHeld(false),
 		wantUp(false),
 		wantDown(false),
 		isChangingFlightHeight(false)
@@ -38,6 +39,8 @@ public:
 	bool wasJumping;
 	bool jumping;
 	bool sneaking;
+	// The sprint key is down (left Ctrl). LocalPlayer decides what that means.
+	bool sprintHeld;
 
 	bool wantUp;
 	bool wantDown;

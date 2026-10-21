@@ -309,8 +309,7 @@ void OptionsScreen::generateOptionScreens() {
 		graphics.addOptionItem(&Options::Option::FULLSCREEN, minecraft);
 	panes[1]->createOptionsGroup("options.group.camera")
 		.addOptionItem(&Options::Option::VIEW_BOBBING, minecraft)
-		.addOptionItem(&Options::Option::THIRD_PERSON, minecraft)
-		.addOptionItem(&Options::Option::THIRD_PERSON_FRONT, minecraft);
+		.addOptionItem(&Options::Option::THIRD_PERSON, minecraft);
 
 	// Sound. Music is deliberately absent: the streamed music assets are not
 	// in the compiled-in sound bank, so a music slider would control nothing.

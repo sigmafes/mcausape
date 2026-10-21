@@ -20,6 +20,7 @@ void KeyboardInput::setKey( int key, bool state )
 	if (key == options->keyJump.key) id = KEY_JUMP;
 	if (key == options->keySneak.key) id = KEY_SNEAK;
 	if (key == options->keyCraft.key) id = KEY_CRAFT;
+	if (key == Keyboard::KEY_LCTRL) id = KEY_SPRINT;
 
 	// Arrow keys move as well as WASD; they aren't part of the rebindable set,
 	// so they're matched separately rather than through Options.
@@ -55,6 +56,7 @@ void KeyboardInput::tick( Player* player )
 	if (keys[KEY_RIGHT]) xa--;
 	jumping = keys[KEY_JUMP];
 	sneaking = keys[KEY_SNEAK];
+	sprintHeld = keys[KEY_SPRINT];
 	if (sneaking) {
 		xa *= 0.3f;
 		ya *= 0.3f;

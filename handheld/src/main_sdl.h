@@ -65,6 +65,7 @@ static unsigned char transformKey(SDL_Keycode key)
 	case SDLK_TAB:       return 9;
 	case SDLK_LSHIFT:    return 10;  // Keyboard::KEY_LSHIFT
 	case SDLK_RSHIFT:    return 10;
+	case SDLK_LCTRL:     return 17;  // Keyboard::KEY_LCTRL
 	case SDLK_LEFT:      return 37;
 	case SDLK_UP:        return 38;
 	case SDLK_RIGHT:     return 39;

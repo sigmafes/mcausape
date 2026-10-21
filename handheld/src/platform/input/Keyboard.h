@@ -74,6 +74,7 @@ public:
 	static const int KEY_ESCAPE = 27;
 	static const int KEY_SPACE = 32;
 	static const int KEY_LSHIFT = 10;
+	static const int KEY_LCTRL = 17;
 
 	static const int KEY_ARROW_LEFT  = 37;
 	static const int KEY_ARROW_UP    = 38;
