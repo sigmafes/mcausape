@@ -69,6 +69,11 @@ public:
                 }
             } else {
                 if (becomeStatic) setStatic(level, x, y, z);
+                // Lava holds its level on three ticks in four (so it drains slowly)
+                // but then nothing was left to look at it again: it waited for a
+                // random tick, and a stream whose source was cut could sit there
+                // for a very long time. Ask for the next look now.
+                else level->addToTickNextTick(x, y, z, id, getTickDelay());
             }
         } else {
             setStatic(level, x, y, z);
