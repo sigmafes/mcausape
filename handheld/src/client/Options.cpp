@@ -430,12 +430,13 @@ std::string Options::sanitizeUsername(const std::string& name) {
 	std::string out;
 	for (unsigned int i = 0; i < name.size() && out.size() < 16; ++i) {
 		const char c = name[i];
-		if (c >= 32 && c < 127)
+		// What a host will accept as a name (ServerAccess::validName): it has to
+		// be typeable in a command (/op, /whitelist) and safe in the host's files.
+		if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-')
 			out += c;
+		else if (c == ' ')
+			out += '_';
 	}
-	// Leading/trailing spaces would make two names that look alike.
-	while (!out.empty() && out[0] == ' ') out.erase(0, 1);
-	while (!out.empty() && out[out.size() - 1] == ' ') out.erase(out.size() - 1);
 	return out.empty() ? std::string("Steve") : out;
 }
 

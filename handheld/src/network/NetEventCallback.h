@@ -66,6 +66,9 @@ class NetEventCallback
 {
 public:
 	virtual void levelGenerated(Level* level) {}
+	/// A second Level starts or stops running in a hosted world (see Minecraft::otherLevel).
+	virtual void levelAdded(Level* level) {}
+	virtual void levelRemoved(Level* level) {}
 	virtual ~NetEventCallback() {}
 
 	virtual void onConnect(const RakNet::RakNetGUID& hostGuid) {};

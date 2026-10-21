@@ -29,6 +29,11 @@ public:
 
     virtual void closeAll() = 0;
 
+	/// A second storage on the same world, for a second Level running at once
+	/// (the other dimension): each Level needs its own, because a storage
+	/// remembers the one Level it serves. NULL if this kind cannot.
+	virtual LevelStorage* openSibling() { return NULL; }
+
 	/// The folder the world lives in, or "" if it does not live in one.
 	virtual std::string getFolder() { return ""; }
 

@@ -12,19 +12,24 @@ public:
 
 	int entityId;
 	float x, y, z;
+	/// Which dimension to build (Dimension::NORMAL or NETHER). Not in 0.6.1's
+	/// packet: it is how a visitor is sent through a portal.
+	int dimension;
 
 	StartGamePacket()
+	:	dimension(0)
 	{
 	}
 
-	StartGamePacket(long seed, int levelGeneratorVersion, int gameType, int entityId, float x, float y, float z)
+	StartGamePacket(long seed, int levelGeneratorVersion, int gameType, int entityId, float x, float y, float z, int dimension = 0)
 	:	levelSeed(seed),
 		levelGeneratorVersion(levelGeneratorVersion),
 		gameType(gameType),
 		entityId(entityId),
 		x(x),
 		y(y),
-		z(z)
+		z(z),
+		dimension(dimension)
 	{
 	}
 
@@ -39,6 +44,7 @@ public:
 		bitStream->Write(x);
 		bitStream->Write(y);
 		bitStream->Write(z);
+		bitStream->Write(dimension);
 	}
 
 	void read(RakNet::BitStream* bitStream)
@@ -50,6 +56,7 @@ public:
 		bitStream->Read(x);
 		bitStream->Read(y);
 		bitStream->Read(z);
+		bitStream->Read(dimension);
 	}
 
 	void handle(const RakNet::RakNetGUID& source, NetEventCallback* callback)

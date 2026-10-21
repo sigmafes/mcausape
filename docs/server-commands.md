@@ -27,6 +27,21 @@ as a salted SHA-256, never in clear.
 Operators and the whitelist are by name too, so use authentication if the world
 is public.
 
+## Dimensions
+
+Visitors can use portals. Anyone can be in the Nether while others are in the
+Overworld: the world runs a second Level for whichever dimension the host is
+not in, only while somebody is in it, and saves and drops it when the last
+player leaves. Each Level broadcasts only to its own players
+(`network/LevelNet.h`), a visitor going through a portal is sent a new
+`StartGamePacket` with the dimension and loads it the way it loaded the world,
+and newcomers always start in the Overworld. A visitor that dies in the Nether
+respawns in the Overworld.
+
+The host can travel while visitors are in the world too: it moves between the
+two Levels (`Minecraft::changeDimensionShared`) instead of replacing the one it
+was in. The Level the host is in is the one that writes `level.dat`.
+
 ## Where it is kept
 
 In the world's own folder: `server.txt` (whitelist flag, auth flag, listed

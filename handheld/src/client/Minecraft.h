@@ -82,6 +82,17 @@ public:
 	void setIsCreativeMode(bool isCreative);
 	void setScreen(Screen*);
 
+	/** A hosted world can have two Levels running: the host's (`level`) and the
+	    other dimension's (`otherLevel`), while a visitor is there. The other is
+	    made when the first player goes through a portal, ticks beside the host's,
+	    and is saved and dropped when nobody is left in it. Hosts only. */
+	Level* otherLevel;
+	/// The running Level of `dimension`; with `create`, the other one is made if it is not running.
+	Level* levelForDimension(int dimension, bool create);
+	void destroyOtherLevel();
+	/// Where somebody going to `dst` lands (a portal found or built there).
+	void findArrival(Level* dst, bool toNether, float fromX, float fromZ, bool respawn, Player* who, int* outX, int* outY, int* outZ);
+
 	virtual void selectLevel(const std::string& levelId, const std::string& levelName, const LevelSettings& settings);
 	virtual void setLevel(Level* level, const std::string& message = "", LocalPlayer* forceInsertPlayer = NULL);
 
@@ -147,6 +158,7 @@ public:
 	// tick(), never mid-entity-update. Single-player only: see the guard in it.
 	// respawn: the player died in the Nether and comes back at the Overworld's
 	// spawn (or his bed), with no arrival portal.
+	void changeDimensionShared(bool toNether, bool respawn);
 	void changeDimension(bool toNether, bool respawn = false);
 
 	int getProgressStatusId();

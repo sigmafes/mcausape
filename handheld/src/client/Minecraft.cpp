@@ -213,6 +213,7 @@ Minecraft::Minecraft()
 {
 _portalCooldown = 0;
 _travelPlayer = NULL;
+otherLevel = NULL;
 _pendingDim = 0;
 _pendingDimFrames = 0;
 _prepNether = false;
@@ -243,6 +244,8 @@ _netherPrepIndex = 0;
 Minecraft::~Minecraft()
 {
 	delete netCallback;
+	netCallback = NULL;
+	destroyOtherLevel();
 	delete raknetInstance;
 #ifndef STANDALONE_SERVER
 	delete levelRenderer;
@@ -396,6 +399,7 @@ void Minecraft::leaveGame(bool renameLevel /*=false*/)
 	levelRenderer->setLevel(NULL);
 	particleEngine->setLevel(NULL);
 #endif
+	destroyOtherLevel();
 	LOGI("Erasing callback\n");
 	delete netCallback;
 	netCallback = NULL;
@@ -611,18 +615,152 @@ void Minecraft::prepareLevelPrepare() {
 
 static const int PORTAL_COOLDOWN_TICKS = 40;
 
+Level* Minecraft::levelForDimension(int dimension, bool create)
+{
+	if (level && level->dimension && level->dimension->id == dimension) return level;
+	if (otherLevel && otherLevel->dimension->id == dimension) return otherLevel;
+	if (!create || !level || level->isClientSide || isGeneratingLevel || !netCallback) return NULL;
+
+	// Its own storage: a storage serves one Level (see LevelStorage::openSibling).
+	LevelStorage* storage = level->getLevelStorage() ? level->getLevelStorage()->openSibling() : NULL;
+	if (!storage) return NULL;
+
+	Dimension* newDimension = (dimension == Dimension::NETHER)
+		? Dimension::getNew(Dimension::NETHER)
+		: DimensionFactory::createDefaultDimension(level->getLevelData());
+#if defined(CREATORMODE)
+	Level* other = new CreatorLevel(
+#else
+	Level* other = new ServerLevel(
+#endif
+		storage,
+		level->getLevelData()->getLevelName(),
+		LevelSettings::None(),
+		SharedConstants::GeneratorVersion,
+		newDimension);
+	other->isSecondary = true;
+	// What the world is, not what was on disk the last time it was saved.
+	*other->getLevelData() = *level->getLevelData();
+	other->getLevelData()->setLoadedPlayerTag(NULL);
+	other->difficulty = level->difficulty;
+	other->adventureSettings = level->adventureSettings;
+	other->raknetInstance = raknetInstance;
+	other->setUpdateLights(true);
+	other->loadEntities();
+
+	otherLevel = other;
+	netCallback->levelAdded(other);
+	LOGI("Second level running: dimension %d\n", dimension);
+	return other;
+}
+
+void Minecraft::destroyOtherLevel()
+{
+	if (!otherLevel) return;
+	LOGI("Second level done: dimension %d\n", otherLevel->dimension->id);
+	if (netCallback) netCallback->levelRemoved(otherLevel);
+	otherLevel->saveGame();
+	if (otherLevel->getChunkSource())
+		otherLevel->getChunkSource()->saveAll(true);
+	LevelStorage* storage = otherLevel->getLevelStorage();
+	delete otherLevel;
+	delete storage;
+	otherLevel = NULL;
+}
+
+void Minecraft::findArrival(Level* dst, bool toNether, float fromX, float fromZ, bool respawn, Player* who, int* outX, int* outY, int* outZ)
+{
+	// Same coordinates on both sides, as in changeDimension.
+	int tx = (int) fromX;
+	int tz = (int) fromZ;
+	if (tx < 4) tx = 4;
+	if (tx >= LEVEL_WIDTH - 4) tx = LEVEL_WIDTH - 5;
+	if (tz < 4) tz = 4;
+	if (tz >= LEVEL_DEPTH - 4) tz = LEVEL_DEPTH - 5;
+
+	PortalTile* portal = (PortalTile*) Tile::portalTile;
+	int ty = 0;
+	int foundX = 0, foundY = 0, foundZ = 0;
+	if (respawn) {
+		Pos p = (who && who->hasRespawnPosition()) ? who->getRespawnPosition() : dst->getSharedSpawnPos();
+		tx = p.x;
+		tz = p.z;
+		ty = dst->getTopTileY(tx, tz) + 1;
+	} else if (portal->findNearbyPortal(dst, tx, tz, 16, &foundX, &foundY, &foundZ)) {
+		tx = foundX;
+		ty = foundY;
+		tz = foundZ;
+	} else {
+		ty = toNether ? 64 : dst->getTopTileY(tx, tz) + 1;
+		portal->buildArrivalPortal(dst, tx, ty, tz);
+	}
+	*outX = tx;
+	*outY = ty;
+	*outZ = tz;
+}
+
+/** The host goes through a portal while others are in the world: both Levels
+    stay, and the host's moves from one to the other. The Level it arrives in is
+    the one that writes level.dat from now on. */
+void Minecraft::changeDimensionShared(bool toNether, bool respawn)
+{
+	ServerSideNetworkHandler* net = static_cast<ServerSideNetworkHandler*>(netCallback);
+	Level* src = level;
+	const int dstId = toNether ? Dimension::NETHER : Dimension::NORMAL;
+	Level* dst = levelForDimension(dstId, true);
+	if (!dst || dst == src) {
+		LOGI("changeDimensionShared refused: no level for dimension %d\n", dstId);
+		return;
+	}
+
+	int tx, ty, tz;
+	findArrival(dst, toNether, player->x, player->z, respawn, player, &tx, &ty, &tz);
+
+	net->hostLeaving(src);
+#ifndef STANDALONE_SERVER
+	levelRenderer->setLevel(NULL);
+	particleEngine->setLevel(NULL);
+#endif
+	src->detachEntityForTransfer(player);
+
+	// The world's own data (time, game type, difficulty) goes with the host.
+	*dst->getLevelData() = *src->getLevelData();
+	dst->getLevelData()->setLoadedPlayerTag(NULL);
+	src->isSecondary = true;
+	dst->isSecondary = false;
+
+	player->setLevel(dst);
+	player->dimension = dstId;
+	player->moveTo(tx + 0.5f, (float) ty, tz + 0.5f, player->yRot, player->xRot);
+
+	level = dst;
+	otherLevel = src;
+	dst->addEntity(player);
+	gameMode->initLevel(dst);
+#ifndef STANDALONE_SERVER
+	levelRenderer->setLevel(dst);
+	particleEngine->setLevel(dst);
+#endif
+	cameraTargetPlayer = player;
+	// Written now so a reload starts where he is.
+	dst->saveLevelData();
+	net->hostEntered(dst);
+
+	_portalCooldown = PORTAL_COOLDOWN_TICKS;
+}
+
 void Minecraft::changeDimension(bool toNether, bool respawn)
 {
-	// One local player and nobody else in this world. Anyone else on the old
-	// level would be left in a world that no longer exists, so multiplayer
-	// hosts are refused rather than broken.
+	// Alone in the world: the old level is written out and replaced by the
+	// other side's. With visitors about, the old one has to stay (it is theirs
+	// still), so the host moves between two Levels instead.
 	LOGI("changeDimension: toNether=%d\n", (int) toNether);
 	if (!level || !player || isGeneratingLevel || level->isClientSide) {
 		LOGI("changeDimension refused: level=%p player=%p generating=%d\n", level, player, (int) isGeneratingLevel);
 		return;
 	}
-	if (level->players.size() > 1) {
-		LOGI("changeDimension refused: %d players in the level\n", (int) level->players.size());
+	if (netCallback && (level->players.size() > 1 || otherLevel || static_cast<ServerSideNetworkHandler*>(netCallback)->hasPending())) {
+		changeDimensionShared(toNether, respawn);
 		return;
 	}
 
@@ -657,6 +795,7 @@ void Minecraft::changeDimension(bool toNether, bool respawn)
 	particleEngine->setLevel(NULL);
 #endif
 	level->detachEntityForTransfer(player);
+	if (netCallback) netCallback->levelRemoved(level);
 	delete level;
 	level = NULL;
 
@@ -757,6 +896,7 @@ void Minecraft::update() {
 	TIMER_POP_PUSH("updatelights");
 	if (level && !isGeneratingLevel) {
 		level->updateLights();
+		if (otherLevel) otherLevel->updateLights();
 	}
 	TIMER_POP();
 
@@ -948,6 +1088,14 @@ void Minecraft::tick(int nTick, int maxTick) {
 			TIMER_POP_PUSH("level");
 			level->tickEntities();
 			level->tick();
+			if (otherLevel) {
+				otherLevel->difficulty = options.difficulty;
+				otherLevel->tickEntities();
+				otherLevel->tick();
+				// Visitors travel by their own packets (see ServerSideNetworkHandler);
+				// a request their portal left here is for nobody to answer.
+				otherLevel->takePortalTravelRequest();
+			}
 #ifndef STANDALONE_SERVER
 			TIMER_POP_PUSH("animateTick");
 			if (player) {
@@ -1934,7 +2082,7 @@ void Minecraft::respawnPlayer() {
 	// Dying in the Nether sends the player home, as in the other editions: he comes
 	// back in the Overworld, not at the Nether's spawn.
 	if (level && player && !level->isClientSide && level->dimension
-		&& level->dimension->id == Dimension::NETHER && level->players.size() <= 1) {
+		&& level->dimension->id == Dimension::NETHER) {
 		player->reset();
 		if (isCreativeMode())
 			player->inventory->clearInventoryWithDefault();

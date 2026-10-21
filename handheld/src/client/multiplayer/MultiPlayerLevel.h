@@ -37,8 +37,8 @@ class MultiPlayerLevel: public Level
 	typedef std::list<ResetInfo> ResetInfoList;
 
 public:
-	MultiPlayerLevel(LevelStorage* levelStorage, const std::string& levelName, const LevelSettings& settings, int levelVersion)
-	:	super(levelStorage, levelName, settings, levelVersion)
+	MultiPlayerLevel(LevelStorage* levelStorage, const std::string& levelName, const LevelSettings& settings, int levelVersion, Dimension* fixedDimension = NULL)
+	:	super(levelStorage, levelName, settings, levelVersion, fixedDimension)
 	{
 		//super(new MockedLevelStorage(), "MpServer", Dimension.getNew(dimension), levelSettings);
 		//this->difficulty = difficulty;

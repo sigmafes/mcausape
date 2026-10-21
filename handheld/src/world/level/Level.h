@@ -297,6 +297,9 @@ private:
 public:
 	bool instaTick;
 	bool isClientSide;
+	/// The Level of the dimension the host is not in. It runs for the visitors
+	/// there, and must not write level.dat: that belongs to the host's Level.
+	bool isSecondary;
 	bool isGeneratingTerrain;
 	int difficulty;
     AdventureSettings adventureSettings;

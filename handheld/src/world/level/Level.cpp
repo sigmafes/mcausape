@@ -32,6 +32,7 @@
 Level::Level(LevelStorage* levelStorage, const std::string& levelName, const LevelSettings& settings, int generatorVersion, Dimension* fixedDimension /* = NULL */)
 :	levelStorage(levelStorage),
 	isClientSide(false),
+	isSecondary(false),
 	isFindingSpawn(false),
 	noNeighborUpdate(false),
 	skyDarken(0),
@@ -510,8 +511,16 @@ int Level::getTopTileY(int x, int z) {
 void Level::saveLevelData() {
 	// The dimension is whatever this Level was built with, which is the only
 	// place it is known: the storage writes levelData as it is given.
+	if (isSecondary) return;
 	levelData.setDimension(dimension->id);
-	levelStorage->saveLevelData(levelData, &players);
+	// The player kept in level.dat is the host's. Visitors' players are the
+	// server's copies (no inventory of their own), and one of them must never
+	// take the first place in the list.
+	std::vector<Player*> keep;
+	for (unsigned int i = 0; i < players.size(); ++i)
+		if (!players[i]->hasFakeInventory)
+			keep.push_back(players[i]);
+	levelStorage->saveLevelData(levelData, &keep);
 }
 
 // Takes an entity out of this level's lists without deleting it, so it can be

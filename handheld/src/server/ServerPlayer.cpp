@@ -1,4 +1,5 @@
 #include "ServerPlayer.h"
+#include "../world/level/Level.h"
 
 #include "../network/RakNetInstance.h"
 #include "../network/packet/ContainerOpenPacket.h"
@@ -67,7 +68,8 @@ void ServerPlayer::tick() {
 
 void ServerPlayer::take( Entity* e, int orgCount ) {
 	TakeItemEntityPacket packet(e->entityId, entityId);
-	_mc->raknetInstance->send(packet);
+	// To the players in this player's level: another dimension has other entities.
+	level->raknetInstance->send(packet);
 
 	super::take(e, orgCount);
 }

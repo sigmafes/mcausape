@@ -20,6 +20,11 @@
 #include "../world/entity/item/FallingTile.h"
 #include "../client/skin/PlayerSkins.h"
 #include "../server/ServerCommands.h"
+#include "LevelNet.h"
+#include "../world/level/LevelListener.h"
+#include "../world/level/dimension/Dimension.h"
+#include "../world/level/tile/PortalTile.h"
+#include "../util/Mth.h"
 #if defined(MC_WASM)
 #include "WebRakNetInstance.h"
 #endif
@@ -28,10 +33,27 @@
 
 #define TIMES(x) for(int itc ## __LINE__ = 0; itc ## __LINE__ < x; ++ itc ## __LINE__)
 
+/** Listens to one Level for the handler and says which Level it was. */
+class LevelView: public LevelListener
+{
+public:
+	LevelView(ServerSideNetworkHandler* handler, Level* level) : handler(handler), level(level) {}
+
+	void tileChanged(int x, int y, int z) { handler->tileChangedIn(level, x, y, z); }
+	void tileBrightnessChanged(int x, int y, int z) { /* do nothing */ }
+	void entityAdded(Entity* e) { handler->entityAddedIn(level, e); }
+	void entityRemoved(Entity* e) { handler->entityRemovedIn(level, e); }
+	void levelEvent(Player* source, int type, int x, int y, int z, int data) { handler->levelEventIn(level, source, type, x, y, z, data); }
+	void tileEvent(int x, int y, int z, int b0, int b1) { handler->tileEventIn(level, x, y, z, b0, b1); }
+
+private:
+	ServerSideNetworkHandler* handler;
+	Level* level;
+};
+
 ServerSideNetworkHandler::ServerSideNetworkHandler(Minecraft* minecraft, IRakNetInstance* raknetInstance)
 :	minecraft(minecraft),
 	raknetInstance(raknetInstance),
-	level(NULL),
 	_lastPlayerCount(0)
 {
 	allowIncomingConnections(false);
@@ -40,8 +62,14 @@ ServerSideNetworkHandler::ServerSideNetworkHandler(Minecraft* minecraft, IRakNet
 
 ServerSideNetworkHandler::~ServerSideNetworkHandler()
 {
-	if (level) {
-		level->removeListener(this);
+	// Every Level it served goes back to the plain network.
+	while (!_hooks.empty()) {
+		Hook h = _hooks.back();
+		_hooks.pop_back();
+		h.level->removeListener(h.view);
+		h.level->raknetInstance = raknetInstance;
+		delete h.view;
+		delete h.net;
 	}
 
 	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
@@ -50,15 +78,72 @@ ServerSideNetworkHandler::~ServerSideNetworkHandler()
 	PlayerSkins::releaseAllBut(PlayerSkins::localSkin);
 }
 
-void ServerSideNetworkHandler::tileChanged(int x, int y, int z)
+void ServerSideNetworkHandler::hookLevel(Level* level)
+{
+	if (!level || level->isClientSide || hookOf(level)) return;
+	Hook h;
+	h.level = level;
+	h.view = new LevelView(this, level);
+	h.net = new LevelNet(raknetInstance, level, &_pendingPlayers);
+	_hooks.push_back(h);
+	level->addListener(h.view);
+	// Its broadcasts go to its own players only.
+	level->raknetInstance = h.net;
+}
+
+ServerSideNetworkHandler::Hook* ServerSideNetworkHandler::hookOf(Level* level)
+{
+	for (unsigned int i = 0; i < _hooks.size(); ++i)
+		if (_hooks[i].level == level) return &_hooks[i];
+	return NULL;
+}
+
+void ServerSideNetworkHandler::levelAdded(Level* level)
+{
+	hookLevel(level);
+}
+
+void ServerSideNetworkHandler::levelRemoved(Level* level)
+{
+	for (unsigned int i = 0; i < _hooks.size(); ++i) {
+		if (_hooks[i].level == level) {
+			Hook h = _hooks[i];
+			_hooks.erase(_hooks.begin() + i);
+			level->removeListener(h.view);
+			level->raknetInstance = raknetInstance;
+			delete h.view;
+			delete h.net;
+			return;
+		}
+	}
+}
+
+std::vector<Level*> ServerSideNetworkHandler::levels()
+{
+	std::vector<Level*> all;
+	if (minecraft->level) all.push_back(minecraft->level);
+	if (minecraft->otherLevel) all.push_back(minecraft->otherLevel);
+	return all;
+}
+
+Level* ServerSideNetworkHandler::levelOf(const RakNet::RakNetGUID& source)
+{
+	std::vector<Level*> all = levels();
+	for (unsigned int l = 0; l < all.size(); ++l)
+		for (unsigned int i = 0; i < all[l]->players.size(); ++i)
+			if (all[l]->players[i]->owner == source) return all[l];
+	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
+		if (_pendingPlayers[i]->owner == source) return _pendingPlayers[i]->level;
+	return NULL;
+}
+
+void ServerSideNetworkHandler::tileChangedIn(Level* level, int x, int y, int z)
 {
 	//LOGI("tileChanged(%d, %d, %d)\n", x, y, z);
 
 	// broadcast change event
 	UpdateBlockPacket packet(x, y, z, level->getTile(x, y, z), level->getData(x, y, z));
-	RakNet::BitStream bitStream;
-	packet.write(&bitStream);
-	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+	redistributeIn(level, &packet, RakNet::UNASSIGNED_RAKNET_GUID);
 }
 
 Packet* ServerSideNetworkHandler::getAddPacketFromEntity( Entity* entity ) {
@@ -100,37 +185,50 @@ Packet* ServerSideNetworkHandler::getAddPacketFromEntity( Entity* entity ) {
 	}
 	return NULL;
 }
-void ServerSideNetworkHandler::entityAdded(Entity* e) {
+void ServerSideNetworkHandler::entityAddedIn(Level* level, Entity* e) {
 	Packet* packet = getAddPacketFromEntity(e);
-	if(packet != NULL) {
-		if (e->isMob() && !e->isPlayer()) {
-			redistributePacket(packet, rakPeer->GetMyGUID());
-			delete packet;
-		} else {
-			raknetInstance->send(packet);
-			// raknetInstance->send always deletes package
-		}
-		
+	if (packet != NULL) {
+		redistributeIn(level, packet, RakNet::UNASSIGNED_RAKNET_GUID);
+		delete packet;
 	}
 }
 
-void ServerSideNetworkHandler::entityRemoved(Entity* e)
+void ServerSideNetworkHandler::entityRemovedIn(Level* level, Entity* e)
 {
 	if (!e->isPlayer()) { //@fix: This code MIGHT be duplicated. See if it can be unified.
 		RemoveEntityPacket packet(e->entityId);
-		redistributePacket(&packet, rakPeer->GetMyGUID());
+		redistributeIn(level, &packet, RakNet::UNASSIGNED_RAKNET_GUID);
 	} else { // Is a player
 		RemovePlayerPacket packet((Player*) e);
-		redistributePacket(&packet, rakPeer->GetMyGUID());
+		redistributeIn(level, &packet, RakNet::UNASSIGNED_RAKNET_GUID);
+	}
+}
+
+void ServerSideNetworkHandler::redistributeIn(Level* level, Packet* packet, const RakNet::RakNetGUID& exclude)
+{
+	if (!level) return;
+	RakNet::BitStream bitStream;
+	packet->write(&bitStream);
+	const RakNet::RakNetGUID me = rakPeer->GetMyGUID();
+	for (unsigned int i = 0; i < level->players.size(); ++i) {
+		const RakNet::RakNetGUID& to = level->players[i]->owner;
+		if (to == me || to == exclude) continue;
+		rakPeer->Send(&bitStream, packet->priority, packet->reliability, 0, to, false);
+	}
+	// The ones the level is still being loaded for hear about it too.
+	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i) {
+		const RakNet::RakNetGUID& to = _pendingPlayers[i]->owner;
+		if (_pendingPlayers[i]->level != level || to == exclude) continue;
+		rakPeer->Send(&bitStream, packet->priority, packet->reliability, 0, to, false);
 	}
 }
 
 void ServerSideNetworkHandler::redistributePacket(Packet* packet, const RakNet::RakNetGUID& fromPlayer)
 {
-	// broadcast the new player to all other players
-	RakNet::BitStream bitStream;
-	packet->write(&bitStream);
-	rakPeer->Send(&bitStream, packet->priority, packet->reliability, 0, fromPlayer, true);
+	// Everyone in the sender's level but the sender. A host's own change is
+	// in the host's level.
+	Level* level = (fromPlayer == rakPeer->GetMyGUID()) ? minecraft->level : levelOf(fromPlayer);
+	redistributeIn(level, packet, fromPlayer);
 }
 
 void ServerSideNetworkHandler::displayGameMessage(const std::string& message)
@@ -151,7 +249,7 @@ void ServerSideNetworkHandler::onNewClient(const RakNet::RakNetGUID& clientGuid)
 
 void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 {
-	if (!level) return;
+	if (!minecraft->level) return;
 	LOGI("onDisconnect\n");
 
 	removeSession(guid);
@@ -164,7 +262,7 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 		}
 	}
 
-	const PlayerList& players = level->players;
+	const std::vector<Player*> players = allPlayers();
 	for (unsigned int i = 0; i < players.size(); i++)
 	{
 		Player* player = players[i];
@@ -180,7 +278,7 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 			PlayerSkins::release(player->skinId);
 			player->skinId = 0;
 			player->reallyRemoveIfPlayer = true;
-			level->removeEntity(player);
+			player->level->removeEntity(player);
 			//level->removePlayer(player);
 			
 			LOGI("&e@disc: %p", player);
@@ -194,7 +292,7 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPacket* packet)
 {
-	if (!level) return;
+	if (!minecraft->level) return;
 	if (!_allowIncoming) return;
 
 	LOGI("LoginPacket\n");
@@ -238,6 +336,9 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	//
 	// Valid client version
 	//
+	// A newcomer starts in the Overworld, at its spawn, wherever the host is.
+	Level* level = minecraft->levelForDimension(Dimension::NORMAL, true);
+	if (!level) level = minecraft->level;
 	Player* newPlayer = new ServerPlayer(minecraft, level);
 
 	minecraft->gameMode->initAbilities(newPlayer->abilities);
@@ -250,6 +351,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	session.authed = !_access.authOn();
 	session.idleTicks = 0;
 	session.failures = 0;
+	session.transferring = false;
+	session.portalCooldown = 0;
 	session.creative = minecraft->isCreativeMode();
 	_sessions.push_back(session);
 	applyGameMode(newPlayer, session.creative);
@@ -276,7 +379,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
             level->getLevelData()->getGeneratorVersion(),
             gameType,
             newPlayer->entityId,
-            newPlayer->x, newPlayer->y - newPlayer->heightOffset, newPlayer->z
+            newPlayer->x, newPlayer->y - newPlayer->heightOffset, newPlayer->z,
+            level->dimension->id
         ).write(&bitStream);
 
         rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
@@ -285,6 +389,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ReadyPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 
 	if (packet->type == ReadyPacket::READY_CLIENTGENERATION)
@@ -302,6 +407,9 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 			LOGE("We don't have a user associated with this player!\n");
 		return;
 	}
+	// The level the newcomer is in -- a player coming through a portal arrives
+	// in the other dimension's.
+	Level* level = newPlayer->level;
 	// Create a bitstream that can be used by everyone (after ::reset() )
 	RakNet::BitStream bitStream;
 
@@ -328,11 +436,17 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 	}
 
 	level->addEntity(newPlayer);
+	// Someone who only changed dimension has not joined anything.
+	Session* session = sessionOf(source);
+	const bool transferred = session && session->transferring;
+	if (session) session->transferring = false;
+	if (!transferred) {
 #ifndef STANDALONE_SERVER
-	minecraft->gui.addMessage(newPlayer->name + " joined the game");
+		minecraft->gui.addMessage(newPlayer->name + " joined the game");
 #else
-	LOGW("%s joined the game\n", newPlayer->name.c_str());
+		LOGW("%s joined the game\n", newPlayer->name.c_str());
 #endif
+	}
 
 	// Send all Entities to the new player
 	for (unsigned int i = 0; i < level->entities.size(); ++i) {
@@ -356,9 +470,8 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 	*/
 
 	// broadcast the new player to all other players
-	bitStream.Reset();
-	AddPlayerPacket(newPlayer).write(&bitStream);
-	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, true);
+	AddPlayerPacket addNewPlayer(newPlayer);
+	redistributeIn(level, &addNewPlayer, source);
 	// A skin the newcomer sent before this point is on newPlayer already.
 	if (PlayerSkins::get(newPlayer->skinId))
 		sendSkin(newPlayer, source, true);
@@ -379,6 +492,9 @@ void ServerSideNetworkHandler::onReady_RequestedChunks(const RakNet::RakNetGUID&
 				: "Este mundo pide autenticacion: usa /register <contrasena>.");
 	}
 
+	Level* level = levelOf(source);
+	if (!level) return;
+
 	RakNet::BitStream bitStream;
 	// Send all TileEntities to the new player
 	for (unsigned int i = 0; i < level->tileEntities.size(); ++i) {
@@ -395,6 +511,7 @@ void ServerSideNetworkHandler::onReady_RequestedChunks(const RakNet::RakNetGUID&
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, MovePlayerPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 
 	//LOGI("MovePlayerPacket\n");
@@ -405,10 +522,103 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, MovePlay
 
 		// broadcast this packet to other clients
 		redistributePacket(packet, source);
+
+		if (entity->isPlayer())
+			checkVisitorPortal((Player*) entity, packet->x, packet->y, packet->z);
+	}
+}
+
+/** A visitor standing in a portal goes through it, once: a trip starts only
+    from a cold start (cooldown 0), and being inside keeps the cooldown full, so
+    arriving in one cannot send it straight back -- the same rule as the host's
+    (Minecraft::tick). The check is here because a visitor's player is moved by
+    its client's packets, not by physics, so its portal tile never sees it. */
+void ServerSideNetworkHandler::checkVisitorPortal(Player* player, float x, float y, float z)
+{
+	if (player == (Player*) minecraft->player) return;
+	Session* s = sessionOf(player->owner);
+	if (!s || s->transferring) return;
+	if (isUnauthenticated(player->owner)) return;
+
+	Level* level = player->level;
+	const int tx = Mth::floor(x);
+	const int tz = Mth::floor(z);
+	// The packet's y is the eye; feet and body are below it.
+	const int feet = Mth::floor(y - player->heightOffset + 0.1f);
+	const int portal = Tile::portalTile->id;
+	const bool inPortal = level->getTile(tx, feet, tz) == portal || level->getTile(tx, feet + 1, tz) == portal;
+
+	if (inPortal) {
+		if (s->portalCooldown == 0) {
+			travelVisitor(player, level->dimension->id == Dimension::NETHER ? Dimension::NORMAL : Dimension::NETHER, false);
+		} else {
+			s->portalCooldown = 40;
+		}
+	} else if (s->portalCooldown > 0) {
+		--s->portalCooldown;
+	}
+}
+
+void ServerSideNetworkHandler::travelVisitor(Player* player, int dimension, bool respawn)
+{
+	if (!player || player == (Player*) minecraft->player) return;
+	Level* src = player->level;
+	Session* s = sessionOf(player->owner);
+	if (!src || !s || s->transferring) return;
+
+	Level* dst = minecraft->levelForDimension(dimension, true);
+	if (!dst || dst == src) return;
+
+	int tx, ty, tz;
+	minecraft->findArrival(dst, dimension == Dimension::NETHER, player->x, player->z, respawn, player, &tx, &ty, &tz);
+
+	// Out of the old level: everyone there loses it.
+	RemovePlayerPacket gone(player);
+	redistributeIn(src, &gone, player->owner);
+	src->detachEntityForTransfer(player);
+
+	player->setLevel(dst);
+	player->dimension = dimension;
+	player->moveTo(tx + 0.5f, (float) ty, tz + 0.5f, player->yRot, player->xRot);
+
+	// Into the new one the way a newcomer goes: its client is told to build the
+	// dimension, then asks for it, and onReady_ClientGeneration adds it.
+	s->transferring = true;
+	s->portalCooldown = 40;
+	_pendingPlayers.push_back(player);
+
+	const int gameType = s->creative ? GameType::Creative : GameType::Survival;
+	StartGamePacket start(dst->getSeed(), dst->getLevelData()->getGeneratorVersion(), gameType, player->entityId,
+		player->x, player->y - player->heightOffset, player->z, dimension);
+	raknetInstance->send(player->owner, start);
+}
+
+void ServerSideNetworkHandler::hostLeaving(Level* from)
+{
+	if (!minecraft->player) return;
+	RemovePlayerPacket gone((Player*) minecraft->player);
+	redistributeIn(from, &gone, RakNet::UNASSIGNED_RAKNET_GUID);
+}
+
+void ServerSideNetworkHandler::hostEntered(Level* to)
+{
+	Player* host = (Player*) minecraft->player;
+	if (!host) return;
+	for (unsigned int i = 0; i < to->players.size(); ++i) {
+		Player* visitor = to->players[i];
+		if (visitor == host) continue;
+		AddPlayerPacket add(host);
+		raknetInstance->send(visitor->owner, add);
+		if (host->getArmorTypeHash()) {
+			PlayerArmorEquipmentPacket armor(host);
+			raknetInstance->send(visitor->owner, armor);
+		}
+		sendSkin(host, visitor->owner, false);
 	}
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBlockPacket* packet){
+	Level* level = levelOf(source);
 	if (!level) return;
 	if (isUnauthenticated(source)) return;
 
@@ -437,6 +647,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBl
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RequestChunkPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level)
         return;
 
@@ -466,13 +677,11 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RequestC
 
 void ServerSideNetworkHandler::levelGenerated( Level* level )
 {
-	this->level = level;
-	
 	if (minecraft->player) {
 		minecraft->player->owner = rakPeer->GetMyGUID();
 	}
 	
-	level->addListener(this);
+	hookLevel(level);
 	if (LevelStorage* storage = level->getLevelStorage())
 		_access.load(storage->getFolder());
 #ifndef STANDALONE_SERVER
@@ -484,6 +693,7 @@ void ServerSideNetworkHandler::levelGenerated( Level* level )
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerEquipmentPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 
 	Player* player = getPlayer(source);
@@ -510,6 +720,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerEq
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerArmorEquipmentPacket* packet) {
+    Level* level = levelOf(source);
     if (!level) return;
 
     Player* player = getPlayer(source);
@@ -521,6 +732,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerAr
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, InteractPacket* packet) {
+	Level* level = levelOf(source);
 	if (!level) return;
 	if (isUnauthenticated(source)) return;
 
@@ -544,6 +756,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Interact
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, AnimatePacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level)
         return;
 
@@ -571,6 +784,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, AnimateP
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, UseItemPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 
 	if (isUnauthenticated(source)) return;
@@ -605,6 +819,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, UseItemP
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, EntityEventPacket* packet) {
+	Level* level = levelOf(source);
 	if (!level) return;
 
 	if (Entity* e = level->getEntity(packet->entityId))
@@ -613,6 +828,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, EntityEv
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerActionPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 	LOGI("PlayerActionPacket\n");
 	Entity* entity = level->getEntity(packet->entityId);
@@ -630,7 +846,18 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerAc
 
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, RespawnPacket* packet )
 {
+	Level* level = levelOf(source);
 	if (!level) return;
+
+	// Dying in the Nether sends a visitor home, as it does the host: it is
+	// taken to the Overworld's spawn, not set down where the Nether says.
+	if (level->dimension->id == Dimension::NETHER) {
+		if (Player* p = getPlayer(source)) {
+			p->reset();
+			travelVisitor(p, Dimension::NORMAL, true);
+			return;
+		}
+	}
 
 	NetEventCallback::handle(level, source, packet );
 	redistributePacket(packet, source);
@@ -638,6 +865,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, Respawn
 
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SendInventoryPacket* packet )
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 
 	Entity* entity = level->getEntity(packet->entityId);
@@ -653,6 +881,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SendInv
 
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, DropItemPacket* packet )
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 	if (isUnauthenticated(source)) return;
 
@@ -664,6 +893,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, DropIte
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ContainerClosePacket* packet) {
+	Level* level = levelOf(source);
 	if (!level) return;
 
 	Player* p = findPlayer(level, &source);
@@ -674,6 +904,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Containe
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ContainerSetSlotPacket* packet) {
+	Level* level = levelOf(source);
 	if (!level) return;
 	if (isUnauthenticated(source)) return;
 
@@ -704,8 +935,9 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Containe
 
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SetHealthPacket* packet )
 {
-	for (unsigned int i = 0; i < level->players.size(); ++i) {
-		Player* p = level->players[i];
+	std::vector<Player*> all = allPlayers();
+	for (unsigned int i = 0; i < all.size(); ++i) {
+		Player* p = all[i];
 		if (p->owner == source) {
 			if (packet->health <= -32) {
 				int diff = packet->health - SetHealthPacket::HEALTH_MODIFY_OFFSET;
@@ -720,6 +952,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SetHeal
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SignUpdatePacket* packet ) {
 	if (isUnauthenticated(source)) return;
 	redistributePacket(packet, source);
+	Level* level = levelOf(source);
 	if (!level)
 		return;
 
@@ -745,10 +978,11 @@ void ServerSideNetworkHandler::allowIncomingConnections( bool doAllow )
 		// sent out. Their guids are collected first -- onDisconnect removes the
 		// player from the very list being walked.
 		std::vector<RakNet::RakNetGUID> visitors;
-		if (level) {
-			for (unsigned int i = 0; i < level->players.size(); ++i)
-				if (level->players[i]->owner != rakPeer->GetMyGUID())
-					visitors.push_back(level->players[i]->owner);
+		{
+			std::vector<Player*> all = allPlayers();
+			for (unsigned int i = 0; i < all.size(); ++i)
+				if (all[i]->owner != rakPeer->GetMyGUID())
+					visitors.push_back(all[i]->owner);
 		}
 		for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
 			visitors.push_back(_pendingPlayers[i]->owner);
@@ -764,7 +998,7 @@ void ServerSideNetworkHandler::allowIncomingConnections( bool doAllow )
 
 Player* ServerSideNetworkHandler::popPendingPlayer( const RakNet::RakNetGUID& source )
 {
-	if (!level) {
+	if (!minecraft->level) {
 		LOGE("Could not add player since Level is NULL!\n");
 		return NULL;
 	}
@@ -779,26 +1013,29 @@ Player* ServerSideNetworkHandler::popPendingPlayer( const RakNet::RakNetGUID& so
 	return NULL;
 }
 
-void ServerSideNetworkHandler::levelEvent( Player* source, int type, int x, int y, int z, int data )
+void ServerSideNetworkHandler::levelEventIn( Level* level, Player* source, int type, int x, int y, int z, int data )
 {
 	LevelEventPacket packet(type, x, y, z, data);
-	redistributePacket(&packet, source? source->owner : rakPeer->GetMyGUID());
+	redistributeIn(level, &packet, source? source->owner : RakNet::UNASSIGNED_RAKNET_GUID);
 }
 
-void ServerSideNetworkHandler::tileEvent( int x, int y, int z, int b0, int b1 )
+void ServerSideNetworkHandler::tileEventIn( Level* level, int x, int y, int z, int b0, int b1 )
 {
 	TileEventPacket packet(x, y, z, b0, b1);
-	raknetInstance->send(packet);
+	redistributeIn(level, &packet, RakNet::UNASSIGNED_RAKNET_GUID);
 }
 
 Player* ServerSideNetworkHandler::getPlayer( const RakNet::RakNetGUID& source ) {
-    for (unsigned int i = 0; i < level->players.size(); ++i)
-        if (source == level->players[i]->owner) return level->players[i];
+	std::vector<Level*> all = levels();
+	for (unsigned int l = 0; l < all.size(); ++l)
+		for (unsigned int i = 0; i < all[l]->players.size(); ++i)
+			if (source == all[l]->players[i]->owner) return all[l]->players[i];
     return NULL;
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 	// The sender is whoever it came from, not the id inside it: a client only
 	// ever sends its own skin, and must not be able to dress anyone else.
@@ -828,14 +1065,23 @@ void ServerSideNetworkHandler::sendSkin(Player* player, const RakNet::RakNetGUID
 	const PlayerSkins::Skin* skin = PlayerSkins::get(id);
 	// Nobody has seen a skin for a player that never had one; no need to say so.
 	if (!skin && !broadcast) return;
+	PlayerSkinPacket packet(player->entityId, skin ? skin->w : 0, skin ? skin->h : 0,
+	                        skin ? &skin->rgba[0] : 0);
+	packet.priority = MEDIUM_PRIORITY;
+	packet.reliability = RELIABLE_ORDERED;
+	if (broadcast) {
+		// To the others in the player's own level.
+		redistributeIn(player->level, &packet, target);
+		return;
+	}
 	RakNet::BitStream bs;
-	PlayerSkinPacket(player->entityId, skin ? skin->w : 0, skin ? skin->h : 0,
-	                 skin ? &skin->rgba[0] : 0).write(&bs);
-	rakPeer->Send(&bs, MEDIUM_PRIORITY, RELIABLE_ORDERED, 0, target, broadcast);
+	packet.write(&bs);
+	rakPeer->Send(&bs, MEDIUM_PRIORITY, RELIABLE_ORDERED, 0, target, false);
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChatPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 	Player* player = getPlayer(source);
 	if (!player) return;
@@ -881,6 +1127,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChatPack
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, SetEntityDataPacket* packet)
 {
+	Level* level = levelOf(source);
 	if (!level) return;
 	// A visitor reports on its own player -- crouching, mostly -- and no one
 	// else's. Level::tick then passes whatever changed on to everyone.
@@ -913,8 +1160,11 @@ bool ServerSideNetworkHandler::isOperator(Player* player)
 
 std::vector<Player*> ServerSideNetworkHandler::allPlayers()
 {
+	// The host's level first, so the host is first.
 	std::vector<Player*> all;
-	if (level) all = level->players;
+	std::vector<Level*> inWorld = levels();
+	for (unsigned int l = 0; l < inWorld.size(); ++l)
+		all.insert(all.end(), inWorld[l]->players.begin(), inWorld[l]->players.end());
 	return all;
 }
 
@@ -1116,6 +1366,16 @@ void ServerSideNetworkHandler::announceLobbyInfo()
 
 void ServerSideNetworkHandler::tick()
 {
+	// The other dimension stops running when nobody is in it and nobody is on
+	// the way there.
+	if (minecraft->otherLevel && minecraft->otherLevel->players.empty()) {
+		bool arriving = false;
+		for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
+			if (_pendingPlayers[i]->level == minecraft->otherLevel) arriving = true;
+		if (!arriving)
+			minecraft->destroyOtherLevel();
+	}
+
 	// Whoever has not logged in within a minute is sent out; reminded every 15 seconds.
 	std::vector<Player*> late;
 	std::vector<Player*> all = allPlayers();

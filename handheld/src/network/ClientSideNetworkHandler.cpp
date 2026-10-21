@@ -32,6 +32,12 @@
 #include "../world/level/tile/LevelEvent.h"
 #include "../world/entity/item/FallingTile.h"
 #include "../client/skin/PlayerSkins.h"
+#include "../world/level/dimension/Dimension.h"
+#ifndef STANDALONE_SERVER
+#include "../client/gui/screens/ProgressScreen.h"
+#include "../client/renderer/LevelRenderer.h"
+#include "../client/particle/ParticleEngine.h"
+#endif
 
 static MultiPlayerLevel* mpcast(Level* l) { return (MultiPlayerLevel*) l; }
 
@@ -166,25 +172,66 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, StartGam
 	}
 #endif
 
+	// A second StartGamePacket is the host sending us through a portal: the
+	// same steps as joining, for the other dimension, with the player we have.
+	const bool transfer = (minecraft->level != NULL && minecraft->player != NULL);
+	LocalPlayer* travelling = NULL;
+	if (transfer) {
+		// Nothing the old level says is for us any more, and its entities and
+		// the others' skins stay behind with it.
+		this->level = NULL;
+		clearChunksLoaded();
+		bufferedBlockUpdates.clear();
+		PlayerSkins::releaseAllBut(PlayerSkins::localSkin);
+
+		Level* old = minecraft->level;
+		travelling = minecraft->player;
+		old->detachEntityForTransfer(travelling);
+#ifndef STANDALONE_SERVER
+		minecraft->levelRenderer->setLevel(NULL);
+		minecraft->particleEngine->setLevel(NULL);
+#endif
+		LevelStorage* oldStorage = old->getLevelStorage();
+		delete old;
+		delete oldStorage;
+		minecraft->level = NULL;
+		// Held aside, as Minecraft::setLevel does for a new player: it is added
+		// to the level once the level exists.
+		minecraft->player = NULL;
+		minecraft->cameraTargetPlayer = NULL;
+	}
+
 	const std::string& levelId = LevelStorageSource::TempLevelId;
 	LevelStorageSource* storageSource = minecraft->getLevelSource();
 	storageSource->deleteLevel(levelId);
 	//level = new Level(storageSource->selectLevel(levelId, true), "temp", packet->levelSeed, SharedConstants::StorageVersion);
+	Dimension* fixedDimension = (packet->dimension == Dimension::NETHER) ? Dimension::getNew(Dimension::NETHER) : NULL;
 	MultiPlayerLevel* level = new MultiPlayerLevel(
 		storageSource->selectLevel(levelId, true),
 		"temp",
 		LevelSettings(packet->levelSeed, LevelSettings::validateGameType(packet->gameType)),
-		SharedConstants::StorageVersion);
+		SharedConstants::StorageVersion,
+		fixedDimension);
 	level->isClientSide = true;
 
 	bool isCreative = (packet->gameType == GameType::Creative);
-	LocalPlayer* player = new LocalPlayer(minecraft, level, minecraft->user, level->dimension->id, isCreative);
-	player->owner = rakPeer->GetMyGUID();
+	LocalPlayer* player = travelling;
+	if (player) {
+		player->setLevel(level);
+		player->dimension = level->dimension->id;
+	} else {
+		player = new LocalPlayer(minecraft, level, minecraft->user, level->dimension->id, isCreative);
+		player->owner = rakPeer->GetMyGUID();
+	}
 	player->entityId = packet->entityId;
 	player->moveTo(packet->x, packet->y, packet->z, player->yRot, player->xRot);
 
 	LOGI("new pos: %f, %f [%f - %f]\n", player->x, player->z, player->bb.y0, player->bb.y1);
 
+#ifndef STANDALONE_SERVER
+	if (transfer)
+		minecraft->setScreen(new ProgressScreen());
+#endif
 	minecraft->setLevel(level, "ClientSideNetworkHandler -> setLevel", player);
 	minecraft->setIsCreativeMode(isCreative);
 }

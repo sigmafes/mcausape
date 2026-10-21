@@ -169,6 +169,14 @@ LevelData* ExternalFileLevelStorage::prepareLevel(Level* _level)
 	// through a portal builds a new Level on this same storage) reads level.dat
 	// again, because the copy from the constructor is from before the last save.
 	if (_prepared) {
+		// A RegionFile keeps its table of where each chunk is. Another storage on
+		// this world (a second Level running for the other dimension) may have
+		// written the file since, so a new Level starts from what is on disk.
+		delete regionFile;
+		regionFile = NULL;
+		delete netherRegionFile;
+		netherRegionFile = NULL;
+
 		delete loadedLevelData;
 		loadedLevelData = new LevelData();
 		if (readLevelData(levelPath, *loadedLevelData)) {

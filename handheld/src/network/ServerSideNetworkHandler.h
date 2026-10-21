@@ -4,7 +4,6 @@
 
 #include "NetEventCallback.h"
 #include "../raknet/RakNetTypes.h"
-#include "../world/level/LevelListener.h"
 #include <vector>
 #include <string>
 #include "../server/ServerAccess.h"
@@ -16,21 +15,32 @@ class Packet;
 class Player;
 class ExtPacket;
 
-class ServerSideNetworkHandler : public NetEventCallback, public LevelListener
+class LevelView;
+class LevelNet;
+
+/** The host's side of the network. A hosted world can have two Levels running
+    (the host's, and the other dimension's when a visitor is there), so nothing
+    here may assume "the" level: a player's level is `player->level`, and
+    levelOf() finds the one a connection's player is in. Each Level gets a
+    LevelView, which is what listens to it and says which one a change was in. */
+class ServerSideNetworkHandler : public NetEventCallback
 {
 public:
 	ServerSideNetworkHandler(Minecraft* minecraft, IRakNetInstance* raknetInstance);
 	virtual ~ServerSideNetworkHandler();
 
 	virtual void levelGenerated(Level* level);
+	virtual void levelAdded(Level* level);
+	virtual void levelRemoved(Level* level);
 
-	virtual void tileChanged(int x, int y, int z);
-	virtual void tileBrightnessChanged(int x, int y, int z) { /* do nothing */ }
+	// What a Level reports through its LevelView.
+	void tileChangedIn(Level* level, int x, int y, int z);
+	void entityAddedIn(Level* level, Entity* e);
+	void entityRemovedIn(Level* level, Entity* e);
+	void levelEventIn(Level* level, Player* source, int type, int x, int y, int z, int data);
+	void tileEventIn(Level* level, int x, int y, int z, int b0, int b1);
+
 	virtual Packet* getAddPacketFromEntity(Entity* entity);
-	virtual void entityAdded(Entity* e);
-	virtual void entityRemoved(Entity* e);
-	virtual void levelEvent(Player* source, int type, int x, int y, int z, int data);
-	virtual void tileEvent(int x, int y, int z, int b0, int b1);
 
 	virtual void onNewClient(const RakNet::RakNetGUID& clientGuid);
 	virtual void onDisconnect(const RakNet::RakNetGUID& guid);
@@ -99,21 +109,53 @@ public:
 	void allowIncomingConnections(bool doAllow);
 
 	Player* popPendingPlayer(const RakNet::RakNetGUID& source);
-private:
 
+	std::vector<Player*>* pendingList() { return &_pendingPlayers; }
+	/// Somebody is still loading a level (a login or a trip through a portal).
+	bool hasPending() { return !_pendingPlayers.empty(); }
+
+	/// The Level this connection's player is in, or is about to be in; NULL if
+	/// the connection has no player.
+	Level* levelOf(const RakNet::RakNetGUID& source);
+
+	/** Sends a visitor through a portal: out of its level, into the other
+	    dimension (made if it is not running), and tells its client to load it
+	    (a StartGamePacket, then the same steps as joining). `respawn`: it died
+	    there, so it arrives at the spawn point instead of by a portal. */
+	void travelVisitor(Player* player, int dimension, bool respawn);
+
+	/// The host is leaving / entering a Level (Minecraft::changeDimension while
+	/// visitors are about): the visitors there lose / gain its player.
+	void hostLeaving(Level* from);
+	void hostEntered(Level* to);
+private:
+	struct Hook {
+		Level* level;
+		LevelView* view;
+		LevelNet* net;
+	};
+	std::vector<Hook> _hooks;
+
+	void hookLevel(Level* level);
+	Hook* hookOf(Level* level);
+	std::vector<Level*> levels();
+	void redistributeIn(Level* level, Packet* packet, const RakNet::RakNetGUID& exclude);
+	void sendHostTo(const RakNet::RakNetGUID& target, bool broadcastInLevel, Level* level);
+
+	/// To everyone in the sender's level but the sender.
 	void redistributePacket(Packet* packet, const RakNet::RakNetGUID& fromPlayer);
 	void displayGameMessage(const std::string& message);
 
 	Player* getPlayer(const RakNet::RakNetGUID& source);
 	void handleAuthCommand(Player* player, const std::string& cmd, const std::string& argument);
 	void setAuthed(Player* player, bool authed);
+	void checkVisitorPortal(Player* player, float x, float y, float z);
 	void applyGameMode(Player* player, bool creative);
 	bool isUnauthenticated(const RakNet::RakNetGUID& source);
 	void sendSkin(Player* player, const RakNet::RakNetGUID& target, bool broadcast);
 private:
 
 	Minecraft*					minecraft;
-	Level*						level;
 	IRakNetInstance*			raknetInstance;
 	RakNet::RakPeerInterface*	rakPeer;
 
@@ -128,6 +170,8 @@ private:
 		int idleTicks;	///< ticks spent without logging in
 		bool creative;	///< /gamemode: what this visitor is in now
 		int failures;	///< wrong passwords so far
+		bool transferring;	///< going through a portal: not joining
+		int portalCooldown;	///< ticks before its next portal trip counts
 	};
 	std::vector<Session> _sessions;
 	Session* sessionOf(const RakNet::RakNetGUID& guid);
