@@ -108,6 +108,14 @@ cd build && python3 -m http.server 8000   # must be served over http, not file:/
 
 Deployment to GitHub Pages runs via `.github/workflows/pages.yml`.
 
+Deployment to Cloudflare Pages runs via `.github/workflows/cloudflare-pages.yml`
+(manual, like the other). It builds on GitHub's runners and uploads the finished
+`site/` folder with wrangler, so it needs two repository secrets,
+`CLOUDFLARE_API_TOKEN` (permission *Cloudflare Pages: Edit*) and
+`CLOUDFLARE_ACCOUNT_ID`; the project name defaults to `mcausape` (override with
+the `CF_PAGES_PROJECT` variable). `cloudflare/pages-build.sh` is the alternative
+if you would rather let Cloudflare build from the Git integration.
+
 ## The interesting bugs
 
 Nearly every problem came from one root cause: **in this codebase `__APPLE__`

@@ -1,0 +1,66 @@
+name: Build web and deploy to Cloudflare Pages
+
+# Manual, like pages.yml: deploying publishes the game to a public URL.
+#
+# Builds here rather than in Cloudflare's own build environment so the build is
+# the one already proven on GitHub's runners, with the Emscripten cache, and so
+# a deploy does not re-download the toolchain every time. Cloudflare only
+# receives the finished site/ folder (direct upload).
+#
+# One-time setup, in the repository's Settings > Secrets and variables > Actions:
+#   CLOUDFLARE_API_TOKEN   token with "Cloudflare Pages: Edit"
+#   CLOUDFLARE_ACCOUNT_ID  the account id shown on the Cloudflare dashboard
+# and, under Variables (optional):
+#   CF_PAGES_PROJECT       project name, defaults to "mcausape"
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.6
+          actions-cache-folder: emsdk-cache
+
+      - name: Configure
+        working-directory: handheld/project/web
+        run: emcmake cmake -S . -B build
+
+      - name: Build
+        working-directory: handheld/project/web
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Assemble the site
+        run: |
+          mkdir -p site
+          cp handheld/project/web/build/minecraftpe.html site/index.html
+          cp handheld/project/web/build/minecraftpe.js   site/
+          cp handheld/project/web/build/minecraftpe.wasm site/
+          cp handheld/project/web/build/minecraftpe.data site/
+          cp handheld/project/web/build/menu.mp3 site/ 2>/dev/null || true
+          ls -lh site
+
+      # The first deploy creates the Pages project if it does not exist yet.
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ vars.CF_PAGES_PROJECT || 'mcausape' }}
+        run: |
+          npx --yes wrangler@3 pages deploy site \
+            --project-name "$PROJECT" \
+            --branch main \
+            --commit-hash "$GITHUB_SHA" \
+            --commit-dirty=true
