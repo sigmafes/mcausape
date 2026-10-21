@@ -4,6 +4,7 @@
 #include "Model.h"
 #include "geom/ModelPart.h"
 #include "../../world/entity/Entity.h"
+#include "../../world/entity/monster/MagmaCube.h"
 
 // The magma cube, ported from the Console Edition's LavaSlimeModel: eight one-unit
 // slices stacked into an 8x8x8 cube round a 4x4x4 core, each slice reading its own
@@ -31,6 +32,18 @@ public:
 
         core.setModel(this);
         core.addBox(-2.0f, 18.0f, -2.0f, 4, 4, 4, 0.0f);
+    }
+
+    /** The slices spread apart while the cube is squashed, which is what makes
+        it read as a blob rather than a block. */
+    /*@Override*/
+    void prepareMobModel(Mob* mob, float time, float r, float a) {
+        MagmaCube* cube = (MagmaCube*) mob;
+        float squish = cube->oSquish + (cube->squish - cube->oSquish) * a;
+        if (squish < 0)
+            squish = 0;
+        for (int i = 0; i < SLICE_COUNT; ++i)
+            slices[i].y = -(4 - i) * squish * 1.7f;
     }
 
     /*@Override*/
