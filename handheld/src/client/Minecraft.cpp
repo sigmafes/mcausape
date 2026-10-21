@@ -617,8 +617,11 @@ static const int PORTAL_COOLDOWN_TICKS = 40;
 
 Level* Minecraft::levelForDimension(int dimension, bool create)
 {
-	if (level && level->dimension && level->dimension->id == dimension) return level;
-	if (otherLevel && otherLevel->dimension->id == dimension) return otherLevel;
+	// "The Overworld" is whatever is not the Nether: creative worlds have the
+	// day-cycle kind (Dimension::NORMAL_DAYCYCLE), whose id is not NORMAL's.
+	const bool wantNether = (dimension == Dimension::NETHER);
+	if (level && level->dimension && (level->dimension->id == Dimension::NETHER) == wantNether) return level;
+	if (otherLevel && (otherLevel->dimension->id == Dimension::NETHER) == wantNether) return otherLevel;
 	if (!create || !level || level->isClientSide || isGeneratingLevel || !netCallback) return NULL;
 
 	// Its own storage: a storage serves one Level (see LevelStorage::openSibling).
@@ -730,7 +733,7 @@ void Minecraft::changeDimensionShared(bool toNether, bool respawn)
 	dst->isSecondary = false;
 
 	player->setLevel(dst);
-	player->dimension = dstId;
+	player->dimension = dst->dimension->id;
 	player->moveTo(tx + 0.5f, (float) ty, tz + 0.5f, player->yRot, player->xRot);
 
 	level = dst;

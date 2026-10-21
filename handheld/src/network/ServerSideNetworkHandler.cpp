@@ -566,8 +566,8 @@ void ServerSideNetworkHandler::checkVisitorPortal(Player* player, float x, float
 	Level* level = player->level;
 	const int tx = Mth::floor(x);
 	const int tz = Mth::floor(z);
-	// The packet's y is the eye; feet and body are below it.
-	const int feet = Mth::floor(y - player->heightOffset + 0.1f);
+	// The packet's y is the feet (LocalPlayer sends y - heightOffset).
+	const int feet = Mth::floor(y + 0.1f);
 	const int portal = Tile::portalTile->id;
 	const bool inPortal = level->getTile(tx, feet, tz) == portal || level->getTile(tx, feet + 1, tz) == portal;
 
@@ -601,7 +601,7 @@ void ServerSideNetworkHandler::travelVisitor(Player* player, int dimension, bool
 	src->detachEntityForTransfer(player);
 
 	player->setLevel(dst);
-	player->dimension = dimension;
+	player->dimension = dst->dimension->id;
 	player->moveTo(tx + 0.5f, (float) ty, tz + 0.5f, player->yRot, player->xRot);
 
 	// Into the new one the way a newcomer goes: its client is told to build the
@@ -612,7 +612,7 @@ void ServerSideNetworkHandler::travelVisitor(Player* player, int dimension, bool
 
 	const int gameType = s->creative ? GameType::Creative : GameType::Survival;
 	StartGamePacket start(dst->getSeed(), dst->getLevelData()->getGeneratorVersion(), gameType, player->entityId,
-		player->x, player->y - player->heightOffset, player->z, dimension);
+		player->x, player->y - player->heightOffset, player->z, dst->dimension->id);
 	raknetInstance->send(player->owner, start);
 }
 
