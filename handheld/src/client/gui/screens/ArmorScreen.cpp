@@ -105,7 +105,9 @@ void ArmorScreen::init() {
 	for (int i = 0; i < NUM_ARMORBUTTONS; ++i)
 		buttons.push_back(armorButtons[i]);
 
-	buttons.push_back(&bCraft);
+	// Crafting is for survival: in creative every item is already in the list.
+	if (!minecraft->isCreativeMode())
+		buttons.push_back(&bCraft);
 
 	// Ids start well above the armour ones: buttonClicked() reads id 0..3 as an
 	// armour slot.
@@ -307,7 +309,9 @@ void ArmorScreen::mouseWheel(int dy) {
 
 bool ArmorScreen::addItem(const Touch::InventoryPane* forPane, int itemIndex) {
 	const ItemInstance* instance = armorItems[itemIndex];
-	if (!ItemInstance::isArmorItem(instance))
+	// In creative a piece of armour is picked up like any other item, to the
+	// hotbar; wearing it is done from there (right-click, see ArmorItem::use).
+	if (!ItemInstance::isArmorItem(instance) || minecraft->isCreativeMode())
 		return moveToHotbar(itemIndex);
 
 	ArmorItem* item = (ArmorItem*) instance->getItem();

@@ -1,4 +1,8 @@
 #include "ArmorItem.h"
+#include "ItemInstance.h"
+#include "../entity/player/Player.h"
+#include "../entity/player/Inventory.h"
+#include "../level/Level.h"
 
 //
 // ArmorMaterial
@@ -75,3 +79,22 @@ const ArmorItem::ArmorMaterial ArmorItem::DIAMOND(
 	3, 8, 6, 3
 	//10
 );
+
+// Worn from the hand, as in Minecraft. In survival the piece leaves the hand and
+// the one it replaces goes to the inventory (or the floor if that is full); in
+// creative the hand keeps its piece, the supply being endless.
+ItemInstance* ArmorItem::use(ItemInstance* instance, Level* level, Player* player) {
+	ItemInstance* worn = player->getArmor(slot);
+	ItemInstance previous;
+	if (ItemInstance::isArmorItem(worn))
+		previous = *worn;
+
+	player->setArmor(slot, instance);
+
+	if (!player->abilities.instabuild) {
+		instance->count--;
+		if (!previous.isNull() && !player->inventory->add(&previous))
+			player->drop(new ItemInstance(previous), false);
+	}
+	return instance;
+}

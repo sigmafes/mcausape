@@ -1308,7 +1308,12 @@ void Minecraft::tickInput() {
 	handleMouseClick(buildHandled && bai.isInteract()
 		|| options.useMouseForDigging && Mouse::isButtonDown(MouseAction::ACTION_RIGHT));
 #else
-	handleMouseDown(MouseAction::ACTION_LEFT, isTryingToDestroyBlock || (buildHandled && bai.isInteract()));
+	// A pure "interact" (the touch pad's hold-to-use) counts as the button held
+	// down; a mouse right-click is BUILD | INTERACT and must not -- it was fed
+	// to handleMouseDown as a held LEFT button for the tick it was handled, and
+	// whatever the crosshair still pointed at (in creative, the block just
+	// placed against) was dug up.
+	handleMouseDown(MouseAction::ACTION_LEFT, isTryingToDestroyBlock || (buildHandled && bai.isInteract() && !bai.isBuild()));
 #endif
 
 	lastTickTime = getTimeMs();
@@ -1329,7 +1334,10 @@ void Minecraft::handleMouseDown(int button, bool down) {
 #ifndef STANDALONE_SERVER
 #ifndef RPI
 	if(player->isUsingItem()) {
-		if(!down && !Keyboard::isKeyDown(options.keyUse.key)) {
+		// keyUse is a keyboard key; with a mouse the right button is what holds
+		// the bow drawn. Without this the bow was let go the tick after it was
+		// drawn, as a shot too weak to leave the bow.
+		if(!down && !Keyboard::isKeyDown(options.keyUse.key) && !Mouse::getButtonState(MouseAction::ACTION_RIGHT)) {
 			gameMode->releaseUsingItem(player);
 		}
 		return;

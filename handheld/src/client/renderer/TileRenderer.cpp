@@ -2225,11 +2225,13 @@ void TileRenderer::renderGuiTile( Tile* tile, int data )
 		t.offset(-0.5f, -0.5f, -0.5f);
 		t.begin();
 		for (int i = 0; i < 2; i++) {
-			// Back to front compared with the world's block: seen from the menu's
-			// angle (turned 45 degrees) the tall half has to be at the back, with the
-			// step in front, as in every other edition's inventory.
-			if (i == 0) tile->setShape(0, 0, 0.5f, 1, 1, 1);
-			if (i == 1) tile->setShape(0, 0, 0, 1, 0.5f, 0.5f);
+			// The tall half on the left-hand side and the step on the right, which at
+			// the menu's angle (turned 45 degrees about Y, then tipped) puts the tall
+			// half at the back and the step in front: the picture every edition's
+			// inventory draws. (Worked out from the transform; an earlier version
+			// put the halves along Z, which gives left-and-near / right-and-far.)
+			if (i == 0) tile->setShape(0, 0, 0, 0.5f, 1, 1);
+			if (i == 1) tile->setShape(0.5f, 0, 0, 1, 0.5f, 1);
 
 			t.color(0xff, 0xff, 0xff);
 			renderFaceDown(tile, 0, 0, 0, tile->getTexture(0));

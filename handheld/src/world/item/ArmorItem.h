@@ -48,6 +48,9 @@ public:
     ArmorItem(int id, const ArmorMaterial& armorType, int icon, int slot);
 
 	bool isArmor() const;
+
+	/// Right-click wears it, swapping with a piece already worn in that slot.
+	ItemInstance* use(ItemInstance* instance, Level* level, Player* player);
 /*
     int getEnchantmentValue() const {
         return armorType.getEnchantmentValue();

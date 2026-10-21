@@ -464,8 +464,14 @@ void GameRenderer::moveCameraToPlayer(float a) {
             // angle, to find how far the camera can sit on the far side of the
             // player; the rotation that actually aims it is further down.
             const bool front = mc->options.thirdPersonFront;
-            if (front)
+            if (front) {
                 yRot += 180.0f;
+                // The camera's pitch is mirrored too (see the rotation below), so
+                // that raising the view raises the camera and the face tips up
+                // toward it; with the player's own pitch the head seemed to move
+                // the wrong way.
+                xRot = -xRot;
+            }
             float xd = -Mth::sin(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float zd = Mth::cos(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float yd = -Mth::sin(xRot / 180 * Mth::PI) * cameraDist;
@@ -497,7 +503,8 @@ void GameRenderer::moveCameraToPlayer(float a) {
     }
 
     if (!mc->options.fixedCamera) {
-        glRotatef2(player->xRotO + (player->xRot - player->xRotO) * a, 1.0f, 0.0f, 0.0f);
+        const float pitch = player->xRotO + (player->xRot - player->xRotO) * a;
+        glRotatef2((mc->options.thirdPersonView && mc->options.thirdPersonFront) ? -pitch : pitch, 1.0f, 0.0f, 0.0f);
         // The half turn is what puts the camera behind the player; leaving it out
         // in front view is what turns it round to face them.
         glRotatef2(player->yRotO + (player->yRot - player->yRotO) * a + ((mc->options.thirdPersonView && mc->options.thirdPersonFront) ? 0 : 180), 0, 1, 0);
