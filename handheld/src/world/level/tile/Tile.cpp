@@ -150,6 +150,8 @@ const int STONE_BRICK_TEXTURE_COUNT = 3;
 
 Tile* Tile::fence       = NULL;
 Tile* Tile::fenceGate   = NULL;
+Tile* Tile::cobbleWall = NULL;
+Tile* Tile::mossyCobbleWall = NULL;
 Tile* Tile::fence_spruce = NULL;
 Tile* Tile::fence_birch = NULL;
 Tile* Tile::fenceGate_spruce = NULL;
@@ -290,6 +292,8 @@ void Tile::initTiles() {
 	trapdoor_birch  = (new TrapDoorTile(165, Material::wood, 12 + 16 * 10))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorBirch");
 	door_spruce = (new DoorTile(166, Material::wood, 13 + 16 * 11, &Item::door_spruce))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorSpruce");
 	door_birch  = (new DoorTile(167, Material::wood, 7 + 16 * 14, &Item::door_birch))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorBirch");
+	cobbleWall = (new WallTile(139, Tile::stoneBrick->tex))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("cobbleWall");
+	mossyCobbleWall = (new WallTile(143, Tile::mossStone->tex))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("mossyCobbleWall");
 	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
 	potatoes = (new RootCropTile(142, 7 + 12 * 16, 11 + 12 * 16, &Item::potato))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potatoes");
 	melonStem = (new StemTile(105, Tile::melon))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkinStem");//->sendTileData();

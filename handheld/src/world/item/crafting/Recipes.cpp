@@ -82,6 +82,18 @@ Recipes::Recipes()
 
 		definition('#', Item::stick));
 
+	addShapedRecipe(ItemInstance(Tile::cobbleWall, 6), //
+		"###", //
+		"###", //
+
+		definition('#', Tile::stoneBrick));
+
+	addShapedRecipe(ItemInstance(Tile::mossyCobbleWall, 6), //
+		"###", //
+		"###", //
+
+		definition('#', Tile::mossStone));
+
 	addShapedRecipe(ItemInstance(Tile::netherFence, 6), //
 		"###", //
 		"###", //

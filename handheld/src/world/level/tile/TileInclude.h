@@ -33,6 +33,7 @@
 #include "LiquidTileStatic.h"
 #include "MelonTile.h"
 #include "PumpkinTile.h"
+#include "WallTile.h"
 #include "RootCropTile.h"
 #include "MultiTextureTile.h"
 #include "Mushroom.h"

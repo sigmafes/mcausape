@@ -7,6 +7,7 @@
 #include "../../world/level/tile/DoorTile.h"
 #include "../../world/level/tile/LiquidTile.h"
 #include "../../world/level/tile/FenceTile.h"
+#include "../../world/level/tile/WallTile.h"
 #include "../../world/level/tile/FireTile.h"
 #include "../../world/level/tile/FenceGateTile.h"
 #include "../../world/level/tile/ThinFenceTile.h"
@@ -169,6 +170,8 @@ bool TileRenderer::tesselateInWorld( Tile* tt, int x, int y, int z )
 		return tesselateStairsInWorld((StairTile*)tt, x, y, z);
     } else if (shape == Tile::SHAPE_FENCE) {
         return tesselateFenceInWorld((FenceTile*)tt, x, y, z);
+	} else if (shape == Tile::SHAPE_WALL) {
+		return tesselateWallInWorld((WallTile*)tt, x, y, z);
 	} else if (shape == Tile::SHAPE_FENCE_GATE) {
 		return tesselateFenceGateInWorld((FenceGateTile*) tt, x, y, z);
     //} else if (shape == Tile::SHAPE_LEVER) {
@@ -1195,6 +1198,37 @@ bool TileRenderer::tesselateCactusInWorld(Tile* tt, int x, int y, int z, float r
     return changed;
 }
 
+bool TileRenderer::tesselateWallInWorld(WallTile* tt, int x, int y, int z) {
+	const float a = 4 / 16.0f;
+	const float b = 12 / 16.0f;
+	const float c = 5 / 16.0f;
+	const float d = 11 / 16.0f;
+	const float armHeight = 13 / 16.0f;
+
+	bool l = tt->connectsTo(level, x - 1, y, z);
+	bool r = tt->connectsTo(level, x + 1, y, z);
+	bool u = tt->connectsTo(level, x, y, z - 1);
+	bool dn = tt->connectsTo(level, x, y, z + 1);
+
+	// A straight run has no post: just the slab. Anything else gets the post.
+	bool straightX = l && r && !u && !dn;
+	bool straightZ = u && dn && !l && !r;
+	if (!straightX && !straightZ) {
+		tt->setShape(a, 0, a, b, 1, b);
+		tesselateBlockInWorld(tt, x, y, z);
+	}
+	if (l || r || straightX) {
+		tt->setShape(l ? 0 : a, 0, c, r ? 1 : b, armHeight, d);
+		if (l || r) tesselateBlockInWorld(tt, x, y, z);
+	}
+	if (u || dn) {
+		tt->setShape(c, 0, u ? 0 : a, d, armHeight, dn ? 1 : b);
+		tesselateBlockInWorld(tt, x, y, z);
+	}
+	tt->setShape(0, 0, 0, 1, 1, 1);
+	return true;
+}
+
 bool TileRenderer::tesselateFenceInWorld(FenceTile* tt, int x, int y, int z) {
     bool changed = true;
 
@@ -2110,6 +2144,24 @@ void TileRenderer::renderTile( Tile* tile, int data )
 			t.draw();
 			t.addOffset(0.5f, 0.5f, 0.5f);
 		}
+		else if (shape == Tile::SHAPE_WALL) {
+			t.addOffset(-0.5f, -0.5f, -0.5f);
+			t.begin();
+			for (int i = 0; i < 2; i++) {
+				if (i == 0) tile->setShape(4 / 16.0f, 0, 4 / 16.0f, 12 / 16.0f, 1, 12 / 16.0f);
+				if (i == 1) tile->setShape(0, 0, 5 / 16.0f, 1, 13 / 16.0f, 11 / 16.0f);
+
+				renderFaceDown(tile, 0, 0, 0, tile->getTexture(0));
+				renderFaceUp(tile, 0, 0, 0, tile->getTexture(1));
+				renderNorth(tile, 0, 0, 0, tile->getTexture(2));
+				renderSouth(tile, 0, 0, 0, tile->getTexture(3));
+				renderWest(tile, 0, 0, 0, tile->getTexture(4));
+				renderEast(tile, 0, 0, 0, tile->getTexture(5));
+			}
+			t.draw();
+			t.addOffset(0.5f, 0.5f, 0.5f);
+			tile->setShape(0, 0, 0, 1, 1, 1);
+		}
 		else if (shape == Tile::SHAPE_FENCE) {
 			t.addOffset(-0.5f, -0.5f, -0.5f);
 			t.begin();
@@ -2161,6 +2213,7 @@ bool TileRenderer::canRender( int renderShape )
 	if (renderShape == Tile::SHAPE_STAIRS) return true;
 	if (renderShape == Tile::SHAPE_FENCE) return true;
 	if (renderShape == Tile::SHAPE_FENCE_GATE) return true;
+	if (renderShape == Tile::SHAPE_WALL) return true;
 	//if (renderShape == Tile::SHAPE_CROSS_TEXTURE) return true;
 	//if (renderShape == Tile::SHAPE_ENTITYTILE_ANIMATED) return true;
 
@@ -2248,6 +2301,29 @@ void TileRenderer::renderGuiTile( Tile* tile, int data )
 		t.draw();
 		t.offset(0, 0, 0);
 		// The shape was left as the last half's: put the whole block back.
+		tile->setShape(0, 0, 0, 1, 1, 1);
+	}
+	else if (shape == Tile::SHAPE_WALL) {
+		t.addOffset(-0.5f, -0.5f, -0.5f);
+		t.begin();
+		for (int i = 0; i < 2; i++) {
+			if (i == 0) tile->setShape(4 / 16.0f, 0, 4 / 16.0f, 12 / 16.0f, 1, 12 / 16.0f);
+			if (i == 1) tile->setShape(0, 0, 5 / 16.0f, 1, 13 / 16.0f, 11 / 16.0f);
+
+			t.color(0xff, 0xff, 0xff);
+			renderFaceDown(tile, 0, 0, 0, tile->getTexture(0));
+			renderFaceUp(tile, 0, 0, 0, tile->getTexture(1));
+
+			t.color(0x80, 0x80, 0x80);
+			renderNorth(tile, 0, 0, 0, tile->getTexture(2));
+			renderSouth(tile, 0, 0, 0, tile->getTexture(3));
+
+			t.color(0xbb, 0xbb, 0xbb);
+			renderWest(tile, 0, 0, 0, tile->getTexture(4));
+			renderEast(tile, 0, 0, 0, tile->getTexture(5));
+		}
+		t.draw();
+		t.addOffset(0.5f, 0.5f, 0.5f);
 		tile->setShape(0, 0, 0, 1, 1, 1);
 	}
 	else if (shape == Tile::SHAPE_FENCE) {

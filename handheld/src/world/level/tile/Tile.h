@@ -98,6 +98,7 @@ public:
     static const int SHAPE_IRON_FENCE = 18;
 	static const int SHAPE_STEM = 19;
     static const int SHAPE_FENCE_GATE = 21;
+	static const int SHAPE_WALL = 32;
 	static const int SHAPE_ENTITYTILE_ANIMATED = 22;
 
 
@@ -204,6 +205,8 @@ public:
     static Tile* fence;
 	static Tile* stairs_brick;
 	static Tile* fenceGate;
+	static Tile* cobbleWall;
+	static Tile* mossyCobbleWall;
 	static Tile* fence_spruce;
 	static Tile* fence_birch;
 	static Tile* fenceGate_spruce;

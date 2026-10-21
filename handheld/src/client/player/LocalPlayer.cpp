@@ -38,6 +38,8 @@
 static bool isJumpable(int tileId) {
 	return tileId != Tile::fence->id
 		&& tileId != Tile::fenceGate->id
+		&& tileId != Tile::cobbleWall->id
+		&& tileId != Tile::mossyCobbleWall->id
 		&& tileId != Tile::fence_spruce->id
 		&& tileId != Tile::fence_birch->id
 		&& tileId != Tile::fenceGate_spruce->id
