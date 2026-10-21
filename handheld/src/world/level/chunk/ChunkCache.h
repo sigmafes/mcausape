@@ -143,8 +143,14 @@ public:
         if (!chunk->terrainPopulated) {
             chunk->terrainPopulated = true;
             if (source != NULL) {
+				// What population adds is not sent to a visitor (its own copy of
+				// the world grows the same), but what players changed in this chunk
+				// before it was populated -- a chunk waits for its neighbours --
+				// must still be: clearing the whole map lost those edits.
+				unsigned char before[CHUNK_COLUMNS];
+				memcpy(before, chunk->updateMap, CHUNK_COLUMNS);
                 source->postProcess(parent, x, z);
-				chunk->clearUpdateMap();
+				memcpy(chunk->updateMap, before, CHUNK_COLUMNS);
             }
         }
     }

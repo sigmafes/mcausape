@@ -1,3 +1,4 @@
+#include "../../../../DeployNumber.h"
 #include "TouchStartMenuScreen.h"
 #include "../ProgressScreen.h"
 #include "../OptionsScreen.h"
@@ -261,6 +262,7 @@ void StartMenuScreen::render( int xm, int ym, float a )
 
 		drawString(font, version, versionPosX, (int)(y+h)+2, /*50,*/ 0xffcccccc);//0x666666);
 		drawString(font, copyright, copyrightPosX, height - 10, 0xffffff);
+		drawString(font, deployLabel(), 2, height - 10, 0xffcccccc);
 		//patch->draw(t, 0, 20);
 	}
 	Screen::render(xm, ym, a);

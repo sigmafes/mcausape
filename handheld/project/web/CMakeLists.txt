@@ -73,9 +73,15 @@ target_include_directories(minecraftpe PRIVATE
     "${RAKNET_DIR}"
 )
 
+if(NOT DEFINED MC_DEPLOY_NUMBER)
+    set(MC_DEPLOY_NUMBER 0)
+endif()
+
 target_compile_definitions(minecraftpe PRIVATE
     MC_WASM
     MC_SDL2
+    # The deploy workflows set this to the number of commits on main.
+    MC_DEPLOY_NUMBER=${MC_DEPLOY_NUMBER}
     # Where the preload package below mounts the asset tree inside the VFS.
     MC_DATA_DIR="/data"
 )

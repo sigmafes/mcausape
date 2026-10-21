@@ -1,3 +1,4 @@
+#include "../../../DeployNumber.h"
 #include "StartMenuScreen.h"
 #include "SelectWorldScreen.h"
 #include "ProgressScreen.h"
@@ -157,6 +158,7 @@ void StartMenuScreen::render( int xm, int ym, float a )
 	// The name is the whole heading now: there is no logo above it, and no
 	// publisher line at the bottom.
 	drawString(font, version, versionPosX, bHost.y - 16, 0xffcccccc);
+	drawString(font, deployLabel(), 2, height - 10, 0xffcccccc);
 
 	Screen::render(xm, ym, a);
 }
