@@ -18,6 +18,7 @@
 #include "ClothTileItem.h"
 #include "DyePowderItem.h"
 #include "FoodItem.h"
+#include "PlantableFoodItem.h"
 #include "LeafTileItem.h"
 #include "StoneSlabTileItem.h"
 #include "WoodTileItem.h"

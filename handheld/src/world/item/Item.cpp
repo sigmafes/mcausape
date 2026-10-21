@@ -303,8 +303,8 @@ void Item::initItems() {
 	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
 	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");
 	Item::magmaCream = (new Item(122))->setIcon(13, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("magmaCream");
-	Item::carrot = (new FoodItem(135, 3, false))->setIcon(8, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
-	Item::potato = (new FoodItem(136, 1, false))->setIcon(7, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potato");
+	Item::carrot = (new PlantableFoodItem(135, 3, Tile::carrots->id, Tile::farmland->id))->setIcon(8, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
+	Item::potato = (new PlantableFoodItem(136, 1, Tile::potatoes->id, Tile::farmland->id))->setIcon(7, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potato");
 	Item::bakedPotato = (new FoodItem(137, 5, false))->setIcon(6, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potatoBaked");
 	Item::goldenCarrot = (new FoodItem(140, 6, false))->setIcon(6, 9)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrotGolden");
 

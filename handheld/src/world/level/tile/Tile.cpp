@@ -138,6 +138,8 @@ Tile* Tile::melonStem   = NULL;
 Tile* Tile::pumpkin     = NULL;
 Tile* Tile::litPumpkin  = NULL;
 Tile* Tile::pumpkinStem = NULL;
+Tile* Tile::carrots = NULL;
+Tile* Tile::potatoes = NULL;
 
 Tile* Tile::bed         = NULL;
 Tile* Tile::tallgrass   = NULL;
@@ -269,6 +271,8 @@ void Tile::initTiles() {
 	pumpkin = (new PumpkinTile(86, false))->init()->setDestroyTime(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkin");
 	litPumpkin = (new PumpkinTile(91, true))->init()->setDestroyTime(1.0f)->setLightEmission(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("litpumpkin");
 	pumpkinStem = (new StemTile(104, Tile::pumpkin))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkinStem");
+	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setDescriptionId("carrots");
+	potatoes = (new RootCropTile(142, 7 + 12 * 16, 11 + 12 * 16, &Item::potato))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setDescriptionId("potatoes");
 	melonStem = (new StemTile(105, Tile::melon))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkinStem");//->sendTileData();
 	fenceGate = (new FenceGateTile(107, 4))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("fenceGate");//->sendTileData();
 	stairs_brick = (new StairTile(108, Tile::redBrick))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsBrick");//->sendTileData();

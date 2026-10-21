@@ -206,6 +206,8 @@ public:
 	static Tile* fenceGate;
     static Tile* pumpkin;
 	static Tile* pumpkinStem;
+	static Tile* carrots;
+	static Tile* potatoes;
     static Tile* hellRock;
     static Tile* hellSand;
     static Tile* lightGem;
