@@ -191,6 +191,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_net_leave()
 #include "network/ClientSideNetworkHandler.h"
 #include "client/player/LocalPlayer.h"
 #include "client/User.h"
+#include "client/gui/screens/DisconnectionScreen.h"
 #include <netinet/in.h>
 
 static char g_testOut[512];
@@ -251,6 +252,13 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* mcpe_test_state()
 		mc->isLevelGenerated() ? 1 : 0, mc->level->isClientSide ? 1 : 0, mc->level->dimension->id,
 		mc->player->x, mc->player->y, mc->player->z, chunks, (int) mc->playerNames.size());
 	return g_testOut;
+}
+
+/// 1 while the "disconnected" screen is up.
+extern "C" EMSCRIPTEN_KEEPALIVE int mcpe_test_disconnected()
+{
+	Minecraft* mc = g_state.app;
+	return (mc && mc->screen && dynamic_cast<DisconnectionScreen*>(mc->screen)) ? 1 : 0;
 }
 
 /// "id data blockLight skyLight", or "-1" if that dimension is not here.
