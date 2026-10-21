@@ -43,7 +43,8 @@ private:
 	void renderProfile();
 	void renderSkinFace(int x, int y, int size);
 	void commitName();
-	bool profileShown() const { return selectedCategory == ProfileCategory; }
+	bool hasProfile() const { return returnTo == SCREEN_STARTMENU; }
+	bool profileShown() const { return hasProfile() && selectedCategory == ProfileCategory; }
 
 	static const int ProfileCategory = 0;
 	static const int MaxNameLength = 16;

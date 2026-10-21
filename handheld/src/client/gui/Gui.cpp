@@ -571,15 +571,23 @@ void Gui::renderHearts() {
 	int oh = minecraft->player->lastHealth;
 	random.setSeed(tickCount * 312871);
 
-	int xx = 2;//screenWidth / 2 - getNumSlots() * 10;
+	// Centred over the hotbar, on its top edge, instead of the screen's corner.
+	// The armour row goes above them rather than beside them: beside, the pair
+	// would no longer fit the hotbar's width.
+	int slotX, slotY;
+	getSlotPos(0, slotX, slotY);
+	const int screenWidth = (int)(minecraft->width * InvGuiScale);
+	const int heartsY = slotY - 11;
+	int xx = screenWidth / 2 - (Player::MAX_HEALTH / 2 * 8 + 1) / 2;
 
 	int armor = minecraft->player->getArmorValue();
 	for (int i = 0; i < Player::MAX_HEALTH / 2; i++) {
-		int yo = 2;
+		int yo = heartsY;
 		int ip2 = i + i + 1;
 
 		if (armor > 0) {
-		    int xo = xx + 80 + i * 8 + 4;
+		    int xo = xx + i * 8;
+		    const int yo = heartsY - 10;
 		    if (ip2 < armor) blit(xo, yo, 16 + 2 * 9, 9 * 1, 9, 9);
 		    else if (ip2 == armor) blit(xo, yo, 16 + 4 * 9, 9 * 1, 9, 9);
 		    else if (ip2 > armor) blit(xo, yo, 16 + 0 * 9, 9 * 1, 9, 9);
@@ -603,11 +611,16 @@ void Gui::renderHearts() {
 
 void Gui::renderBubbles() {
 	if (minecraft->player->isUnderLiquid(Material::water)) {
-		int yo = 12;
+		// Above the hearts (and the armour row over them), on the hotbar's centre.
+		int slotX, slotY;
+		getSlotPos(0, slotX, slotY);
+		const int screenWidth = (int)(minecraft->width * InvGuiScale);
+		int yo = slotY - 11 - (minecraft->player->getArmorValue() > 0 ? 20 : 10);
+		const int bx = screenWidth / 2 - (Player::MAX_HEALTH / 2 * 8 + 1) / 2;
 		int count = (int) std::ceil((minecraft->player->airSupply - 2) * 10.0f / Player::TOTAL_AIR_SUPPLY);
 		int extra = (int) std::ceil((minecraft->player->airSupply) * 10.0f / Player::TOTAL_AIR_SUPPLY) - count;
 		for (int i = 0; i < count + extra; i++) {
-			int xo =  i * 8 + 2;
+			int xo =  bx + i * 8;
 			if (i < count) blit(xo, yo, 16, 9 * 2, 9, 9);
 			else blit(xo, yo, 16 + 9, 9 * 2, 9, 9);
 		}

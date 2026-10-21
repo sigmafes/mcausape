@@ -21,7 +21,7 @@ OptionsScreen::OptionsScreen(ScreenId returnTo)
 : btnClose(NULL),
   bHeader(NULL),
   currentOptionPane(NULL),
-  selectedCategory(0),
+  selectedCategory(returnTo == SCREEN_STARTMENU ? 0 : 1),
   returnTo(returnTo),
   bImportSkin(NULL),
   bResetSkin(NULL),
@@ -82,6 +82,13 @@ void OptionsScreen::init() {
 		buttons.push_back(*it);
 		tabButtons.push_back(*it);
 	}
+	if (!hasProfile()) {
+		// Who you are is chosen outside a world: the name and skin are handed
+		// to the world when it is joined or hosted, so changing them inside
+		// one would show here and nowhere else.
+		categoryButtons[0]->visible = categoryButtons[0]->active = false;
+		tabButtons.erase(tabButtons.begin());
+	}
 
 	bImportSkin = new Touch::TButton(10, "Import Skin");
 	bResetSkin = new Touch::TButton(11, "Reset Skin");
@@ -103,8 +110,10 @@ void OptionsScreen::setupPositions() {
 	int offsetNum = 1;
 	for(std::vector<Touch::TButton*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
 		(*it)->x = 0;
-		(*it)->y = offsetNum * buttonHeight;
 		(*it)->selected = false;
+		if (*it == categoryButtons[0] && !hasProfile())
+			continue;
+		(*it)->y = offsetNum * buttonHeight;
 		offsetNum++;
 	}
 	bHeader->x = 0;
@@ -300,7 +309,8 @@ void OptionsScreen::generateOptionScreens() {
 		graphics.addOptionItem(&Options::Option::FULLSCREEN, minecraft);
 	panes[1]->createOptionsGroup("options.group.camera")
 		.addOptionItem(&Options::Option::VIEW_BOBBING, minecraft)
-		.addOptionItem(&Options::Option::THIRD_PERSON, minecraft);
+		.addOptionItem(&Options::Option::THIRD_PERSON, minecraft)
+		.addOptionItem(&Options::Option::THIRD_PERSON_FRONT, minecraft);
 
 	// Sound. Music is deliberately absent: the streamed music assets are not
 	// in the compiled-in sound bank, so a music slider would control nothing.
