@@ -569,6 +569,70 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChunkDat
 	//unsigned char* blockIds = chunk->getBlockData();
 	DataLayer& blockData = chunk->data;
 
+	unsigned char mode = 0;
+	packet->chunkData.Read(mode);
+	if (mode == 1) {
+		// The whole chunk (see ChunkDataPacket): replaces what this tab grew
+		// for itself, straight into the arrays.
+		unsigned char* blockIds = chunk->getBlockData();
+		const int rx = packet->x << 4;
+		const int rz = packet->z << 4;
+		for (int i = 0; i < CHUNK_COLUMNS; i++) {
+			const int colX = i % CHUNK_WIDTH;
+			const int colZ = i / CHUNK_WIDTH;
+			const int colDataPosition = colX << 11 | colZ << 7;
+			int y = 0;
+			while (y < LEVEL_HEIGHT) {
+				unsigned char run = 0, id = 0;
+				packet->chunkData.Read(run);
+				packet->chunkData.Read(id);
+				if (run == 0 || y + run > LEVEL_HEIGHT) break; // not a chunk we can read
+				const unsigned char valid = (unsigned char) Tile::transformToValidBlockId(id, rx + colX, y, rz + colZ);
+				memset(&blockIds[colDataPosition + y], valid, run);
+				y += run;
+			}
+			unsigned char anyData = 0;
+			packet->chunkData.Read(anyData);
+			if (anyData)
+				packet->chunkData.Read((char*) &blockData.data[colDataPosition >> 1], LEVEL_HEIGHT / 2);
+			else
+				memset(&blockData.data[colDataPosition >> 1], 0, LEVEL_HEIGHT / 2);
+		}
+		chunk->recalcHeightmap();
+		// It is the host's population now: this tab must not add its own on top.
+		chunk->terrainPopulated = true;
+		level->setTilesDirty(rx, 0, rz, rx + 15, LEVEL_HEIGHT - 1, rz + 15);
+		chunk->unsaved = false;
+
+		bool& done = chunksLoaded[packet->x * CHUNK_CACHE_WIDTH + packet->z];
+		if (!done) {
+			done = true;
+			++numChunksLoaded;
+		}
+		for (unsigned int i = 0; i < bufferedBlockUpdates.size(); ) {
+			const SBufferedBlockUpdate& update = bufferedBlockUpdates[i];
+			if ((update.x >> 4) == packet->x && (update.z >> 4) == packet->z) {
+				int tileId = Tile::transformToValidBlockId(update.blockId, update.x, update.y, update.z);
+				if (update.setData)
+					level->setTileAndData(update.x, update.y, update.z, tileId, update.blockData);
+				else
+					level->setTile(update.x, update.y, update.z, tileId);
+				bufferedBlockUpdates.erase(bufferedBlockUpdates.begin() + i);
+			} else {
+				++i;
+			}
+		}
+		if (areAllChunksLoaded()) {
+			ReadyPacket ready(ReadyPacket::READY_REQUESTEDCHUNKS);
+			raknetInstance->send(ready);
+			if (level->dimension->hasCeiling)
+				_lightChunk = 0;
+		} else {
+			requestNextChunk();
+		}
+		return;
+	}
+
 	const int setSize = LEVEL_HEIGHT / 8;
 	const int setShift = 4; // power of LEVEL_HEIGHT / 8
 

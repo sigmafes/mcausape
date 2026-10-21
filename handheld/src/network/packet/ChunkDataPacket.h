@@ -3,6 +3,8 @@
 
 #include "../Packet.h"
 #include "../../world/level/chunk/LevelChunk.h"
+#include "../../world/level/Level.h"
+#include "../../world/level/dimension/Dimension.h"
 
 class ChunkDataPacket : public Packet
 {
@@ -37,6 +39,38 @@ public:
 		const int setShift = 4; // power of LEVEL_HEIGHT / 8
 
 		chunkData.Reset();
+
+		// Mode 1, the Nether: the whole chunk, run-length coded. A visitor works
+		// the rest of a chunk out for itself and sends none of it back, which is
+		// right where the world grows the same everywhere; the Nether's
+		// population (fortresses, lava, fire) did not, and a visitor saw a
+		// different one from the host's. Netherrack is mostly runs, so this is
+		// a few KB a chunk.
+		const bool full = chunk->level != NULL && chunk->level->dimension != NULL && chunk->level->dimension->hasCeiling;
+		chunkData.Write((unsigned char) (full ? 1 : 0));
+		if (full) {
+			for (int i = 0; i < CHUNK_COLUMNS; i++) {
+				const int colDataPosition = (i % CHUNK_WIDTH) << 11 | (i / CHUNK_WIDTH) << 7;
+				int y = 0;
+				while (y < LEVEL_HEIGHT) {
+					const unsigned char id = blockIds[colDataPosition + y];
+					int run = 1;
+					while (y + run < LEVEL_HEIGHT && run < 255 && blockIds[colDataPosition + y + run] == id) ++run;
+					chunkData.Write((unsigned char) run);
+					chunkData.Write(id);
+					y += run;
+				}
+				bool anyData = false;
+				const unsigned char* nibbles = &blockData.data[colDataPosition >> 1];
+				for (int b = 0; b < LEVEL_HEIGHT / 2; ++b) if (nibbles[b] != 0) { anyData = true; break; }
+				chunkData.Write((unsigned char) (anyData ? 1 : 0));
+				if (anyData)
+					chunkData.Write((const char*) nibbles, LEVEL_HEIGHT / 2);
+			}
+			bitStream->Write(chunkData);
+			return;
+		}
+
 		for (int i = 0; i < CHUNK_COLUMNS; i++)
 		{
 			unsigned char updateBits = chunk->updateMap[i];
