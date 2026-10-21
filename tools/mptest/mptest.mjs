@@ -96,7 +96,12 @@ try {
 	const visitor = await openTab(browser, 'visitor');
 	const t0 = Date.now();
 	await call(visitor, 'mcpe_test_join', route);
-	const moved = await waitFor(async () => { const s = await state(visitor); return s.ready && s.client; }, 300000, 250);
+	let lastLog = 0;
+	const moved = await waitFor(async () => {
+		const s = await state(visitor);
+		if (process.env.MPTEST_VERBOSE && Date.now() - lastLog > 10000) { lastLog = Date.now(); console.log('visitor', JSON.stringify(s)); }
+		return s.ready && s.client;
+	}, 300000, 250);
 	check('visitor can play', !!moved.value, `${moved.ms} ms after join`);
 	const allChunks = await waitFor(async () => (await state(visitor)).chunks >= 1024, 600000, 500);
 	check('visitor has every chunk', !!allChunks.value, `${Date.now() - t0} ms after join`);
