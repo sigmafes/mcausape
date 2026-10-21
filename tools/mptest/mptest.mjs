@@ -89,7 +89,8 @@ try {
 	const ne = { glow: [nx + 2, 70, nz + 2], stone: [nx + 3, 70, nz + 2] };
 	await call(host, 'mcpe_test_set', NETHER, ...ne.glow, GLOWSTONE, 0);
 	await call(host, 'mcpe_test_set', NETHER, ...ne.stone, STONE, 0);
-	await sleep(1500);
+	// Long enough for the host's own light pass to settle around the glowstone.
+	await sleep(5000);
 	const hostGlowLight = await block(host, OVERWORLD, ow.glow[0], ow.glow[1] - 1, ow.glow[2]);
 
 	// Visitor joins.
@@ -144,6 +145,11 @@ try {
 	await call(host, 'mcpe_test_set', OVERWORLD, ...live, STONE, 0);
 	const seen = await waitFor(async () => { const b = await block(visitor, OVERWORLD, ...live); return b && b.id === STONE; }, 120000, 50);
 	check('live edit with mobs about', !!seen.value && seen.ms < 2000, `${seen.ms} ms with ${pigs} pigs`);
+
+	// The host closes its tab: the visitor must be told, and soon.
+	await host.close({ runBeforeUnload: true });
+	const gone = await waitFor(async () => (await visitor.evaluate(() => Module._mcpe_test_disconnected())) === 1, 180000, 250);
+	check('visitor told the host left', !!gone.value && gone.ms < 15000, `${gone.ms} ms`);
 } finally {
 	await browser.close();
 }
