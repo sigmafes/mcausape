@@ -48,6 +48,7 @@ void Options::initDefaultValues() {
 	username = "Steve";
 	serverVisible = true;
 	fullscreen = false;
+	thirdPersonFront = false;
 
 	keyUp	 = KeyMapping("key.forward", Keyboard::KEY_W);
 	keyLeft  = KeyMapping("key.left", Keyboard::KEY_A);
@@ -175,7 +176,8 @@ const Options::Option
 	Options::Option::USE_TOUCH_JOYPAD	 (17, "options.usetouchpad", false, true),
 	Options::Option::DESTROY_VIBRATION   (18, "options.destroyvibration", false, true),
 	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false),
-	Options::Option::FULLSCREEN			 (20, "options.fullscreen", false, true);
+	Options::Option::FULLSCREEN			 (20, "options.fullscreen", false, true),
+	Options::Option::THIRD_PERSON_FRONT	 (21, "options.thirdpersonfront", false, true);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;

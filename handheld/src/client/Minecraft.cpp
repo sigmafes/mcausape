@@ -1206,6 +1206,16 @@ void Minecraft::tickInput() {
 						if (player->inventory->getItem(i))
 							player->inventory->dropSlot(i, false);
 				}
+				if (key == Keyboard::KEY_F5) {
+					// First person -> behind -> in front -> first person.
+					if (!options.thirdPersonView) {
+						options.thirdPersonView = true; options.thirdPersonFront = false;
+					} else if (!options.thirdPersonFront) {
+						options.thirdPersonFront = true;
+					} else {
+						options.thirdPersonView = false; options.thirdPersonFront = false;
+					}
+				}
 				if (key == Keyboard::KEY_F3) {
 					options.renderDebug = !options.renderDebug;
 				}

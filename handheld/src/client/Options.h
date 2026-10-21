@@ -50,6 +50,7 @@ public:
 
 		static const Option PIXELS_PER_MILLIMETER;
 		static const Option FULLSCREEN;
+		static const Option THIRD_PERSON_FRONT;
 
 		/*
         static Option* getItem(int id) {
@@ -158,6 +159,8 @@ public:
     int difficulty;
     bool hideGui;
     bool thirdPersonView;
+	// With thirdPersonView: the camera in front of the player, looking back.
+	bool thirdPersonFront;
     bool renderDebug;
 
     bool isFlying;
@@ -252,6 +255,7 @@ public:
         if (option == &Option::GUI_SCALE)		guiScale = (guiScale + dir) & 3;
         if (option == &Option::VIEW_BOBBING)	bobView = !bobView;
 		if (option == &Option::THIRD_PERSON)	thirdPersonView = !thirdPersonView;
+		if (option == &Option::THIRD_PERSON_FRONT) thirdPersonFront = !thirdPersonFront;
 		if (option == &Option::HIDE_GUI)		hideGui = !hideGui;
 		if (option == &Option::SERVER_VISIBLE)		serverVisible = !serverVisible;
 		if (option == &Option::LEFT_HANDED) isLeftHanded = !isLeftHanded;
@@ -327,6 +331,8 @@ public:
 			return destroyVibration;
 		if (item == &Option::FULLSCREEN)
 			return fullscreen;
+		if (item == &Option::THIRD_PERSON_FRONT)
+			return thirdPersonFront;
 		return false;
 	}
 

@@ -460,6 +460,13 @@ void GameRenderer::moveCameraToPlayer(float a) {
         } else {
             float yRot = player->yRot;
             float xRot = player->xRot/* + 180.0f*/;
+            // Front view: the camera swings round to the other side of the
+            // player (this is where it is placed and clipped against blocks)...
+            const bool front = mc->options.thirdPersonFront;
+            if (front) {
+                yRot += 180.0f;
+                xRot = -xRot;
+            }
             float xd = -Mth::sin(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float zd = Mth::cos(yRot / 180 * Mth::PI) * Mth::cos(xRot / 180 * Mth::PI) * cameraDist;
             float yd = -Mth::sin(xRot / 180 * Mth::PI) * cameraDist;
@@ -487,6 +494,8 @@ void GameRenderer::moveCameraToPlayer(float a) {
             glTranslatef2(0, 0, (float) -cameraDist);
             glRotatef2(yRot - player->yRot, 0, 1, 0);
             glRotatef2(xRot - player->xRot, 1, 0, 0);
+            // ...and turns to face them, instead of looking the way they do.
+            if (front) glRotatef2(180, 0, 1, 0);
         }
     } else {
         glTranslatef2(0, 0, -0.1f);

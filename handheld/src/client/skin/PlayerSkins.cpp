@@ -40,16 +40,36 @@ void classicHatRule(std::vector<unsigned char>& px, int w, int x0, int y0, int x
 			alphaAt(px, w, x, y) = 0;
 }
 
-/** Slim (3-pixel) arms leave the fourth column of the right arm's front and
-    back empty. Nothing in the file says which model it is, so this is the same
-    test the community skin tools use. */
+/** Slim (3-pixel) arms leave the fourth column of each arm's back empty (the
+    right arm's at x 54-55, the left's at x 46-47). Nothing in the file says
+    which model it is, so this is the same test the community skin tools use.
+
+    "Empty" is transparent in a properly exported skin, but plenty of slim
+    skins in circulation have those columns painted solid black instead --
+    an editor that filled the unused area. Read as wide, the arm then grows a
+    black stripe, so black counts as empty too. Both arms have to agree for
+    the black case, since one black column alone could be a design. */
+bool emptyRegion(std::vector<unsigned char>& px, int w, int x0, int y0, int x1, int y1, bool& transparent, bool& black)
+{
+	transparent = true;
+	black = true;
+	for (int y = y0; y < y1; ++y)
+		for (int x = x0; x < x1; ++x) {
+			const unsigned char* p = &px[(y * w + x) * 4];
+			if (p[3] != 0) transparent = false;
+			if (p[0] || p[1] || p[2] || p[3] < 200) black = false;
+		}
+	return transparent || black;
+}
+
 bool looksSlim(std::vector<unsigned char>& px, int w)
 {
-	for (int y = 20; y < 32; ++y)
-		for (int x = 54; x < 56; ++x)
-			if (alphaAt(px, w, x, y) != 0)
-				return false;
-	return true;
+	bool rt, rb, lt, lb;
+	emptyRegion(px, w, 54, 20, 56, 32, rt, rb);
+	if (rt)
+		return true;
+	emptyRegion(px, w, 46, 52, 48, 64, lt, lb);
+	return rb && (lt || lb);
 }
 
 void upload(Textures* textures, PlayerSkins::Skin& skin)

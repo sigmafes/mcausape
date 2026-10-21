@@ -148,6 +148,7 @@ options.sensitivity=Sensitivity
 options.sensitivity.min=*yawn*
 options.sensitivity.max=HYPERSPEED!!!
 options.thirdperson=Third Person
+options.thirdpersonfront=Front View
 options.group.mouse=Mouse
 options.group.touch=Touch
 options.group.graphics=Graphics
