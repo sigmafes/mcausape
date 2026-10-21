@@ -23,6 +23,7 @@ protected:
 
 private:
 	void send();
+	void sendChat(const std::string& line);
 	void runCommand(const std::string& line);
 	void feedback(const std::string& text);
 

@@ -58,6 +58,8 @@ public:
 	virtual void handle(const RakNet::RakNetGUID& source, ContainerClosePacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, SignUpdatePacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet);
+	virtual void handle(const RakNet::RakNetGUID& source, ChatPacket* packet);
+	virtual void handle(const RakNet::RakNetGUID& source, SetEntityDataPacket* packet);
 
 	bool allowsIncomingConnections() { return _allowIncoming; }
 	void allowIncomingConnections(bool doAllow);

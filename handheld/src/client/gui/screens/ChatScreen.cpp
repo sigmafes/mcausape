@@ -2,6 +2,8 @@
 #include "../Font.h"
 #include "../Gui.h"
 #include "../../Minecraft.h"
+#include "../../../network/packet/ChatPacket.h"
+#include "../../../network/RakNetInstance.h"
 #include "../../../platform/input/Keyboard.h"
 #include "../../../util/Mth.h"
 #include "../../../util/StringUtils.h"
@@ -122,11 +124,32 @@ void ChatScreen::send()
 		if (line[0] == '/')
 			runCommand(line.substr(1));
 		else
-			minecraft->gui.addMessage(line);
+			sendChat(line);
 	}
 
 	// Last, because this closes the screen.
 	minecraft->setScreen(NULL);
+}
+
+/** A line of chat, as "<name> line" for everyone in the world.
+
+    The host is the one place that knows who is who, so a visitor sends only the
+    line and the host puts the name on it (see ServerSideNetworkHandler's
+    ChatPacket handler) -- a client cannot speak as someone else -- and sends it
+    on to everyone, the sender included. The host builds its own and sends it. */
+void ChatScreen::sendChat(const std::string& line)
+{
+	if (minecraft->isOnlineClient()) {
+		ChatPacket packet(line, false);
+		minecraft->raknetInstance->send(packet);
+		return;
+	}
+	const std::string msg = "<" + minecraft->player->name + "> " + line;
+	minecraft->gui.addMessage(msg);
+	if (minecraft->netCallback && minecraft->raknetInstance) {
+		ChatPacket packet(msg, false);
+		minecraft->raknetInstance->send(packet);
+	}
 }
 
 void ChatScreen::feedback(const std::string& msg)

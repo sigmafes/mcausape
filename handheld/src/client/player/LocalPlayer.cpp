@@ -1,4 +1,6 @@
 #include "LocalPlayer.h"
+#include "../../network/packet/SetEntityDataPacket.h"
+#include "../../network/RakNetInstance.h"
 #include "../Minecraft.h"
 #include "../../ErrorCodes.h"
 #include "../../world/entity/EntityEvent.h"
@@ -181,6 +183,19 @@ void LocalPlayer::aiStep() {
         if (ySlideOffset < 0.2f) ySlideOffset = 0.2f;
     }
 #endif
+
+	// Everyone else draws this player crouching from the shared flag, not from
+	// our input, which only the touch controls ever copied into it. Keep the
+	// flag the keyboard's too.
+	if (Mob::isSneaking() != input->sneaking)
+		setSneaking(input->sneaking);
+	// The host spreads its own players' data (Level::tick), but a visitor's
+	// reaches the host only if the visitor says so: Level only sends from the
+	// server's side.
+	if (level->isClientSide && minecraft->raknetInstance && getEntityData()->isDirty()) {
+		SetEntityDataPacket packet(entityId, *getEntityData());
+		minecraft->raknetInstance->send(packet);
+	}
 	if (abilities.mayfly) {
 		// Check for flight toggle
 		if (!wasJumping && input->jumping) {

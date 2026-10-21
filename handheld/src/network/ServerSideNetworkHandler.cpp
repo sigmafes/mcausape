@@ -750,3 +750,35 @@ void ServerSideNetworkHandler::sendSkin(Player* player, const RakNet::RakNetGUID
 	                 skin ? &skin->rgba[0] : 0).write(&bs);
 	rakPeer->Send(&bs, MEDIUM_PRIORITY, RELIABLE_ORDERED, 0, target, broadcast);
 }
+
+void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChatPacket* packet)
+{
+	if (!level) return;
+	Player* player = getPlayer(source);
+	if (!player) return;
+
+	// Only printable text, and only as much as the chat box itself takes.
+	std::string line;
+	for (unsigned int i = 0; i < packet->message.size() && line.size() < (unsigned int) ChatPacket::MAX_CHAT_LENGTH; ++i) {
+		const char c = packet->message[i];
+		if (c >= 32 && c < 127) line += c;
+	}
+	if (line.empty()) return;
+
+	const std::string msg = "<" + player->name + "> " + line;
+#ifndef STANDALONE_SERVER
+	minecraft->gui.addMessage(msg);
+#endif
+	ChatPacket out(msg, false);
+	raknetInstance->send(out);
+}
+
+void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, SetEntityDataPacket* packet)
+{
+	if (!level) return;
+	// A visitor reports on its own player -- crouching, mostly -- and no one
+	// else's. Level::tick then passes whatever changed on to everyone.
+	Player* player = getPlayer(source);
+	if (!player || player->entityId != packet->id) return;
+	player->getEntityData()->assignValues(&packet->getUnpackedData());
+}
