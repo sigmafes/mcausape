@@ -22,6 +22,7 @@
 #include "../server/ServerCommands.h"
 #include "LevelNet.h"
 #include "../raknet/RakNetStatistics.h"
+#include "../raknet/GetTime.h"
 #include <algorithm>
 #include "../world/level/LevelListener.h"
 #include "../world/level/dimension/Dimension.h"
@@ -761,6 +762,9 @@ double ServerSideNetworkHandler::sendBufferBytes(const RakNet::RakNetGUID& to)
 void ServerSideNetworkHandler::pumpStreams()
 {
 	const double MaxQueued = 96 * 1024;
+	// A chunk the host has never made (an old world's Nether) is generated
+	// here, on the frame: a few milliseconds of it a tick, not a stall.
+	const RakNet::TimeMS start = RakNet::GetTimeMS();
 	for (unsigned int i = 0; i < _sessions.size(); ++i) {
 		Session& s = _sessions[i];
 		if (s.streamPos >= s.stream.size()) continue;
@@ -772,6 +776,7 @@ void ServerSideNetworkHandler::pumpStreams()
 		}
 		for (int n = 0; n < 6 && s.streamPos < s.stream.size(); ++n) {
 			if (sendBufferBytes(s.guid) > MaxQueued) break;
+			if (n > 0 && RakNet::GetTimeMS() - start > 8) return;
 			const int index = s.stream[s.streamPos++];
 			sendChunkTo(s.guid, s.streamLevel, index % CHUNK_CACHE_WIDTH, index / CHUNK_CACHE_WIDTH);
 		}
