@@ -170,6 +170,9 @@ Packet* MinecraftPackets::createPacket(int id)
 	case PACKET_PLAYERSKIN:
 		packet = new PlayerSkinPacket();
 		break;
+	case PACKET_EXT:
+		packet = new ExtPacket();
+		break;
 	}
 
     return packet;

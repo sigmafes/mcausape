@@ -216,6 +216,7 @@ void MobRenderer::renderNameTag(Mob* mob, const std::string& name, float x, floa
 
 	glScalef2(-s, -s, s);
 
+	// Drawn over everything: a name is for finding someone behind a wall.
 	glDepthMask(false);
 	glDisable2(GL_DEPTH_TEST);
 	glEnable2(GL_BLEND);
@@ -234,11 +235,10 @@ void MobRenderer::renderNameTag(Mob* mob, const std::string& name, float x, floa
 	t.draw();
 	glEnable2(GL_TEXTURE_2D);
 	const float fnameWidth = (float)font->width(name) / -2;
-	font->draw(name, fnameWidth, 0, 0x20ffffff);
+	font->draw(name, (float) fnameWidth, 0, 0xffffffff);
 	glEnable2(GL_DEPTH_TEST);
 
 	glDepthMask(true);
-	font->draw(name, (float) fnameWidth, 0, 0xffffffff);
 	glDisable2(GL_BLEND);
 	glColor4f2(1, 1, 1, 1);
 	glPopMatrix2();

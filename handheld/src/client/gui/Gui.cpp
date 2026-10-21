@@ -20,6 +20,9 @@
 #include "../../platform/input/Mouse.h"
 #include "../../world/level/Level.h"
 #include "../../world/PosTranslator.h"
+#include "../../platform/input/Keyboard.h"
+#include <algorithm>
+#include <sstream>
 
 float Gui::InvGuiScale = 1.0f / 3.0f;
 float Gui::GuiScale = 1.0f / Gui::InvGuiScale;
@@ -112,6 +115,7 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	unsigned int max = 10;
     bool isChatting = false;
 	renderChatMessages(screenHeight, max, isChatting, font);
+	renderPlayerList(screenWidth, font);
 #if !defined(RPI)
 	renderOnSelectItemNameText(screenWidth, font, ySlot);
 #endif
@@ -678,6 +682,35 @@ void Gui::renderOnSelectItemNameText( const int screenWidth, Font* font, int ySl
 			if(alpha != 0)
 				font->drawShadow(item->getName(), x, y, 0x00ffffff + (alpha << 24));
 		}
+	}
+}
+
+/// Hold Tab: who is in the world, like Java's list. Host first, as the host sent it.
+void Gui::renderPlayerList(const int screenWidth, Font* font) {
+	if (!Keyboard::isKeyDown(9))
+		return;
+
+	std::vector<std::string> names = minecraft->playerNames;
+	if (names.empty() && minecraft->player)
+		names.push_back(minecraft->player->name);
+
+	int width = 120;
+	for (unsigned int i = 0; i < names.size(); ++i)
+		width = std::max(width, font->width(names[i]) + 24);
+
+	const int rowHeight = 10;
+	const int height = 18 + (int) names.size() * rowHeight;
+	const int x0 = (screenWidth - width) / 2;
+	const int y0 = 14;
+
+	fill(x0, y0, x0 + width, y0 + height, 0x80000000);
+	std::ostringstream title;
+	title << "Players " << names.size() << "/10";
+	font->drawShadow(title.str(), x0 + (width - font->width(title.str())) / 2, y0 + 4, 0xffffffff);
+	for (unsigned int i = 0; i < names.size(); ++i) {
+		const int y = y0 + 16 + (int) i * rowHeight;
+		fill(x0 + 4, y - 1, x0 + width - 4, y + rowHeight - 2, 0x30ffffff);
+		font->drawShadow(names[i], x0 + 8, y, 0xffffffff);
 	}
 }
 

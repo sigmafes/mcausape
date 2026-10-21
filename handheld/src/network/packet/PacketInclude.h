@@ -51,5 +51,6 @@
 #include "UpdateBlockPacket.h"
 #include "UseItemPacket.h"
 #include "PlayerSkinPacket.h"
+#include "ExtPacket.h"
 
 #endif /*NET_MINECRAFT_NETWORK_PACKET__PacketInclude_H__*/

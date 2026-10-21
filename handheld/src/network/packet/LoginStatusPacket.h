@@ -7,6 +7,11 @@ namespace LoginStatus {
 	const int Success = 0;
 	const int Failed_ClientOld = 1;
 	const int Failed_ServerOld = 2;
+	// The host's own rules: see ServerSideNetworkHandler's LoginPacket handler.
+	const int Failed_BadName = 3;
+	const int Failed_NameTaken = 4;
+	const int Failed_NotWhitelisted = 5;
+	const int Failed_Full = 6;
 }
 
 class LoginStatusPacket : public Packet {

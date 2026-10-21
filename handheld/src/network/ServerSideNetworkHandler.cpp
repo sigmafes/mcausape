@@ -19,13 +19,20 @@
 #include "../server/ServerPlayer.h"
 #include "../world/entity/item/FallingTile.h"
 #include "../client/skin/PlayerSkins.h"
+#include "../server/ServerCommands.h"
+#if defined(MC_WASM)
+#include "WebRakNetInstance.h"
+#endif
+#include "../world/level/storage/LevelStorage.h"
+#include "../world/level/storage/LevelData.h"
 
 #define TIMES(x) for(int itc ## __LINE__ = 0; itc ## __LINE__ < x; ++ itc ## __LINE__)
 
 ServerSideNetworkHandler::ServerSideNetworkHandler(Minecraft* minecraft, IRakNetInstance* raknetInstance)
 :	minecraft(minecraft),
 	raknetInstance(raknetInstance),
-	level(NULL)
+	level(NULL),
+	_lastPlayerCount(0)
 {
 	allowIncomingConnections(false);
 	rakPeer = raknetInstance->getPeer();
@@ -147,6 +154,16 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 	if (!level) return;
 	LOGI("onDisconnect\n");
 
+	removeSession(guid);
+	// Left before the world finished loading: no player in the level yet.
+	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i) {
+		if (_pendingPlayers[i]->owner == guid) {
+			delete _pendingPlayers[i];
+			_pendingPlayers.erase(_pendingPlayers.begin() + i);
+			break;
+		}
+	}
+
 	const PlayerList& players = level->players;
 	for (unsigned int i = 0; i < players.size(); i++)
 	{
@@ -171,6 +188,8 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 			break;
 		}
 	}
+	broadcastPlayerList();
+	announceLobbyInfo();
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPacket* packet)
@@ -189,6 +208,26 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	if (oldClient || oldServer)
 		loginStatus = oldClient? LoginStatus::Failed_ClientOld : LoginStatus::Failed_ServerOld;
 
+	// The host's own rules, in the order a player would want to hear them.
+	const std::string loginName = packet->clientName.C_String();
+	if (LoginStatus::Success == loginStatus) {
+		if (!ServerAccess::validName(loginName)) {
+			loginStatus = LoginStatus::Failed_BadName;
+		} else {
+			bool taken = false;
+			std::vector<Player*> everyone = allPlayers();
+			for (unsigned int i = 0; i < _pendingPlayers.size(); ++i) everyone.push_back(_pendingPlayers[i]);
+			for (unsigned int i = 0; i < everyone.size(); ++i)
+				if (ServerAccess::key(everyone[i]->name) == ServerAccess::key(loginName)) taken = true;
+			if (taken)
+				loginStatus = LoginStatus::Failed_NameTaken;
+			else if (_access.whitelistOn() && !_access.isWhitelisted(loginName) && !_access.isOp(loginName))
+				loginStatus = LoginStatus::Failed_NotWhitelisted;
+			else if ((int) everyone.size() >= MAX_PLAYERS)
+				loginStatus = LoginStatus::Failed_Full;
+		}
+	}
+
 	RakNet::BitStream bitStream;
 	LoginStatusPacket(loginStatus).write(&bitStream);
 	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
@@ -203,8 +242,17 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 
 	minecraft->gameMode->initAbilities(newPlayer->abilities);
 	newPlayer->owner = source;
-	newPlayer->name = packet->clientName.C_String();
+	newPlayer->name = loginName;
 	_pendingPlayers.push_back(newPlayer);
+
+	Session session;
+	session.guid = source;
+	session.authed = !_access.authOn();
+	session.idleTicks = 0;
+	session.failures = 0;
+	session.creative = minecraft->isCreativeMode();
+	_sessions.push_back(session);
+	applyGameMode(newPlayer, session.creative);
 
 	// Reset the player so he doesn't spawn inside blocks
 	while (newPlayer->y > 0) {
@@ -314,6 +362,9 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 	// A skin the newcomer sent before this point is on newPlayer already.
 	if (PlayerSkins::get(newPlayer->skinId))
 		sendSkin(newPlayer, source, true);
+
+	broadcastPlayerList();
+	announceLobbyInfo();
 }
 
 //
@@ -321,6 +372,13 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 //
 void ServerSideNetworkHandler::onReady_RequestedChunks(const RakNet::RakNetGUID& source)
 {
+	if (Player* joined = getPlayer(source)) {
+		if (_access.authOn() && !isAuthed(joined))
+			sendMessage(joined, _access.hasAccount(joined->name)
+				? "Este mundo pide autenticacion: usa /login <contrasena>."
+				: "Este mundo pide autenticacion: usa /register <contrasena>.");
+	}
+
 	RakNet::BitStream bitStream;
 	// Send all TileEntities to the new player
 	for (unsigned int i = 0; i < level->tileEntities.size(); ++i) {
@@ -352,6 +410,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, MovePlay
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBlockPacket* packet){
 	if (!level) return;
+	if (isUnauthenticated(source)) return;
 
 	Player* player = getPlayer(source);
 	if (!player) return;
@@ -368,7 +427,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBl
 	if (oldTile != NULL && changed) {
 		level->playSound(x + 0.5f, y + 0.5f, z + 0.5f, oldTile->soundType->getBreakSound(), (oldTile->soundType->getVolume() + 1) / 2, oldTile->soundType->getPitch() * 0.8f);
 
-		if (minecraft->gameMode->isSurvivalType() && player->canDestroy(oldTile))
+		if (!player->abilities.instabuild && player->canDestroy(oldTile))
 			//oldTile->spawnResources(level, x, y, z, data, 1); //@todo
 			oldTile->playerDestroy(level, player, x, y, z, data);
 
@@ -414,6 +473,8 @@ void ServerSideNetworkHandler::levelGenerated( Level* level )
 	}
 	
 	level->addListener(this);
+	if (LevelStorage* storage = level->getLevelStorage())
+		_access.load(storage->getFolder());
 #ifndef STANDALONE_SERVER
 	allowIncomingConnections(minecraft->options.serverVisible);
 #else
@@ -461,6 +522,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerAr
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, InteractPacket* packet) {
 	if (!level) return;
+	if (isUnauthenticated(source)) return;
 
 	Entity* src = level->getEntity(packet->sourceId);
 	Entity* entity = level->getEntity(packet->targetId);
@@ -511,6 +573,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, UseItemP
 {
 	if (!level) return;
 
+	if (isUnauthenticated(source)) return;
 	LOGI("UseItemPacket\n");
 	Entity* entity = level->getEntity(packet->entityId);
 	if (entity && entity->isPlayer()) {
@@ -591,6 +654,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SendInv
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, DropItemPacket* packet )
 {
 	if (!level) return;
+	if (isUnauthenticated(source)) return;
 
 	Entity* entity = level->getEntity(packet->entityId);
 	if (entity && entity->isPlayer()) {
@@ -611,6 +675,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Containe
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ContainerSetSlotPacket* packet) {
 	if (!level) return;
+	if (isUnauthenticated(source)) return;
 
 	Player* p = findPlayer(level, &source);
 	if (!p) return;
@@ -653,6 +718,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SetHeal
 }
 
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SignUpdatePacket* packet ) {
+	if (isUnauthenticated(source)) return;
 	redistributePacket(packet, source);
 	if (!level)
 		return;
@@ -782,6 +848,29 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChatPack
 	}
 	if (line.empty()) return;
 
+	// A line starting with '/' is a command, run here for whoever sent it.
+	if (line[0] == '/') {
+		const std::string commandLine = line.substr(1);
+		std::string word, rest;
+		const std::string::size_type sp = commandLine.find(' ');
+		word = commandLine.substr(0, sp);
+		if (sp != std::string::npos) rest = commandLine.substr(sp + 1);
+		for (unsigned int i = 0; i < word.size(); ++i) if (word[i] >= 'A' && word[i] <= 'Z') word[i] = (char) (word[i] + 32);
+
+		if (word == "register" || word == "login") {
+			handleAuthCommand(player, word, rest);
+		} else if (_access.authOn() && !isAuthed(player)) {
+			sendMessage(player, "Primero inicia sesion: /login <contrasena> o /register <contrasena>.");
+		} else {
+			ServerCommands::run(minecraft, this, player, commandLine);
+		}
+		return;
+	}
+	if (_access.authOn() && !isAuthed(player)) {
+		sendMessage(player, "Primero inicia sesion: /login <contrasena> o /register <contrasena>.");
+		return;
+	}
+
 	const std::string msg = "<" + player->name + "> " + line;
 #ifndef STANDALONE_SERVER
 	minecraft->gui.addMessage(msg);
@@ -798,4 +887,256 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, SetEntit
 	Player* player = getPlayer(source);
 	if (!player || player->entityId != packet->id) return;
 	player->getEntityData()->assignValues(&packet->getUnpackedData());
+}
+
+//
+// Who is here, who may do what.
+//
+
+ServerSideNetworkHandler::Session* ServerSideNetworkHandler::sessionOf(const RakNet::RakNetGUID& guid)
+{
+	for (unsigned int i = 0; i < _sessions.size(); ++i)
+		if (_sessions[i].guid == guid) return &_sessions[i];
+	return NULL;
+}
+
+void ServerSideNetworkHandler::removeSession(const RakNet::RakNetGUID& guid)
+{
+	for (unsigned int i = 0; i < _sessions.size(); ++i)
+		if (_sessions[i].guid == guid) { _sessions.erase(_sessions.begin() + i); return; }
+}
+
+bool ServerSideNetworkHandler::isOperator(Player* player)
+{
+	return player && (player == (Player*) minecraft->player || _access.isOp(player->name));
+}
+
+std::vector<Player*> ServerSideNetworkHandler::allPlayers()
+{
+	std::vector<Player*> all;
+	if (level) all = level->players;
+	return all;
+}
+
+Player* ServerSideNetworkHandler::findPlayerByName(const std::string& name)
+{
+	const std::string k = ServerAccess::key(name);
+	std::vector<Player*> all = allPlayers();
+	for (unsigned int i = 0; i < all.size(); ++i)
+		if (ServerAccess::key(all[i]->name) == k) return all[i];
+	return NULL;
+}
+
+void ServerSideNetworkHandler::sendMessage(Player* to, const std::string& message)
+{
+	if (!to) return;
+	if (to == (Player*) minecraft->player) {
+#ifndef STANDALONE_SERVER
+		minecraft->gui.addMessage(message);
+#endif
+		return;
+	}
+	MessagePacket packet(RakNet::RakString::NonVariadic(message.c_str()));
+	raknetInstance->send(to->owner, packet);
+}
+
+void ServerSideNetworkHandler::sendExt(Player* to, ExtPacket& packet)
+{
+	if (!to || to == (Player*) minecraft->player) return;
+	raknetInstance->send(to->owner, packet);
+}
+
+bool ServerSideNetworkHandler::isAuthed(Player* player)
+{
+	if (!player || player == (Player*) minecraft->player) return true;
+	Session* s = sessionOf(player->owner);
+	return !s || s->authed;
+}
+
+bool ServerSideNetworkHandler::isUnauthenticated(const RakNet::RakNetGUID& source)
+{
+	if (!_access.authOn()) return false;
+	Session* s = sessionOf(source);
+	return s && !s->authed;
+}
+
+void ServerSideNetworkHandler::applyGameMode(Player* player, bool creative)
+{
+	Session* s = sessionOf(player->owner);
+	const bool locked = _access.authOn() && s && !s->authed;
+	player->abilities.mayfly = creative;
+	player->abilities.instabuild = creative;
+	// Whoever has not logged in yet cannot be hurt either: they cannot defend themselves.
+	player->abilities.invulnerable = creative || locked;
+	if (!creative) player->abilities.flying = false;
+}
+
+void ServerSideNetworkHandler::setPlayerGameMode(Player* player, bool creative)
+{
+	if (!player || player == (Player*) minecraft->player) return;
+	if (Session* s = sessionOf(player->owner)) s->creative = creative;
+	applyGameMode(player, creative);
+	ExtPacket packet(ExtPacket::GameMode, creative ? 1 : 0);
+	sendExt(player, packet);
+}
+
+void ServerSideNetworkHandler::setAuthed(Player* player, bool authed)
+{
+	Session* s = sessionOf(player->owner);
+	if (!s) return;
+	s->authed = authed;
+	s->idleTicks = 0;
+	applyGameMode(player, s->creative);
+}
+
+void ServerSideNetworkHandler::handleAuthCommand(Player* player, const std::string& cmd, const std::string& argument)
+{
+	if (player == (Player*) minecraft->player) {
+		sendMessage(player, "El anfitrion no necesita autenticarse.");
+		return;
+	}
+	if (!_access.authOn()) {
+		sendMessage(player, "La autenticacion esta desactivada en este mundo.");
+		return;
+	}
+	Session* s = sessionOf(player->owner);
+	if (!s) return;
+	if (s->authed) {
+		sendMessage(player, "Ya iniciaste sesion.");
+		return;
+	}
+
+	// The password is everything after the command, spaces and all.
+	std::string password = argument;
+	while (!password.empty() && password[0] == ' ') password.erase(0, 1);
+
+	if (cmd == "register") {
+		if (password.size() < 4) {
+			sendMessage(player, "Uso: /register <contrasena> (minimo 4 caracteres)");
+		} else if (_access.hasAccount(player->name)) {
+			sendMessage(player, "Ese nombre ya esta registrado: usa /login <contrasena>.");
+		} else {
+			_access.registerAccount(player->name, password);
+			setAuthed(player, true);
+			sendMessage(player, "Registrado. Sesion iniciada.");
+		}
+		return;
+	}
+
+	// login
+	if (!_access.hasAccount(player->name)) {
+		sendMessage(player, "Ese nombre no esta registrado: usa /register <contrasena>.");
+	} else if (_access.checkPassword(player->name, password)) {
+		setAuthed(player, true);
+		sendMessage(player, "Sesion iniciada.");
+	} else if (++s->failures >= 5) {
+		kick(player, "Demasiados intentos de contrasena.");
+	} else {
+		sendMessage(player, "Contrasena incorrecta.");
+	}
+}
+
+void ServerSideNetworkHandler::requireAuthFromEveryone()
+{
+	std::vector<Player*> all = allPlayers();
+	for (unsigned int i = 0; i < all.size(); ++i) {
+		if (all[i] == (Player*) minecraft->player) continue;
+		setAuthed(all[i], false);
+		sendMessage(all[i], _access.hasAccount(all[i]->name)
+			? "El anfitrion activo la autenticacion: usa /login <contrasena>."
+			: "El anfitrion activo la autenticacion: usa /register <contrasena>.");
+	}
+}
+
+void ServerSideNetworkHandler::releaseAuthFromEveryone()
+{
+	std::vector<Player*> all = allPlayers();
+	for (unsigned int i = 0; i < all.size(); ++i)
+		if (all[i] != (Player*) minecraft->player) setAuthed(all[i], true);
+}
+
+void ServerSideNetworkHandler::kick(Player* player, const std::string& reason)
+{
+	if (!player || player == (Player*) minecraft->player) return;
+	const RakNet::RakNetGUID guid = player->owner;
+	ExtPacket packet(ExtPacket::Kick, 0, 0, 0, reason);
+	sendExt(player, packet);
+	// Tells them (the Kick above is what they show); a local close raises no
+	// event here, so the player is removed by hand.
+	rakPeer->CloseConnection(guid, true);
+	onDisconnect(guid);
+}
+
+void ServerSideNetworkHandler::enforceWhitelist()
+{
+	if (!_access.whitelistOn()) return;
+	std::vector<Player*> out;
+	std::vector<Player*> all = allPlayers();
+	for (unsigned int i = 0; i < all.size(); ++i) {
+		Player* p = all[i];
+		if (p == (Player*) minecraft->player) continue;
+		if (!_access.isWhitelisted(p->name) && !_access.isOp(p->name)) out.push_back(p);
+	}
+	for (unsigned int i = 0; i < out.size(); ++i)
+		kick(out[i], "Ya no estas en la whitelist de este mundo.");
+}
+
+void ServerSideNetworkHandler::whitelistChanged()
+{
+	enforceWhitelist();
+	announceLobbyInfo();
+}
+
+void ServerSideNetworkHandler::broadcastPlayerList()
+{
+	std::vector<Player*> all = allPlayers();
+	std::string text;
+	std::vector<std::string> names;
+	// The host first, as in Java's list.
+	if (minecraft->player) { names.push_back(minecraft->player->name); text += minecraft->player->name; }
+	for (unsigned int i = 0; i < all.size(); ++i) {
+		if (all[i] == (Player*) minecraft->player) continue;
+		names.push_back(all[i]->name);
+		if (!text.empty()) text += "\n";
+		text += all[i]->name;
+	}
+	minecraft->playerNames = names;
+	ExtPacket packet(ExtPacket::PlayerList, 0, 0, 0, text);
+	for (unsigned int i = 0; i < all.size(); ++i)
+		if (all[i] != (Player*) minecraft->player)
+			raknetInstance->send(all[i]->owner, packet);
+}
+
+void ServerSideNetworkHandler::announceLobbyInfo()
+{
+#if defined(MC_WASM)
+	mcpeLobbySetInfo(_access.whitelistOn() ? 1 : 0, (int) allPlayers().size(), MAX_PLAYERS);
+#endif
+}
+
+void ServerSideNetworkHandler::tick()
+{
+	// Whoever has not logged in within a minute is sent out; reminded every 15 seconds.
+	std::vector<Player*> late;
+	std::vector<Player*> all = allPlayers();
+	for (unsigned int i = 0; i < all.size(); ++i) {
+		Player* p = all[i];
+		if (p == (Player*) minecraft->player) continue;
+		Session* s = sessionOf(p->owner);
+		if (!s || s->authed || !_access.authOn()) continue;
+		++s->idleTicks;
+		if (s->idleTicks >= 60 * 20) late.push_back(p);
+		else if (s->idleTicks % (15 * 20) == 0)
+			sendMessage(p, _access.hasAccount(p->name) ? "Usa /login <contrasena>." : "Usa /register <contrasena>.");
+	}
+	for (unsigned int i = 0; i < late.size(); ++i)
+		kick(late[i], "Tiempo agotado para iniciar sesion.");
+
+	// A player count that moved without anyone joining or leaving through here
+	// (a visitor removed by the allow-incoming switch, say) still reaches the lobby.
+	const int count = (int) all.size();
+	if (count != _lastPlayerCount) {
+		_lastPlayerCount = count;
+		announceLobbyInfo();
+	}
 }

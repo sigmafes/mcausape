@@ -42,6 +42,7 @@ public:
     void checkSession() {}
 
     ChunkStorage* createChunkStorage(Dimension* dimension) { return this; }
+	std::string getFolder() { return levelPath; }
 
     void saveLevelData(LevelData& levelData, std::vector<Player*>* players);
     // PlayerIO getPlayerIO() { return this; }

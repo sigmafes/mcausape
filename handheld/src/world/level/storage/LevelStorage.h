@@ -29,6 +29,9 @@ public:
 
     virtual void closeAll() = 0;
 
+	/// The folder the world lives in, or "" if it does not live in one.
+	virtual std::string getFolder() { return ""; }
+
 	virtual void saveGame(Level* level) {}
 	virtual void loadEntities(Level* level, LevelChunk* levelChunk) {}
 

@@ -406,6 +406,18 @@
   </script>
 
   <script>
+  // Tab is the game's player list, held down. The browser would take it to
+  // move focus out of the page, so it is kept -- except from a text field, where
+  // it has to keep doing what it does.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    e.preventDefault();
+  });
+  </script>
+
+  <script>
   // ---------------------------------------------------------------------------
   // A line over the game for the results of things that finish after the click
   // that started them: a download, an import, a skin that would not load.
@@ -1245,6 +1257,9 @@
     var POLL_MS = 3000;
 
     var name = '', world = '';
+    // What the game reports about the world it is hosting; see setInfo.
+    var info = { whitelist: 0, players: 1 };
+    var limitToldAt = 0;
     var beat = null, poll = null;
     var others = [];
 
@@ -1257,6 +1272,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         keepalive: true
+      }).then(function (r) {
+        // The lobby holds ten worlds; an eleventh is refused and not listed. It
+        // still runs, so say why nobody can find it -- not on every heartbeat.
+        if (r.status === 429 && Date.now() - limitToldAt > 120000) {
+          limitToldAt = Date.now();
+          if (window.mcpeToast) window.mcpeToast('There are already 10 online worlds: yours is not listed');
+        }
       }).catch(function () {});
     }
 
@@ -1271,7 +1293,9 @@
         name: name,
         world: world,
         route: net ? net.route() : 0,
-        token: net ? net.token() : ''
+        token: net ? net.token() : '',
+        whitelist: info.whitelist,
+        players: info.players
       });
     }
 
@@ -1299,6 +1323,12 @@
         if (beat) clearInterval(beat);
         beatOnce();
         beat = setInterval(beatOnce, HEARTBEAT_MS);
+      },
+
+      // From the game: whether the world has a whitelist, how many are in it.
+      setInfo: function (whitelist, players) {
+        info = { whitelist: whitelist ? 1 : 0, players: players || 1 };
+        if (beat) beatOnce();
       },
 
       setWorld: function (worldName) {
@@ -1336,7 +1366,8 @@
       // Flat records rather than JSON: the reader is C++03 with no parser in it.
       records: function () {
         return others.map(function (p) {
-          return (p.name || '') + '\t' + (p.world || '') + '\t' + ((p.route || 0) >>> 0);
+          return (p.name || '') + '\t' + (p.world || '') + '\t' + ((p.route || 0) >>> 0) +
+            '\t' + (p.whitelist ? 1 : 0) + '\t' + (p.players || 1);
         }).join('\n');
       }
     };

@@ -14,6 +14,10 @@
     Minecraft::setLevel, where the level first exists. */
 void mcpeLobbySetWorld(const std::string& worldName);
 
+/** Extras for the lobby listing: whether the whitelist is on and how many
+    players are in the world out of how many it holds. */
+void mcpeLobbySetInfo(int whitelist, int players, int maxPlayers);
+
 /** Multiplayer on the web: real RakNet, over a WebSocket instead of UDP.
 
     Three things have to be true at once for 0.6.1's networking to work in a tab,

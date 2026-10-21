@@ -32,6 +32,13 @@ function json(body, status = 200) {
 // comfortably longer than that, not exact.
 const PLAYER_TTL_MS = 30000;
 
+// How many worlds may be online (listed and joinable) at once, and how many
+// players one of them holds. Together they cap the whole lobby at 100 people.
+// The world cap is enforced here; the player cap is the host's to enforce (it
+// is the one that accepts the login) and is only reported back by it.
+const MAX_WORLDS = 10;
+const MAX_PLAYERS_PER_WORLD = 10;
+
 export class Lobby {
 	constructor(state, env) {
 		this.state = state;
@@ -183,13 +190,28 @@ export class Lobby {
 			return json({ error: "bad json" }, 400);
 		}
 
-		const { id, name, world, route, token, gone } = body;
+		const { id, name, world, route, token, gone, whitelist, players } = body;
 		if (!id)
 			return json({ error: "missing id" }, 400);
 
 		if (gone) {
 			this.players.delete(id);
 			return json({ ok: true });
+		}
+
+		// A world that is already listed keeps its place; a new one needs room.
+		const now = Date.now();
+		const known = this.players.get(id);
+		const alive = known && now - known.ts < PLAYER_TTL_MS;
+		if (!alive) {
+			let active = 0;
+			for (const p of this.players.values())
+				if (p.id !== id && now - p.ts < PLAYER_TTL_MS)
+					active++;
+			if (active >= MAX_WORLDS) {
+				this.players.delete(id);
+				return json({ ok: false, error: "limit", max: MAX_WORLDS }, 429);
+			}
 		}
 
 		// The route is only published if its own socket vouches for the token --
@@ -203,6 +225,8 @@ export class Lobby {
 			name: name || "Player",
 			world: world || "",
 			route: vouched ? route >>> 0 : 0,
+			whitelist: whitelist ? 1 : 0,
+			players: Math.max(1, Math.min(MAX_PLAYERS_PER_WORLD, players | 0 || 1)),
 			ts: Date.now(),
 		});
 
@@ -213,8 +237,8 @@ export class Lobby {
 		const now = Date.now();
 		const players = [...this.players.values()]
 			.filter((p) => now - p.ts < PLAYER_TTL_MS)
-			.map(({ id, name, world, route }) => ({ id, name, world, route }));
-		return json({ players });
+			.map(({ id, name, world, route, whitelist, players }) => ({ id, name, world, route, whitelist, players }));
+		return json({ players, maxWorlds: MAX_WORLDS, maxPlayers: MAX_PLAYERS_PER_WORLD });
 	}
 
 	handleStatus() {

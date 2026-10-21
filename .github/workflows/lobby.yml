@@ -1,0 +1,29 @@
+name: Deploy the lobby Worker
+
+# Manual, like the site deploys. The lobby is the relay and the list of online
+# worlds (cloudflare/lobby); changing it is what enforces the ten-world limit.
+#
+# Needs the same two secrets as cloudflare-pages.yml, and the API token must also
+# have "Workers Scripts: Edit" -- the Pages-only token is not enough for this.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare/lobby
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

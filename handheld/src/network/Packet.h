@@ -88,6 +88,9 @@ enum MinecraftPacketIds
 
 	// Custom skins, see PlayerSkinPacket. Not in the 0.6.1 protocol.
 	PACKET_PLAYERSKIN,
+
+	// Everything else this port adds, see ExtPacket.
+	PACKET_EXT,
 /*
 	PACKET_PRELOGIN,
 	PACKET_CHAT,

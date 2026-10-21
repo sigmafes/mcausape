@@ -78,6 +78,7 @@ public:
 	virtual void handle(const RakNet::RakNetGUID& source, AdventureSettingsPacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, SignUpdatePacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet);
+	virtual void handle(const RakNet::RakNetGUID& source, ExtPacket* packet);
 private:
 
 	void requestNextChunk();
@@ -94,6 +95,8 @@ private:
 	RakNet::RakPeerInterface* rakPeer;
 
 	RakNet::RakNetGUID serverGuid;
+	/// The host sent us away and said why; its closing the connection is not news.
+	bool _kicked;
 
 	BlockUpdateList	bufferedBlockUpdates;
 	int	requestNextChunkPosition;

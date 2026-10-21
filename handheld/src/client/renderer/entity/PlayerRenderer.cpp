@@ -111,9 +111,15 @@ void PlayerRenderer::renderName( Mob* mob, float x, float y, float z ){
 	// Not gated on adventureSettings.showNameTags any more: it starts false and
 	// nothing in the game ever turns it on, so names were never drawn. The only
 	// other players are in multiplayer, which is exactly where they belong.
-	if (mob != entityRenderDispatcher->cameraEntity) {
-		renderNameTag(mob, ((Player*)mob)->name, x, y, z, 32);
-	}
+	// Over everyone in view, through blocks, except a player who is sneaking.
+	// Your own is there too once the camera is behind (or in front of) you:
+	// that is the only view in which it is not inside your head.
+	const bool self = (mob == entityRenderDispatcher->cameraEntity);
+	if (self && !entityRenderDispatcher->options->thirdPersonView)
+		return;
+	if (mob->isSneaking())
+		return;
+	renderNameTag(mob, ((Player*)mob)->name, x, y, z, 32);
 }
 
 int PlayerRenderer::prepareArmor(Mob* mob, int layer, float a) {

@@ -39,6 +39,7 @@ ClientSideNetworkHandler::ClientSideNetworkHandler(Minecraft* minecraft, IRakNet
 :	minecraft(minecraft),
 	raknetInstance(raknetInstance),
 	level(NULL),
+	_kicked(false),
 	requestNextChunkPosition(0),
     requestNextChunkIndex(0),
 	numChunksLoaded(0)
@@ -114,7 +115,8 @@ void ClientSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 	// still walking packets through this handler, and leaveGame() deletes it.
 	// Staying client-side matters too -- leaveGame() saves a level that is not.
 #ifndef STANDALONE_SERVER
-	minecraft->setScreen(new DisconnectionScreen("The host has left the world"));
+	if (!_kicked)
+		minecraft->setScreen(new DisconnectionScreen("The host has left the world"));
 #endif
 }
 
@@ -134,6 +136,20 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginSta
 		LOGI("Disconnect! Server is outdated!\n");
 #ifndef STANDALONE_SERVER
 		minecraft->setScreen(new DisconnectionScreen("Could not connect: Outdated server!"));
+#endif
+	}
+
+	// The host's own rules. Its connection stays open until the player leaves
+	// the screen, so the screen is not replaced by "the host has left".
+	const char* refusal = NULL;
+	if (packet->status == LoginStatus::Failed_BadName) refusal = "Could not connect: your name is not allowed (letters, digits, _ and -, up to 16)";
+	if (packet->status == LoginStatus::Failed_NameTaken) refusal = "Could not connect: someone with your name is already in this world";
+	if (packet->status == LoginStatus::Failed_NotWhitelisted) refusal = "Could not connect: this world has a whitelist and you are not on it";
+	if (packet->status == LoginStatus::Failed_Full) refusal = "Could not connect: this world is full (10 players)";
+	if (refusal) {
+		_kicked = true;
+#ifndef STANDALONE_SERVER
+		minecraft->setScreen(new DisconnectionScreen(refusal));
 #endif
 	}
 }
@@ -955,6 +971,39 @@ void ClientSideNetworkHandler::clearChunksLoaded()
 		chunksLoaded[i] = false;
 	}
 	numChunksLoaded = 0;
+}
+
+void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ExtPacket* packet)
+{
+	switch (packet->kind) {
+	case ExtPacket::GameMode:
+		// The host changed our game mode (/gamemode <s|c> <us>).
+		minecraft->setIsCreativeMode(packet->a != 0);
+		break;
+	case ExtPacket::PlayerList: {
+		minecraft->playerNames.clear();
+		const std::string& text = packet->text;
+		std::string::size_type pos = 0;
+		while (pos <= text.size() && !text.empty()) {
+			std::string::size_type end = text.find('\n', pos);
+			if (end == std::string::npos) end = text.size();
+			if (end > pos) minecraft->playerNames.push_back(text.substr(pos, end - pos));
+			pos = end + 1;
+		}
+		break;
+	}
+	case ExtPacket::Give:
+		// /give run by the host for us: our inventory is ours to fill.
+		if (minecraft->player && packet->a > 0 && packet->a < Item::MAX_ITEMS && Item::items[packet->a])
+			minecraft->player->inventory->add(new ItemInstance(packet->a, packet->b, packet->c));
+		break;
+	case ExtPacket::Kick:
+		_kicked = true;
+#ifndef STANDALONE_SERVER
+		minecraft->setScreen(new DisconnectionScreen(packet->text));
+#endif
+		break;
+	}
 }
 
 void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet)

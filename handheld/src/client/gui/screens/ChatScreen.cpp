@@ -17,132 +17,13 @@
 #include "../../../world/level/MobSpawner.h"
 #include "../../../world/level/storage/LevelData.h"
 #include "../../../world/level/LevelSettings.h"
+#include "../../../network/ServerSideNetworkHandler.h"
+#include "../../../server/ServerCommands.h"
 
 #include <sstream>
 #include <vector>
 
 static const int MaxChatLength = 100;
-
-// The names a /summon can take, with the mob each one stands for.
-struct SummonName {
-	const char* name;
-	int mobType;
-};
-static const SummonName SUMMON_NAMES[] = {
-	{ "zombie",         MobTypes::Zombie },
-	{ "skeleton",       MobTypes::Skeleton },
-	{ "spider",         MobTypes::Spider },
-	{ "pigzombie",      MobTypes::PigZombie },
-	{ "creeper",        MobTypes::Creeper },
-	{ "witherskeleton", MobTypes::WitherSkeleton },
-	{ "blaze",          MobTypes::Blaze },
-	{ "ghast",          MobTypes::Ghast },
-	{ "magmacube",      MobTypes::MagmaCube },
-	{ "pig",            MobTypes::Pig },
-	{ "cow",            MobTypes::Cow },
-	{ "chicken",        MobTypes::Chicken },
-	{ "sheep",          MobTypes::Sheep },
-};
-
-static std::vector<std::string> splitWords(const std::string& line) {
-	std::vector<std::string> words;
-	std::istringstream in(line);
-	std::string w;
-	while (in >> w)
-		words.push_back(w);
-	return words;
-}
-
-static bool parseInt(const std::string& s, int& out) {
-	std::istringstream in(s);
-	in >> out;
-	return !in.fail() && in.eof();
-}
-
-static std::string lower(std::string s) {
-	for (unsigned int i = 0; i < s.size(); ++i)
-		s[i] = (char) tolower(s[i]);
-	return s;
-}
-
-/// "Flint and Steel" / "flint-and-steel" / "Flint_And_Steel" -> "flint_and_steel".
-static std::string normalizeName(const std::string& in) {
-	std::string out;
-	for (unsigned int i = 0; i < in.size(); ++i) {
-		const char c = in[i];
-		if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
-			out += c;
-		else if (c >= 'A' && c <= 'Z')
-			out += (char) (c + 32);
-		else if (c == ' ' || c == '-' || c == '_') {
-			if (!out.empty() && out[out.size() - 1] != '_') out += '_';
-		}
-	}
-	while (!out.empty() && out[out.size() - 1] == '_') out.erase(out.size() - 1);
-	return out;
-}
-
-/** The id of the item a /give name stands for, or 0 (none) / -1 (several fit).
-
-    Names are the ones the game shows -- "Flint and Steel", "Diamond Block" --
-    written in lower case with underscores, plus the "minecraft:" form and the
-    internal names ("flintAndSteel"). "Block of Diamond" is also taken as
-    "diamond_block", the way Minecraft spells every metal block. An exact match
-    wins; otherwise a name that only one item starts with does. */
-static int findItemByName(const std::string& typed, std::string& ambiguous) {
-	std::string want = normalizeName(typed);
-	if (want.compare(0, 10, "minecraft_") == 0 || want.compare(0, 10, "minecraft:") == 0)
-		want = want.substr(10);
-	// A ':' is dropped by normalizeName, so "minecraft:grass" arrives as "minecraftgrass".
-	if (want.compare(0, 9, "minecraft") == 0 && want.size() > 9) {
-		want = want.substr(9);
-		if (!want.empty() && want[0] == '_') want.erase(0, 1);
-	}
-	if (want.empty()) return 0;
-
-	int prefixHit = 0, prefixCount = 0;
-	ambiguous.clear();
-	for (int id = 1; id < Item::MAX_ITEMS; ++id) {
-		Item* item = Item::items[id];
-		if (!item) continue;
-
-		std::vector<std::string> names;
-		names.push_back(normalizeName(item->getName()));
-		// "tile.stoneBrick" / "flintAndSteel" -> the part after the last dot.
-		std::string internal = item->getDescriptionId();
-		const std::string::size_type dot = internal.rfind('.');
-		if (dot != std::string::npos) internal = internal.substr(dot + 1);
-		names.push_back(normalizeName(internal));
-		// camelCase internal names: break before each capital.
-		std::string spaced;
-		for (unsigned int i = 0; i < internal.size(); ++i) {
-			if (internal[i] >= 'A' && internal[i] <= 'Z' && i > 0) spaced += '_';
-			spaced += internal[i];
-		}
-		names.push_back(normalizeName(spaced));
-		// "block_of_diamond" -> "diamond_block"
-		const std::string pre = "block_of_";
-		if (names[0].compare(0, pre.size(), pre) == 0)
-			names.push_back(names[0].substr(pre.size()) + "_block");
-
-		bool prefix = false;
-		for (unsigned int n = 0; n < names.size(); ++n) {
-			if (names[n].empty()) continue;
-			if (names[n] == want) return id;
-			if (names[n].compare(0, want.size(), want) == 0) prefix = true;
-		}
-		if (prefix) {
-			++prefixCount;
-			prefixHit = id;
-			if (prefixCount <= 4) {
-				if (!ambiguous.empty()) ambiguous += ", ";
-				ambiguous += normalizeName(item->getName());
-			}
-		}
-	}
-	if (prefixCount == 1) return prefixHit;
-	return prefixCount > 1 ? -1 : 0;
-}
 
 ChatScreen::ChatScreen()
 :	ticks(0)
@@ -238,116 +119,20 @@ void ChatScreen::feedback(const std::string& msg)
 
 void ChatScreen::runCommand(const std::string& line)
 {
-	std::vector<std::string> words = splitWords(line);
-	if (words.empty())
-		return;
-
-	std::string cmd = lower(words[0]);
-
-	if (!minecraft->areCheatsAllowed()) {
-		feedback("Los comandos estan desactivados: activa Allow Cheats al crear el mundo.");
+	// A visitor's commands are run by the host, which knows who may give them.
+	if (minecraft->isOnlineClient()) {
+		ChatPacket packet("/" + line, false);
+		minecraft->raknetInstance->send(packet);
 		return;
 	}
 
-	LocalPlayer* player = minecraft->player;
-	if (!player) {
+	if (!minecraft->player) {
 		feedback("No hay jugador en el mundo.");
 		return;
 	}
 
-	if (cmd == "summon") {
-		if (words.size() < 2) {
-			feedback("Uso: /summon <mob>");
-			return;
-		}
-		std::string name = lower(words[1]);
-		int mobType = -1;
-		for (unsigned int i = 0; i < sizeof(SUMMON_NAMES) / sizeof(SummonName); ++i)
-			if (name == SUMMON_NAMES[i].name) mobType = SUMMON_NAMES[i].mobType;
-		if (mobType < 0) {
-			feedback("Mob desconocido: " + words[1]);
-			return;
-		}
-
-		// Three blocks in front of the player.
-		float rad = player->yRot * Mth::DEGRAD;
-		float sx = player->x - Mth::sin(rad) * 3;
-		float sz = player->z + Mth::cos(rad) * 3;
-
-		Mob* mob = MobFactory::CreateMob(mobType, minecraft->level);
-		if (!mob) return;
-		if (MobSpawner::addMob(minecraft->level, mob, sx, player->y, sz, player->yRot, 0, true))
-			feedback("Invocado: " + name);
-		else
-			delete mob;
-		return;
-	}
-
-	if (cmd == "give") {
-		int id = 0, count = 1, aux = 0;
-		if (words.size() < 2) {
-			feedback("Uso: /give <id o nombre> [cantidad] [dato]");
-			return;
-		}
-		// A number is an id; anything else is looked up by name.
-		if (!parseInt(words[1], id)) {
-			std::string options;
-			id = findItemByName(words[1], options);
-			if (id == -1) {
-				feedback("Varios items coinciden: " + options);
-				return;
-			}
-			if (id == 0) {
-				feedback("Item desconocido: " + words[1]);
-				return;
-			}
-		}
-		if (words.size() >= 3 && (!parseInt(words[2], count) || count < 1)) {
-			feedback("La cantidad debe ser un numero mayor que 0.");
-			return;
-		}
-		if (words.size() >= 4 && !parseInt(words[3], aux)) {
-			feedback("El dato debe ser un numero.");
-			return;
-		}
-		if (count > 64) count = 64;
-		if (id <= 0 || id >= Item::MAX_ITEMS || Item::items[id] == NULL) {
-			feedback("Id de item desconocido: " + words[1]);
-			return;
-		}
-
-		if (!player->inventory->add(new ItemInstance(id, count, aux))) {
-			feedback("El inventario esta lleno.");
-		} else {
-			std::ostringstream msg;
-			msg << "Entregado: " << Item::items[id]->getName() << " (id " << id << ") x" << count;
-			feedback(msg.str());
-		}
-		return;
-	}
-
-	if (cmd == "gamemode") {
-		if (words.size() < 2) {
-			feedback("Uso: /gamemode <0|1|survival|creative>");
-			return;
-		}
-		std::string mode = lower(words[1]);
-		bool creative;
-		if (mode == "0" || mode == "s" || mode == "survival")
-			creative = false;
-		else if (mode == "1" || mode == "c" || mode == "creative")
-			creative = true;
-		else {
-			feedback("Modo desconocido: " + words[1]);
-			return;
-		}
-
-		minecraft->setIsCreativeMode(creative);
-		// Saved with the world, so the mode is the same the next time it loads.
-		minecraft->level->getLevelData()->setGameType(creative ? GameType::Creative : GameType::Survival);
-		feedback(std::string("Modo de juego: ") + (creative ? "creativo" : "supervivencia"));
-		return;
-	}
-
-	feedback("Comando desconocido: /" + words[0]);
+	ServerSideNetworkHandler* net = minecraft->netCallback
+		? static_cast<ServerSideNetworkHandler*>(minecraft->netCallback)
+		: NULL;
+	ServerCommands::run(minecraft, net, minecraft->player, line);
 }

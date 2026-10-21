@@ -6,6 +6,8 @@
 #include "MouseHandler.h"
 #endif
 #include "Timer.h"
+#include <string>
+#include <vector>
 #include "player/input/ITurnInput.h"
 #ifndef STANDALONE_SERVER
 #include "gui/Gui.h"
@@ -227,6 +229,10 @@ public:
 #endif
 	IRakNetInstance*  raknetInstance;
 	NetEventCallback* netCallback;
+
+	/// Who is in the world, host first. The host keeps it up to date itself; a
+	/// visitor is sent it (ExtPacket::PlayerList). What the Tab list shows.
+	std::vector<std::string> playerNames;
 
 	int lastTime;
 	int lastTickTime;

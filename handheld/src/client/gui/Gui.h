@@ -46,6 +46,7 @@ public:
 	void renderToolBar( float a, int ySlot, const int screenWidth );
 
 	void renderChatMessages( const int screenHeight, unsigned int max, bool isChatting, Font* font );
+	void renderPlayerList( const int screenWidth, Font* font );
 
 	void renderOnSelectItemNameText( const int screenWidth, Font* font, int ySlot );
 

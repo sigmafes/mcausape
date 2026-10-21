@@ -105,6 +105,13 @@ void mcpeLobbySetWorld(const std::string& worldName)
 	}, worldName.c_str());
 }
 
+void mcpeLobbySetInfo(int whitelist, int players, int maxPlayers)
+{
+	EM_ASM({
+		if (window.mcpeLobby && window.mcpeLobby.setInfo) window.mcpeLobby.setInfo($0, $1, $2);
+	}, whitelist, players, maxPlayers);
+}
+
 namespace {
 
 /// 0.6.1's LAN port. Nothing binds it here; it is the port half of the synthetic
@@ -625,9 +632,15 @@ void WebRakNetInstance::refresh()
 		const std::string::size_type t2 = line.find('\t', t1 + 1);
 		if (t2 == std::string::npos) continue;
 
+		// name, world, route, and (newer lobbies) whitelist and player count.
+		const std::string::size_type t3 = line.find('\t', t2 + 1);
+		const std::string::size_type t4 = (t3 == std::string::npos) ? std::string::npos : line.find('\t', t3 + 1);
+
 		const std::string name  = line.substr(0, t1);
 		const std::string world = line.substr(t1 + 1, t2 - t1 - 1);
-		const std::string route = line.substr(t2 + 1);
+		const std::string route = line.substr(t2 + 1, t3 == std::string::npos ? std::string::npos : t3 - t2 - 1);
+		const bool whitelist = (t3 != std::string::npos) && line.compare(t3 + 1, 1, "1") == 0;
+		const int players = (t4 == std::string::npos) ? 0 : atoi(line.c_str() + t4 + 1);
 
 		// JoinGameScreen::tick drops entries with an empty name, so a player
 		// without one would silently never appear.
@@ -638,7 +651,13 @@ void WebRakNetInstance::refresh()
 		if (joinableOnly && routeNumber == 0)
 			continue;
 
-		const std::string label = world.empty() ? name : (name + " - " + world);
+		std::string label = world.empty() ? name : (name + " - " + world);
+		if (whitelist) label += " [Whitelist]";
+		if (players > 0) {
+			char count[16];
+			snprintf(count, sizeof(count), " %d/10", players);
+			label += count;
+		}
 
 		PingedCompatibleServer server;
 		server.name = label.c_str();

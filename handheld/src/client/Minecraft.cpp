@@ -803,6 +803,7 @@ void Minecraft::update() {
 
 void Minecraft::tick(int nTick, int maxTick) {
 	if (missTime > 0) missTime--;
+	if (netCallback) netCallback->tick();
 
 	// A portal the player walked into asked for a trip. It is honoured here, at the
 	// start of a tick, when no entity is mid-update, and not again until the

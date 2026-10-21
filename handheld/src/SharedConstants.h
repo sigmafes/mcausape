@@ -16,8 +16,11 @@ namespace SharedConstants
 {
 	// 0.5.0 uses NPv8
 	// 0.6.0 uses NPv9
-    const int NetworkProtocolVersion = 9;
-	const int NetworkProtocolLowestSupportedVersion = 9;
+	// mcausape adds ExtPacket, login refusals and the dimension in StartGamePacket
+	// on top of it, so it is NPv10: a build from before them is refused at login
+	// ("outdated") instead of misreading packets.
+    const int NetworkProtocolVersion = 10;
+	const int NetworkProtocolLowestSupportedVersion = 10;
 	const int GameProtocolVersion = 1;
 	const int GameProtocolLowestSupportedVersion = 1;
 
