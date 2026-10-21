@@ -206,6 +206,12 @@ public:
 	    which is what makes it safe to call from the title-screen options. */
 	void rebuildChunks();
 
+	/** Smooth Lighting is the renderer's ambient occlusion path -- the one the
+	    debug key O always toggled. The option only used to change the shading
+	    mode, which on a mesh lit per block changes nothing you can see, so it
+	    looked like it did nothing. This makes the option drive that path. */
+	void applyAmbientOcclusion();
+
     std::string getKeyDescription(int i) {
         //Language language = Language.getInstance();
         //return language.getElement(keyMappings[i].name);
@@ -284,6 +290,7 @@ public:
         }
         if (option == &Option::AMBIENT_OCCLUSION) {
             ambientOcclusion = !ambientOcclusion;
+            applyAmbientOcclusion();
             rebuildChunks();
         }
 		notifyOptionUpdate(option, getBooleanValue(option));

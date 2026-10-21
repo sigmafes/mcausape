@@ -132,11 +132,12 @@ void Options::initDefaultValues() {
 /*static*/
 float Options::transformSensitivity(float raw)
 {
-	// raw is in range [0,1] with default/center at 0.5 (for aesthetics)
-	// We wanna map it to something like [0.3, 0.9] BUT keep 0.5 @ ~0.5...
+	// raw is in range [0,1] with default/center at 0.5 (for aesthetics).
+	// The top (0.77) and the middle (0.49) are where they always were; only the
+	// bottom came down, from 0.3 -- still fast on a high-DPI mouse -- to 0.05.
 	if (raw < 0.0f) raw = 0.0f;
 	if (raw > 1.0f) raw = 1.0f;
-	return 0.3f + std::pow(1.1f * raw, 1.3f) * 0.42f;
+	return 0.05f + 0.72f * std::pow(raw, 0.7f);
 }
 
 void Options::setSensitivity(float raw)
@@ -216,6 +217,10 @@ const char* Options::GUI_SCALE[] = {
 	"options.guiScale.large"
 };
 
+void Options::applyAmbientOcclusion() {
+	Minecraft::useAmbientOcclusion = ambientOcclusion;
+}
+
 void Options::update()
 {
 	// No `viewDistance = 2` here any more: this runs on every reloadOptions(),
@@ -265,6 +270,7 @@ void Options::update()
 		}
 		if (key == OptionStrings::Graphics_AmbientOcclusion) {
 			readBool(value, ambientOcclusion);
+			applyAmbientOcclusion();
 		}
 		if (key == OptionStrings::Graphics_ViewBobbing) {
 			readBool(value, bobView);
