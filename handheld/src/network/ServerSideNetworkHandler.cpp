@@ -57,7 +57,8 @@ private:
 ServerSideNetworkHandler::ServerSideNetworkHandler(Minecraft* minecraft, IRakNetInstance* raknetInstance)
 :	minecraft(minecraft),
 	raknetInstance(raknetInstance),
-	_lastPlayerCount(0)
+	_lastPlayerCount(0),
+	_warmPos(0)
 {
 	allowIncomingConnections(false);
 	rakPeer = raknetInstance->getPeer();
@@ -787,6 +788,38 @@ void ServerSideNetworkHandler::pumpStreams()
 	}
 }
 
+/** Both dimensions stay loaded for as long as the world is hosted. Making the
+    other one on demand -- a Level, its chunks off disk or out of the
+    generator, their light -- all landed on the host's frame the moment a
+    visitor stepped through a portal, and the host's fps fell through the
+    floor. The world is finite (32x32 chunks a side, ~80MB for both), so it is
+    built once, in the background, a few milliseconds a tick, and kept. */
+void ServerSideNetworkHandler::warmOtherLevel()
+{
+	Level* main = minecraft->level;
+	if (!main || main->isClientSide || !minecraft->isLevelGenerated()) return;
+
+	if (!minecraft->otherLevel) {
+		const int other = (main->dimension->id == Dimension::NETHER) ? Dimension::NORMAL : Dimension::NETHER;
+		if (!minecraft->levelForDimension(other, true)) return;
+		_warmPos = 0;
+	}
+	Level* level = minecraft->otherLevel;
+	const int total = CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH;
+	if (_warmPos >= total) return;
+
+	const RakNet::TimeMS start = RakNet::GetTimeMS();
+	while (_warmPos < total && RakNet::GetTimeMS() - start < 4) {
+		level->getChunk(_warmPos % CHUNK_CACHE_WIDTH, _warmPos / CHUNK_CACHE_WIDTH);
+		++_warmPos;
+	}
+	// The light those chunks queued, under the same budget.
+	while (RakNet::GetTimeMS() - start < 4 && level->updateLights())
+		;
+	if (_warmPos >= total)
+		LOGI("Other dimension loaded: %d\n", level->dimension->id);
+}
+
 void ServerSideNetworkHandler::levelGenerated( Level* level )
 {
 	if (minecraft->player) {
@@ -1487,15 +1520,7 @@ void ServerSideNetworkHandler::tick()
 	for (unsigned int i = 0; i < _sessions.size(); ++i)
 		if (_sessions[i].griefNotice > 0) --_sessions[i].griefNotice;
 
-	// The other dimension stops running when nobody is in it and nobody is on
-	// the way there.
-	if (minecraft->otherLevel && minecraft->otherLevel->players.empty()) {
-		bool arriving = false;
-		for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
-			if (_pendingPlayers[i]->level == minecraft->otherLevel) arriving = true;
-		if (!arriving)
-			minecraft->destroyOtherLevel();
-	}
+	warmOtherLevel();
 
 	// Whoever has not logged in within a minute is sent out; reminded every 15 seconds.
 	std::vector<Player*> late;

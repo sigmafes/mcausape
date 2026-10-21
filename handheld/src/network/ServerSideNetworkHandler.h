@@ -152,6 +152,7 @@ private:
 	/// Starts sending a visitor every chunk of its level, nearest first.
 	void startStream(const RakNet::RakNetGUID& to, Level* level, Player* player);
 	void pumpStreams();
+	void warmOtherLevel();
 	double sendBufferBytes(const RakNet::RakNetGUID& to);
 	void sendHostTo(const RakNet::RakNetGUID& target, bool broadcastInLevel, Level* level);
 
@@ -173,6 +174,8 @@ private:
 	RakNet::RakPeerInterface*	rakPeer;
 
 	std::vector<Player*> _pendingPlayers;
+	/// Next chunk index of the other dimension to load (see warmOtherLevel).
+	int _warmPos;
 	bool _allowIncoming;
 
 	ServerAccess _access;
