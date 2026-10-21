@@ -213,6 +213,18 @@ void ItemRenderer::renderGuiItemCorrect(Font* font, Textures* textures, const It
 		static float gg = 0;// gg += 0.01f;
 
 		Tile* tile = Tile::tiles[paint];
+
+		// A cube needs depth to show its faces in order, and culling to drop the
+		// ones facing away -- but a menu has already drawn its panels, at depth,
+		// in front of where the cube sits, so with a depth buffer left as it
+		// was the cube vanishes behind its own background. Start it from a
+		// clear one; put the switches back after.
+		const bool depthWas = glIsEnabled(GL_DEPTH_TEST) != 0;
+		const bool cullWas = glIsEnabled(GL_CULL_FACE) != 0;
+		glEnable2(GL_DEPTH_TEST);
+		glEnable2(GL_CULL_FACE);
+		glClear(GL_DEPTH_BUFFER_BIT);
+
 		glPushMatrix2();
 		glTranslatef2((GLfloat)(x - 2), (GLfloat)(y + 3), -8);
 		glScalef2(10.0f, 10.0f, 10.0f);
@@ -224,6 +236,8 @@ void ItemRenderer::renderGuiItemCorrect(Font* font, Textures* textures, const It
 		glScalef2(1, 1, 1);
 		tileRenderer->renderGuiTile(tile, item->getAuxValue());
 		glPopMatrix2();
+		if (!depthWas) glDisable2(GL_DEPTH_TEST);
+		if (!cullWas) glDisable2(GL_CULL_FACE);
 	}
 	else if (item->getIcon() >= 0)
 	{
