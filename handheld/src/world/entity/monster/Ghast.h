@@ -27,6 +27,9 @@ public:
 	int charge;
 
 protected:
+	const char* getAmbientSound();
+	std::string getHurtSound();
+	std::string getDeathSound();
 	int getDeathLoot();
 	void dropDeathLoot();
 

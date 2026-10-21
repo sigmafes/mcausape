@@ -23,6 +23,9 @@ public:
 	bool canSpawn();
 
 protected:
+	const char* getAmbientSound();
+	std::string getHurtSound();
+	std::string getDeathSound();
 	void checkHurtTarget(Entity* target, float d);
 	int getDeathLoot();
 	void dropDeathLoot();

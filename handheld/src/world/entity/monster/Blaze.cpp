@@ -98,6 +98,10 @@ void Blaze::checkHurtTarget(Entity* target, float d) {
 	}
 }
 
+const char* Blaze::getAmbientSound() { return "mob.blaze.breathe"; }
+std::string Blaze::getHurtSound() { return "mob.blaze.hit"; }
+std::string Blaze::getDeathSound() { return "mob.blaze.death"; }
+
 bool Blaze::canSpawn() {
 	return PathfinderMob::canSpawn() && level->difficulty > Difficulty::PEACEFUL;
 }

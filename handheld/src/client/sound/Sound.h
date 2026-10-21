@@ -187,6 +187,45 @@ extern SoundDesc SA_eat2;
 extern SoundDesc SA_eat3;
 extern SoundDesc SA_fuse;
 
+// Ghast, blaze and magma cube (tools/extract_lce_sounds.py)
+extern SoundDesc SA_ghastmoan1;
+extern SoundDesc SA_ghastmoan2;
+extern SoundDesc SA_ghastmoan3;
+extern SoundDesc SA_ghastmoan4;
+extern SoundDesc SA_ghastmoan5;
+extern SoundDesc SA_ghastmoan6;
+extern SoundDesc SA_ghastmoan7;
+extern SoundDesc SA_ghastscream1;
+extern SoundDesc SA_ghastscream2;
+extern SoundDesc SA_ghastscream3;
+extern SoundDesc SA_ghastscream4;
+extern SoundDesc SA_ghastscream5;
+extern SoundDesc SA_ghastdeath;
+extern SoundDesc SA_ghastfireball;
+extern SoundDesc SA_ghastcharge;
+extern SoundDesc SA_blazebreathe1;
+extern SoundDesc SA_blazebreathe2;
+extern SoundDesc SA_blazebreathe3;
+extern SoundDesc SA_blazebreathe4;
+extern SoundDesc SA_blazehit1;
+extern SoundDesc SA_blazehit2;
+extern SoundDesc SA_blazehit3;
+extern SoundDesc SA_blazehit4;
+extern SoundDesc SA_blazedeath;
+extern SoundDesc SA_magmacubebig1;
+extern SoundDesc SA_magmacubebig2;
+extern SoundDesc SA_magmacubebig3;
+extern SoundDesc SA_magmacubebig4;
+extern SoundDesc SA_magmacubejump1;
+extern SoundDesc SA_magmacubejump2;
+extern SoundDesc SA_magmacubejump3;
+extern SoundDesc SA_magmacubejump4;
+extern SoundDesc SA_magmacubesmall1;
+extern SoundDesc SA_magmacubesmall2;
+extern SoundDesc SA_magmacubesmall3;
+extern SoundDesc SA_magmacubesmall4;
+extern SoundDesc SA_magmacubesmall5;
+
 #endif /*!PRE_ANDROID23 && !__APPLE__*/
 
 

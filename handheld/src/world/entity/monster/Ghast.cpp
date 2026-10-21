@@ -34,6 +34,10 @@ bool Ghast::canSpawn() {
 	return random.nextInt(20) == 0 && super::canSpawn() && level->difficulty > Difficulty::PEACEFUL;
 }
 
+const char* Ghast::getAmbientSound() { return "mob.ghast.moan"; }
+std::string Ghast::getHurtSound() { return "mob.ghast.scream"; }
+std::string Ghast::getDeathSound() { return "mob.ghast.death"; }
+
 int Ghast::getDeathLoot() {
 	return Item::sulphur->id;
 }
@@ -87,7 +91,11 @@ void Ghast::aiStep() {
 
 		if (canSee(target)) {
 			charge++;
+			// The wind-up is heard, as in the Console Edition: half way, then the shot.
+			if (charge == 10)
+				level->playSound(this, "mob.ghast.charge", getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
 			if (charge == 20) {
+				level->playSound(this, "mob.ghast.fireball", getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
 				Vec3 v = getViewVector(1);
 				float d = 4;
 				Fireball* fb = new Fireball(level, this, x + v.x * d, y + bbHeight / 2 + 0.5f, z + v.z * d, false);
