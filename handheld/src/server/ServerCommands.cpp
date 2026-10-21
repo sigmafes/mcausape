@@ -249,6 +249,41 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 		return;
 	}
 
+	// Cheats can be turned on for a world made without them, never off again.
+	if (cmd == "cheats") {
+		LevelData* data = mc->level->getLevelData();
+		if (data->getCheats()) {
+			reply(mc, net, sender, "Los cheats ya estaban habilitados.");
+			return;
+		}
+		data->setCheats(true);
+		if (mc->otherLevel) mc->otherLevel->getLevelData()->setCheats(true);
+		mc->level->saveLevelData();
+		reply(mc, net, sender, "Cheats habilitados en este mundo. No se pueden deshabilitar.");
+		return;
+	}
+
+	if (cmd == "pvp" || cmd == "grief") {
+		if (!net) { reply(mc, net, sender, "Solo disponible al alojar un mundo."); return; }
+		const std::string sub = words.size() >= 2 ? lower(words[1]) : "";
+		if (sub != "on" && sub != "off") {
+			reply(mc, net, sender, "Uso: /" + cmd + " <on|off>");
+			return;
+		}
+		const bool on = (sub == "on");
+		if (cmd == "pvp") {
+			net->access().setPvp(on);
+			net->applyRules();
+			reply(mc, net, sender, on ? "PvP activado." : "PvP desactivado.");
+		} else {
+			net->access().setGrief(on);
+			reply(mc, net, sender, on
+				? "Interaccion de visitantes activada."
+				: "Interaccion de visitantes desactivada: no pueden romper ni colocar bloques, usar mesas, hornos, cofres ni cortapiedras, ni danar animales o enemigos.");
+		}
+		return;
+	}
+
 	if (cmd == "auth") {
 		if (!net) { reply(mc, net, sender, "Solo disponible al alojar un mundo."); return; }
 		const std::string sub = words.size() >= 2 ? lower(words[1]) : "";
@@ -269,7 +304,7 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 
 	// From here on it is the game's own commands.
 	if (!mc->areCheatsAllowed()) {
-		reply(mc, net, sender, "Los comandos estan desactivados: activa Allow Cheats al crear el mundo.");
+		reply(mc, net, sender, "Los comandos estan desactivados: usa /cheats para habilitarlos (no se pueden deshabilitar despues).");
 		return;
 	}
 

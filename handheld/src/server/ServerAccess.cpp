@@ -10,7 +10,9 @@
 
 ServerAccess::ServerAccess()
 :	_whitelistOn(false),
-	_authOn(false)
+	_authOn(false),
+	_pvp(true),
+	_grief(true)
 {
 }
 
@@ -53,6 +55,7 @@ void ServerAccess::load(const std::string& folder)
 {
 	_folder = folder;
 	_whitelistOn = _authOn = false;
+	_pvp = _grief = true;
 	_whitelist.clear();
 	_ops.clear();
 	_accounts.clear();
@@ -68,6 +71,8 @@ void ServerAccess::load(const std::string& folder)
 			const std::string k = line.substr(0, eq), v = line.substr(eq + 1);
 			if (k == "whitelist") _whitelistOn = (v == "1");
 			else if (k == "auth") _authOn = (v == "1");
+			else if (k == "pvp") _pvp = (v != "0");
+			else if (k == "grief") _grief = (v != "0");
 			else if (k == "wl" && validName(v)) _whitelist.push_back(v);
 			else if (k == "op" && validName(v)) _ops.push_back(v);
 		}
@@ -97,6 +102,8 @@ void ServerAccess::save()
 		std::ofstream out((_folder + "/server.txt").c_str(), std::ios::trunc);
 		out << "whitelist=" << (_whitelistOn ? 1 : 0) << "\n";
 		out << "auth=" << (_authOn ? 1 : 0) << "\n";
+		out << "pvp=" << (_pvp ? 1 : 0) << "\n";
+		out << "grief=" << (_grief ? 1 : 0) << "\n";
 		for (unsigned int i = 0; i < _whitelist.size(); ++i) out << "wl=" << _whitelist[i] << "\n";
 		for (unsigned int i = 0; i < _ops.size(); ++i) out << "op=" << _ops[i] << "\n";
 	}
@@ -112,6 +119,8 @@ void ServerAccess::save()
 
 void ServerAccess::setWhitelist(bool on) { _whitelistOn = on; save(); }
 void ServerAccess::setAuth(bool on) { _authOn = on; save(); }
+void ServerAccess::setPvp(bool on) { _pvp = on; save(); }
+void ServerAccess::setGrief(bool on) { _grief = on; save(); }
 
 bool ServerAccess::isWhitelisted(const std::string& name) const { return contains(_whitelist, name); }
 bool ServerAccess::addWhitelisted(const std::string& name)

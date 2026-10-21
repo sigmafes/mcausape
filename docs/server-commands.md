@@ -13,8 +13,11 @@ can once the host has made them an operator. Game commands (`/give`, `/summon`,
 | `/auth enable\|disable` | Turns authentication on or off |
 | `/register <password>` / `/login <password>` | For visitors, when authentication is on |
 | `/list` | Who is in the world |
+| `/cheats` | Turns cheats on for a world made without Allow Cheats. They cannot be turned off again |
+| `/pvp on\|off` | Whether players can hurt each other |
+| `/grief on\|off` | `off` stops visitors changing the world: breaking or placing blocks, using tables, furnaces, chests and the stonecutter, hurting animals or enemies. The host and operators are exempt |
 
-Hold `Tab` for the player list.
+Hold `Tab` for the player list. The world's owner is first in it, and yellow there and in chat.
 
 ## Authentication
 

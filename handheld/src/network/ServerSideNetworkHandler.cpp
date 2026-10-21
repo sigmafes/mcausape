@@ -78,6 +78,27 @@ ServerSideNetworkHandler::~ServerSideNetworkHandler()
 	PlayerSkins::releaseAllBut(PlayerSkins::localSkin);
 }
 
+void ServerSideNetworkHandler::applyRules()
+{
+	std::vector<Level*> all = levels();
+	for (unsigned int i = 0; i < all.size(); ++i)
+		all[i]->adventureSettings.noPvP = !_access.pvpOn();
+}
+
+bool ServerSideNetworkHandler::griefBlocked(const RakNet::RakNetGUID& source)
+{
+	if (_access.griefOn()) return false;
+	Player* p = getPlayer(source);
+	if (!p || isOperator(p)) return false;
+	if (Session* s = sessionOf(source)) {
+		if (s->griefNotice <= 0) {
+			s->griefNotice = 5 * 20;
+			sendMessage(p, "El anfitrion desactivo la interaccion de visitantes con el mundo.");
+		}
+	}
+	return true;
+}
+
 void ServerSideNetworkHandler::hookLevel(Level* level)
 {
 	if (!level || level->isClientSide || hookOf(level)) return;
@@ -89,6 +110,7 @@ void ServerSideNetworkHandler::hookLevel(Level* level)
 	level->addListener(h.view);
 	// Its broadcasts go to its own players only.
 	level->raknetInstance = h.net;
+	level->adventureSettings.noPvP = !_access.pvpOn();
 }
 
 ServerSideNetworkHandler::Hook* ServerSideNetworkHandler::hookOf(Level* level)
@@ -353,6 +375,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	session.failures = 0;
 	session.transferring = false;
 	session.portalCooldown = 0;
+	session.griefNotice = 0;
 	session.creative = minecraft->isCreativeMode();
 	_sessions.push_back(session);
 	applyGameMode(newPlayer, session.creative);
@@ -621,6 +644,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBl
 	Level* level = levelOf(source);
 	if (!level) return;
 	if (isUnauthenticated(source)) return;
+	if (griefBlocked(source)) return;
 
 	Player* player = getPlayer(source);
 	if (!player) return;
@@ -684,6 +708,7 @@ void ServerSideNetworkHandler::levelGenerated( Level* level )
 	hookLevel(level);
 	if (LevelStorage* storage = level->getLevelStorage())
 		_access.load(storage->getFolder());
+	applyRules();
 #ifndef STANDALONE_SERVER
 	allowIncomingConnections(minecraft->options.serverVisible);
 #else
@@ -735,6 +760,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Interact
 	Level* level = levelOf(source);
 	if (!level) return;
 	if (isUnauthenticated(source)) return;
+	if (griefBlocked(source)) return;
 
 	Entity* src = level->getEntity(packet->sourceId);
 	Entity* entity = level->getEntity(packet->targetId);
@@ -788,6 +814,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, UseItemP
 	if (!level) return;
 
 	if (isUnauthenticated(source)) return;
+	// Eating and drawing a bow are not the world.
+	if (packet->face != 255 && griefBlocked(source)) return;
 	LOGI("UseItemPacket\n");
 	Entity* entity = level->getEntity(packet->entityId);
 	if (entity && entity->isPlayer()) {
@@ -907,6 +935,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Containe
 	Level* level = levelOf(source);
 	if (!level) return;
 	if (isUnauthenticated(source)) return;
+	if (griefBlocked(source)) return;
 
 	Player* p = findPlayer(level, &source);
 	if (!p) return;
@@ -951,6 +980,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SetHeal
 
 void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SignUpdatePacket* packet ) {
 	if (isUnauthenticated(source)) return;
+	if (griefBlocked(source)) return;
 	redistributePacket(packet, source);
 	Level* level = levelOf(source);
 	if (!level)
@@ -1366,6 +1396,9 @@ void ServerSideNetworkHandler::announceLobbyInfo()
 
 void ServerSideNetworkHandler::tick()
 {
+	for (unsigned int i = 0; i < _sessions.size(); ++i)
+		if (_sessions[i].griefNotice > 0) --_sessions[i].griefNotice;
+
 	// The other dimension stops running when nobody is in it and nobody is on
 	// the way there.
 	if (minecraft->otherLevel && minecraft->otherLevel->players.empty()) {

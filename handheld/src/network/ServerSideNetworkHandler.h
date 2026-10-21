@@ -100,6 +100,10 @@ public:
 	void requireAuthFromEveryone();
 	void releaseAuthFromEveryone();
 	bool isAuthed(Player* player);
+	/// Puts the pvp rule on every running level.
+	void applyRules();
+	/// True if /grief off stops this visitor from changing the world (and says so, now and then).
+	bool griefBlocked(const RakNet::RakNetGUID& source);
 	/// Sends everyone the names of who is here (and keeps the host's own copy).
 	void broadcastPlayerList();
 	/// The lobby listing's extras: whether the whitelist is on, and how many are in.
@@ -171,6 +175,7 @@ private:
 		bool creative;	///< /gamemode: what this visitor is in now
 		int failures;	///< wrong passwords so far
 		bool transferring;	///< going through a portal: not joining
+		int griefNotice;	///< ticks until it may be told again
 		int portalCooldown;	///< ticks before its next portal trip counts
 	};
 	std::vector<Session> _sessions;

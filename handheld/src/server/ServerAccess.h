@@ -31,6 +31,13 @@ public:
 	bool addOp(const std::string& name);
 	bool removeOp(const std::string& name);
 
+	/// /pvp: players may hurt each other. /grief: visitors may change the world
+	/// (blocks, containers, animals and enemies). Both are on until turned off.
+	bool pvpOn() const { return _pvp; }
+	void setPvp(bool on);
+	bool griefOn() const { return _grief; }
+	void setGrief(bool on);
+
 	bool authOn() const { return _authOn; }
 	void setAuth(bool on);
 	bool hasAccount(const std::string& name) const;
@@ -53,6 +60,8 @@ private:
 	std::string _folder;
 	bool _whitelistOn;
 	bool _authOn;
+	bool _pvp;
+	bool _grief;
 	std::vector<std::string> _whitelist;
 	std::vector<std::string> _ops;
 	std::vector<Account> _accounts;

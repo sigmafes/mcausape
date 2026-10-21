@@ -710,7 +710,8 @@ void Gui::renderPlayerList(const int screenWidth, Font* font) {
 	for (unsigned int i = 0; i < names.size(); ++i) {
 		const int y = y0 + 16 + (int) i * rowHeight;
 		fill(x0 + 4, y - 1, x0 + width - 4, y + rowHeight - 2, 0x30ffffff);
-		font->drawShadow(names[i], x0 + 8, y, 0xffffffff);
+		// The first is the owner of the world.
+		font->drawShadow(names[i], x0 + 8, y, i == 0 ? 0xffffff55 : 0xffffffff);
 	}
 }
 
@@ -747,7 +748,17 @@ void Gui::renderChatMessages( const int screenHeight, unsigned int max, bool isC
 				this->fill(x, y - 1, x + MAX_MESSAGE_WIDTH, y + 8, (alpha / 2) << 24);
 				glEnable(GL_BLEND);
 
-				font->drawShadow(msg, x, y, 0xffffff + (alpha << 24));
+				// "<owner> line": the owner's name is yellow.
+				std::string owner = minecraft->playerNames.empty()
+					? (minecraft->player ? minecraft->player->name : std::string())
+					: minecraft->playerNames[0];
+				const std::string tag = "<" + owner + ">";
+				if (!owner.empty() && msg.compare(0, tag.size(), tag) == 0) {
+					font->drawShadow(tag, x, y, 0xffff55 + (alpha << 24));
+					font->drawShadow(msg.substr(tag.size()), x + font->width(tag), y, 0xffffff + (alpha << 24));
+				} else {
+					font->drawShadow(msg, x, y, 0xffffff + (alpha << 24));
+				}
 			}
 		}
 	}
