@@ -33,7 +33,7 @@ async function openTab(browser, label) {
 	page.on('console', (m) => { if (process.env.MPTEST_VERBOSE) console.log(`[${label}] ${m.text()}`); });
 	page.on('pageerror', (e) => console.log(`[${label}] page error: ${e.message}`));
 	await page.goto(URL);
-	await page.waitForFunction(() => typeof Module !== 'undefined' && Module._mcpe_test_state
+	await page.waitForFunction(() => window.mcpeReady && Module._mcpe_test_state
 		&& Module.UTF8ToString(Module._mcpe_test_state()).split(' ')[0] !== '-1', null, { timeout: 120000 });
 	await sleep(2000);
 	return page;
