@@ -479,6 +479,9 @@ void Player::die(Entity* source) {
 void Player::reset() {
 	super::reset();
 	this->_init();
+	// What is worn is lost with the life; the rest of the inventory is kept.
+	for (int i = 0; i < NUM_ARMOR; i++)
+		armor[i].setNull();
 }
 
 void Player::_init() {

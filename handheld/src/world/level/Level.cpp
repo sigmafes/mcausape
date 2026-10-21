@@ -1133,6 +1133,10 @@ void Level::tileEntityChanged(int x, int y, int z, TileEntity* te) {
 //	Util::remove(entities, e);
 //}
 
+Biome::MobList Level::getMobSpawnList(const MobCategory& mobCategory, int x, int y, int z) {
+	return _chunkSource->getMobsAt(mobCategory, x, y, z);
+}
+
 Biome::MobSpawnerData Level::getRandomMobSpawnAt(const MobCategory& mobCategory, int x, int y, int z) {
 	Biome::MobList mobList = _chunkSource->getMobsAt(mobCategory, x, y, z);
     if (mobList.empty()) return Biome::MobSpawnerData();

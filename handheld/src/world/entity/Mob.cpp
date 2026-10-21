@@ -533,8 +533,10 @@ void Mob::_init() {
 	xxa = 0; yya = 0;
 	yRotA = 0;
 
-	health = 10;
-	lastHealth = 20;
+	// Full health: this said 10, half the hearts, and was what every respawned
+	// player came back with.
+	health = getMaxHealth();
+	lastHealth = getMaxHealth();
 }
 
 void Mob::causeFallDamage( float distance )

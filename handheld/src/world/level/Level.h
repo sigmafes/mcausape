@@ -154,6 +154,8 @@ public:
 	Entity* getEntity(int entityId);
 	Mob* getMob(int entityId);
 
+	/// Everything that can spawn at a spot, with weights (the biome's, or the Nether fortress's).
+	Biome::MobList getMobSpawnList(const MobCategory& mobCategory, int x, int y, int z);
 	Biome::MobSpawnerData getRandomMobSpawnAt(const MobCategory& mobCategory, int x, int y, int z);
 
 	void addListener(LevelListener* listener);

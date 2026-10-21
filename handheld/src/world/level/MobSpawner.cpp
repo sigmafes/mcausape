@@ -10,6 +10,7 @@
 #include "../entity/MobFactory.h"
 #include "../entity/MobCategory.h"
 #include "../entity/player/Player.h"
+#include "dimension/Dimension.h"
 
 //#include "../entity/animal/Sheep.h"
 //#include "tile/BedTile.h"
@@ -74,7 +75,14 @@ int MobSpawner::tick(Level* level, bool spawnEnemies, bool spawnFriendlies) {
             continue;
 
 		int numMobs = level->countInstanceOfBaseType(mobCategory.getBaseClassId());
-		if (numMobs > mobCategory.getMaxInstancesPerLevel())
+		// The Nether is allowed more monsters than the Overworld, as in Minecraft
+		// (70 against 20 here). Zombie pigmen are 100 of the weights there and
+		// come four at a time, so with the Overworld's cap of 20 they filled it
+		// within seconds and nothing else -- ghasts, and the blazes and wither
+		// skeletons of the fortress -- was ever allowed to spawn.
+		const bool nether = level->dimension && level->dimension->id == Dimension::NETHER;
+		const int maxMobs = (nether && !mobCategory.isFriendly()) ? 70 : mobCategory.getMaxInstancesPerLevel();
+		if (numMobs > maxMobs)
 		    continue;
 		//LOGI("NumMobs: %d of Category: %d\n", numMobs, mobCategory.getBaseClassId());
 chunkLoop:
@@ -138,7 +146,16 @@ chunkLoop:
 							// probability weight.
 							if (&mobCategory == &MobCategory::monster) {
 								int typeCount = level->countInstanceOfType(currentMobType.mobClassId);
-								int typeMax = (int)(1.5f * currentMobType.randomWeight * mobCategory.getMaxInstancesPerLevel()) / Biome::defaultTotalEnemyWeight;
+								// A type's share of the cap follows its weight in the list
+								// that applies *here* -- the fortress's, say, not the
+								// Overworld's -- and is always room for one group.
+								Biome::MobList here = level->getMobSpawnList(mobCategory, x, y, z);
+								int totalWeight = 0;
+								for (unsigned int w = 0; w < here.size(); ++w)
+									totalWeight += here[w].randomWeight;
+								if (totalWeight <= 0) totalWeight = Biome::defaultTotalEnemyWeight;
+								int typeMax = (int)(1.5f * currentMobType.randomWeight * maxMobs) / totalWeight;
+								if (typeMax < currentMobType.maxCount) typeMax = currentMobType.maxCount;
 								//LOGI("Has %d (max %d) of type: %d\n", typeCount, typeMax, currentMobType.mobClassId);
 								if (typeCount >= typeMax)
 									break;

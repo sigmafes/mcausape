@@ -56,8 +56,8 @@ EntityRenderDispatcher::EntityRenderDispatcher()
 	assign(	ER_BLAZE_RENDERER,		new BlazeRenderer());
 	assign(	ER_MAGMACUBE_RENDERER,	new MagmaCubeRenderer());
 	// The fire charge picture of the items atlas, big for a ghast's and small for a blaze's.
-	assign(	ER_FIREBALL_RENDERER,		new ItemSpriteRenderer(9 * 16 + 13, 2.0f));
-	assign(	ER_SMALLFIREBALL_RENDERER,	new ItemSpriteRenderer(9 * 16 + 13, 0.5f));
+	assign(	ER_FIREBALL_RENDERER,		new ItemSpriteRenderer(10 * 16 + 13, 2.0f));
+	assign(	ER_SMALLFIREBALL_RENDERER,	new ItemSpriteRenderer(10 * 16 + 13, 0.5f));
 	assign(	ER_TNT_RENDERER,		new TntRenderer());
 	assign(	ER_ARROW_RENDERER,		new ArrowRenderer());
 	assign( ER_PLAYER_RENDERER,		new PlayerRenderer(new HumanoidModel(), 0));
