@@ -173,6 +173,142 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_net_leave()
 		g_state.app->raknetInstance->disconnect();
 }
 
+/*
+ * Test hooks, for tools/mptest (two headless tabs through the real relay).
+ * Nothing in the game calls them; they let a script host, join, place and read
+ * blocks without driving the menus by pixel. Answers come back as a string the
+ * script reads with UTF8ToString.
+ */
+#include "client/gui/screens/ProgressScreen.h"
+#include "world/level/LevelSettings.h"
+#include "world/level/Level.h"
+#include "world/level/LightLayer.h"
+#include "world/level/dimension/Dimension.h"
+#include "world/entity/MobFactory.h"
+#include "world/entity/EntityTypes.h"
+#include "world/level/MobSpawner.h"
+#include "network/ServerSideNetworkHandler.h"
+#include "network/ClientSideNetworkHandler.h"
+#include <netinet/in.h>
+
+static char g_testOut[512];
+
+static Level* testLevelFor(int dim, bool create)
+{
+	Minecraft* mc = g_state.app;
+	if (!mc || !mc->level) return NULL;
+	if (mc->level->isClientSide)
+		return ((mc->level->dimension->id == Dimension::NETHER) == (dim == Dimension::NETHER)) ? mc->level : NULL;
+	return mc->levelForDimension(dim, create);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_test_host(int seed, int creative)
+{
+	Minecraft* mc = g_state.app;
+	if (!mc) return;
+	char id[32];
+	snprintf(id, sizeof(id), "mptest%d", seed);
+	mc->options.serverVisible = true;
+	mc->selectLevel(id, id, LevelSettings(seed, creative ? GameType::Creative : GameType::Survival));
+	mc->hostMultiplayer();
+	mc->setScreen(new ProgressScreen());
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_test_join(unsigned int route)
+{
+	Minecraft* mc = g_state.app;
+	if (!mc) return;
+	mc->locateMultiplayer();
+	PingedCompatibleServer s;
+	s.name = "test";
+	s.address.address.addr4.sin_family = AF_INET;
+	s.address.address.addr4.sin_addr.s_addr = htonl(0x0A000000u | (route & 0xFFFFFFu));
+	s.address.address.addr4.sin_port = htons(19132);
+	s.address.debugPort = 19132;
+	s.pingTime = 0;
+	s.isSpecial = false;
+	mc->joinMultiplayer(s);
+	mc->setScreen(new ProgressScreen());
+}
+
+/// "ready client dim x y z chunks players"
+extern "C" EMSCRIPTEN_KEEPALIVE const char* mcpe_test_state()
+{
+	Minecraft* mc = g_state.app;
+	int chunks = -1;
+	if (mc && mc->level && mc->level->isClientSide && mc->netCallback)
+		chunks = static_cast<ClientSideNetworkHandler*>(mc->netCallback)->chunksReceived();
+	if (!mc) return "-1 0 0 0 0 0 -1 0";
+	if (!mc->level || !mc->player) {
+		snprintf(g_testOut, sizeof(g_testOut), "0 0 0 0 0 0 %d 0", chunks);
+		return g_testOut;
+	}
+	snprintf(g_testOut, sizeof(g_testOut), "%d %d %d %.1f %.1f %.1f %d %d",
+		mc->isLevelGenerated() ? 1 : 0, mc->level->isClientSide ? 1 : 0, mc->level->dimension->id,
+		mc->player->x, mc->player->y, mc->player->z, chunks, (int) mc->playerNames.size());
+	return g_testOut;
+}
+
+/// "id data blockLight skyLight", or "-1" if that dimension is not here.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* mcpe_test_block(int dim, int x, int y, int z)
+{
+	Level* level = testLevelFor(dim, false);
+	if (!level) return "-1";
+	snprintf(g_testOut, sizeof(g_testOut), "%d %d %d %d", level->getTile(x, y, z), level->getData(x, y, z),
+		level->getBrightness(LightLayer::Block, x, y, z), level->getBrightness(LightLayer::Sky, x, y, z));
+	return g_testOut;
+}
+
+/// Host only: sets a block in that dimension (made running if it is not).
+extern "C" EMSCRIPTEN_KEEPALIVE int mcpe_test_set(int dim, int x, int y, int z, int id, int data)
+{
+	Minecraft* mc = g_state.app;
+	if (!mc || !mc->level || mc->level->isClientSide) return 0;
+	Level* level = testLevelFor(dim, true);
+	if (!level) return 0;
+	return level->setTileAndData(x, y, z, id, data) ? 1 : 0;
+}
+
+/// Host only: "x y z" of the world spawn.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* mcpe_test_spawn()
+{
+	Minecraft* mc = g_state.app;
+	if (!mc || !mc->level) return "0 0 0";
+	Pos p = mc->level->getSharedSpawnPos();
+	snprintf(g_testOut, sizeof(g_testOut), "%d %d %d", p.x, mc->level->getTopTileY(p.x, p.z), p.z);
+	return g_testOut;
+}
+
+/// Host only: sends every visitor to that dimension.
+extern "C" EMSCRIPTEN_KEEPALIVE int mcpe_test_send(int dim)
+{
+	Minecraft* mc = g_state.app;
+	if (!mc || !mc->level || mc->level->isClientSide || !mc->netCallback) return 0;
+	ServerSideNetworkHandler* net = static_cast<ServerSideNetworkHandler*>(mc->netCallback);
+	std::vector<Player*> all = net->allPlayers();
+	int sent = 0;
+	for (unsigned int i = 0; i < all.size(); ++i)
+		if (all[i] != (Player*) mc->player) { net->travelVisitor(all[i], dim, false); ++sent; }
+	return sent;
+}
+
+/// Host only: n pigs around the spawn, for load.
+extern "C" EMSCRIPTEN_KEEPALIVE int mcpe_test_summon(int n)
+{
+	Minecraft* mc = g_state.app;
+	if (!mc || !mc->level || mc->level->isClientSide) return 0;
+	Pos p = mc->level->getSharedSpawnPos();
+	int made = 0;
+	for (int i = 0; i < n; ++i) {
+		Mob* mob = MobFactory::CreateMob(MobTypes::Pig, mc->level);
+		if (!mob) break;
+		float x = p.x + (i % 10) * 2 - 10, z = p.z + (i / 10) * 2 - 10;
+		if (MobSpawner::addMob(mc->level, mob, x, (float) mc->level->getTopTileY((int) x, (int) z) + 1, z, 0, 0, true)) ++made;
+		else delete mob;
+	}
+	return made;
+}
+
 /** The page's answer to WebBridge::pickSkin() and loadSavedSkin(): a decoded
     skin image, as RGBA in the module's heap. The page owns the buffer and frees
     it after this returns; Minecraft::setLocalSkin copies what it keeps. The

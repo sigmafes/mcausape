@@ -80,6 +80,8 @@ public:
 	virtual void handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet);
 	virtual void handle(const RakNet::RakNetGUID& source, ExtPacket* packet);
 	virtual void tick();
+	/// Chunks of the current level that have arrived (tools/mptest reads it).
+	int chunksReceived() const { return numChunksLoaded; }
 private:
 
 	void requestNextChunk();
