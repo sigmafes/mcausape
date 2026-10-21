@@ -2225,8 +2225,11 @@ void TileRenderer::renderGuiTile( Tile* tile, int data )
 		t.offset(-0.5f, -0.5f, -0.5f);
 		t.begin();
 		for (int i = 0; i < 2; i++) {
-			if (i == 0) tile->setShape(0, 0, 0, 1, 1, 0.5f);
-			if (i == 1) tile->setShape(0, 0, 0.5f, 1, 0.5f, 1);
+			// Back to front compared with the world's block: seen from the menu's
+			// angle (turned 45 degrees) the tall half has to be at the back, with the
+			// step in front, as in every other edition's inventory.
+			if (i == 0) tile->setShape(0, 0, 0.5f, 1, 1, 1);
+			if (i == 1) tile->setShape(0, 0, 0, 1, 0.5f, 0.5f);
 
 			t.color(0xff, 0xff, 0xff);
 			renderFaceDown(tile, 0, 0, 0, tile->getTexture(0));
@@ -2242,6 +2245,8 @@ void TileRenderer::renderGuiTile( Tile* tile, int data )
 		}
 		t.draw();
 		t.offset(0, 0, 0);
+		// The shape was left as the last half's: put the whole block back.
+		tile->setShape(0, 0, 0, 1, 1, 1);
 	}
 	else if (shape == Tile::SHAPE_FENCE) {
 		t.addOffset(-0.5f, -0.5f, -0.5f);
