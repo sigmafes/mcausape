@@ -32,16 +32,15 @@ public:
 
 	virtual void send(Packet& packet)
 	{
-		RakNet::BitStream bitStream;
-		packet.write(&bitStream);
-		RakNet::RakPeerInterface* peer = base->getPeer();
-		const RakNet::RakNetGUID me = peer->GetMyGUID();
+		// One send per player, through the real instance: it is what decides how
+		// a packet travels (entity positions go unreliable and low priority on the
+		// web, or the host's queue fills up and the visitor sees the world minutes late).
+		const RakNet::RakNetGUID me = base->getPeer()->GetMyGUID();
 		for (unsigned int i = 0; i < level->players.size(); ++i)
-			sendTo(peer, bitStream, packet, level->players[i], me);
+			if (!(level->players[i]->owner == me)) base->send(level->players[i]->owner, packet);
 		if (pending) {
 			for (unsigned int i = 0; i < pending->size(); ++i)
-				if ((*pending)[i]->level == level)
-					sendTo(peer, bitStream, packet, (*pending)[i], me);
+				if ((*pending)[i]->level == level) base->send((*pending)[i]->owner, packet);
 		}
 	}
 	virtual void send(const RakNet::RakNetGUID& guid, Packet& packet) { base->send(guid, packet); }
@@ -50,12 +49,6 @@ public:
 	virtual void send(const RakNet::RakNetGUID& guid, Packet* packet) { base->send(guid, packet); }
 
 private:
-	static void sendTo(RakNet::RakPeerInterface* peer, RakNet::BitStream& bits, Packet& packet, Player* to, const RakNet::RakNetGUID& me)
-	{
-		if (to->owner == me) return; // the host's own player is here already
-		peer->Send(&bits, packet.priority, packet.reliability, 0, to->owner, false);
-	}
-
 	IRakNetInstance* base;
 	Level* level;
 	std::vector<Player*>* pending;

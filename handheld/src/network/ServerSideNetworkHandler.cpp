@@ -229,19 +229,19 @@ void ServerSideNetworkHandler::entityRemovedIn(Level* level, Entity* e)
 void ServerSideNetworkHandler::redistributeIn(Level* level, Packet* packet, const RakNet::RakNetGUID& exclude)
 {
 	if (!level) return;
-	RakNet::BitStream bitStream;
-	packet->write(&bitStream);
+	// Through the real instance, which decides how each kind of packet travels
+	// (see LevelNet::send).
 	const RakNet::RakNetGUID me = rakPeer->GetMyGUID();
 	for (unsigned int i = 0; i < level->players.size(); ++i) {
 		const RakNet::RakNetGUID& to = level->players[i]->owner;
 		if (to == me || to == exclude) continue;
-		rakPeer->Send(&bitStream, packet->priority, packet->reliability, 0, to, false);
+		raknetInstance->send(to, *packet);
 	}
 	// The ones the level is still being loaded for hear about it too.
 	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i) {
 		const RakNet::RakNetGUID& to = _pendingPlayers[i]->owner;
 		if (_pendingPlayers[i]->level != level || to == exclude) continue;
-		rakPeer->Send(&bitStream, packet->priority, packet->reliability, 0, to, false);
+		raknetInstance->send(to, *packet);
 	}
 }
 
