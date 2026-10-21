@@ -57,6 +57,9 @@ static void stepTowards(int dir, int n, int& x, int& y, int& z) {
 //------------------------------------------------------------------------------
 
 void PortalTile::neighborChanged(Level* level, int x, int y, int z, int type) {
+	// The host decides whether a portal holds; a visitor's copy of the world,
+	// with its chunks arriving one by one, would take half-built ones apart.
+	if (level->isClientSide) return;
     int axis = getAxis(level->getData(x, y, z));
 
     if (axis == AXIS_X || axis == AXIS_Z) {
@@ -318,6 +321,9 @@ void PortalShape::createPortalBlocks() {
             // NoUpdate: the neighbors must not re-check the shape while it is
             // still incomplete (1.0 uses UPDATE_CLIENTS for the same reason).
             mLevel->setTileAndDataNoUpdate(px, py, pz, Tile::portalTile->id, mAxis);
+            // NoUpdate also means no listener was told: a visitor in this world
+            // would never see the portal light.
+            mLevel->sendTileUpdated(px, py, pz);
         }
     }
 }

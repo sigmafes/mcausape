@@ -165,6 +165,9 @@ void ServerSideNetworkHandler::tileChangedIn(Level* level, int x, int y, int z)
 
 	// broadcast change event
 	UpdateBlockPacket packet(x, y, z, level->getTile(x, y, z), level->getData(x, y, z));
+	// In order: two changes to one block must arrive as they happened.
+	packet.priority = HIGH_PRIORITY;
+	packet.reliability = RELIABLE_ORDERED;
 	redistributeIn(level, &packet, RakNet::UNASSIGNED_RAKNET_GUID);
 }
 
@@ -494,6 +497,9 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 
 	// broadcast the new player to all other players
 	AddPlayerPacket addNewPlayer(newPlayer);
+	// Ordered, so it is there when the skin sent after it arrives.
+	addNewPlayer.priority = HIGH_PRIORITY;
+	addNewPlayer.reliability = RELIABLE_ORDERED;
 	redistributeIn(level, &addNewPlayer, source);
 	// A skin the newcomer sent before this point is on newPlayer already.
 	if (PlayerSkins::get(newPlayer->skinId))
@@ -631,6 +637,8 @@ void ServerSideNetworkHandler::hostEntered(Level* to)
 		Player* visitor = to->players[i];
 		if (visitor == host) continue;
 		AddPlayerPacket add(host);
+		add.priority = HIGH_PRIORITY;
+		add.reliability = RELIABLE_ORDERED;
 		raknetInstance->send(visitor->owner, add);
 		if (host->getArmorTypeHash()) {
 			PlayerArmorEquipmentPacket armor(host);

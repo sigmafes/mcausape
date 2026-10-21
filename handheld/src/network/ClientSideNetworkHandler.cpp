@@ -356,10 +356,15 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, AddPlaye
     player->inventory->moveToSelectedSlot(slot, true);
 	//player->resetPos();
 
+	// Someone already in the world's list only came into this dimension.
 	std::string message = packet->name.C_String();
+	bool known = false;
+	for (unsigned int i = 0; i < minecraft->playerNames.size(); ++i)
+		if (minecraft->playerNames[i] == message) known = true;
 	message += " joined the game";
 #ifndef STANDALONE_SERVER
-	minecraft->gui.addMessage(message);
+	if (!known)
+		minecraft->gui.addMessage(message);
 #endif
 }
 
