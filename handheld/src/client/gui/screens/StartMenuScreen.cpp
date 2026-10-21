@@ -98,7 +98,10 @@ void StartMenuScreen::setupPositions() {
 	// Center buttons
 	bHost.x = (width - bHost.width) / 2;
 	bJoin.x = (width - bJoin.width) / 2;
-	bOptions.x = (width - bJoin.width) / 2;
+	// Full width like the other two: it was 78 wide to leave room for the Buy
+	// button beside it, which this build does not have.
+	bOptions.width = bJoin.width;
+	bOptions.x = (width - bOptions.width) / 2;
 	bTest.x = bBuy.x = bOptions.x + bOptions.width + 4;
 
 	copyrightPosX = width - minecraft->font->width(copyright) - 1;
