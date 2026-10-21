@@ -31,6 +31,12 @@ public:
 
 	int getTexture(int face, int data);
 
+	// The cage is bars with gaps: drawn with the alpha test so the gaps are
+	// clear, and not solid so what is behind them (and the faces of the blocks
+	// next to it) are still drawn.
+	int getRenderLayer() { return RENDERLAYER_ALPHATEST; }
+	bool isSolidRender() { return false; }
+
 	void tick(Level* level, int x, int y, int z, Random* random);
 	int getResource(int data, Random* random);
 	int getResourceCount(Random* random);
