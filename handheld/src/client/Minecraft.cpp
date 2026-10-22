@@ -517,7 +517,12 @@ void Minecraft::tickBackgroundGeneration(int maxMs)
 	const int start = getTimeMs();
 	while (_genBackground < _genOrder.size() && getTimeMs() - start < maxMs) {
 		const int i = _genOrder[_genBackground++];
-		level->getChunk(i / W, i % W);
+		const int cx = i / W, cz = i % W;
+		if (level->hasChunk(cx, cz)) continue;
+		level->getChunk(cx, cz);
+		// The renderer left this chunk and the edges of its neighbours empty
+		// (Chunk::rebuild waits for every chunk it touches): draw them now.
+		level->setTilesDirty(cx * 16 - 1, 0, cz * 16 - 1, cx * 16 + 16, 127, cz * 16 + 16);
 	}
 	if (_genBackground >= _genOrder.size())
 		LOGI("Background generation done\n");
@@ -612,6 +617,15 @@ void Minecraft::prepareLevelSave() {
 	} else {
 		level->saveLevelData();
 		level->loadEntities();
+		// Worlds saved while the spawner was placing squid without end (fixed
+		// in MobSpawner) hold hundreds of them; keep a few, the cap's worth.
+		int squid = 0;
+		for (unsigned int i = 0; i < level->entities.size(); ++i) {
+			Entity* e = level->entities[i];
+			if (e->getEntityTypeId() == MobTypes::Squid && ++squid > 8)
+				e->remove();
+		}
+		if (squid > 8) LOGI("Removed %d squid\n", squid - 8);
 	}
 
 }

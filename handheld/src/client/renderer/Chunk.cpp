@@ -1,3 +1,4 @@
+#include "../../world/level/Level.h"
 #include "Chunk.h"
 #include "Tesselator.h"
 #include "TileRenderer.h"
@@ -96,6 +97,16 @@ void Chunk::rebuild()
 	LevelChunk::touchedSky = false;
 
 	int r = 1;
+	// A Region asks the level for every chunk it covers, and asking makes one
+	// that does not exist: generated on the spot, on the frame being drawn.
+	// With a world still filling in in the background (Minecraft::
+	// tickBackgroundGeneration) that was the whole rest of the world, made by
+	// the renderer at the loading screen. Until all are there this stays empty;
+	// the background pass marks it dirty again as each chunk arrives.
+	for (int cx = (x0 - r) >> 4; cx <= (x1 + r) >> 4; ++cx)
+		for (int cz = (z0 - r) >> 4; cz <= (z1 + r) >> 4; ++cz)
+			if (!level->hasChunk(cx, cz))
+				return;
 	Region region(level, x0 - r, y0 - r, z0 - r, x1 + r, y1 + r, z1 + r);
 	TileRenderer tileRenderer(&region);
 
