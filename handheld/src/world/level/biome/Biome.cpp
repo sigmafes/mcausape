@@ -48,7 +48,7 @@ Biome::Biome()
     // wolves are added to forests and taigas
     // _friendlies.insert(_friendlies.end(), new MobSpawnerData(Wolf.class, 2));
 
-    //_waterFriendlies.insert(_waterFriendlies.end(), (new MobSpawnerData(Squid.class, 10, 4, 4));
+    _waterFriendlies.insert(_waterFriendlies.end(), MobSpawnerData(MobTypes::Squid, 10, 4, 4));
 
 	//
 	// Sum up the weights

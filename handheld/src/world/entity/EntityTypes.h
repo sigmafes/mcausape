@@ -46,6 +46,7 @@ public:
 	static const int Cow        = 11;
     static const int Pig        = 12;
 	static const int Sheep      = 13;
+	static const int Squid      = 17;
 
 	static const int Zombie		= 32;
 	static const int Creeper	= 33;

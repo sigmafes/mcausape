@@ -35,6 +35,7 @@ static const SummonName SUMMON_NAMES[] = {
 	{ "ghast",          MobTypes::Ghast },
 	{ "magmacube",      MobTypes::MagmaCube },
 	{ "pig",            MobTypes::Pig },
+	{ "squid",          MobTypes::Squid },
 	{ "cow",            MobTypes::Cow },
 	{ "chicken",        MobTypes::Chicken },
 	{ "sheep",          MobTypes::Sheep },

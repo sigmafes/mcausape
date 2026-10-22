@@ -25,6 +25,9 @@ public:
 			case MobTypes::Sheep:
 				mob = new Sheep(level);
 				break;
+			case MobTypes::Squid:
+				mob = new Squid(level);
+				break;
 
 			// Monsters
 			case MobTypes::Creeper:

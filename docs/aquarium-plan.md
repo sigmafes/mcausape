@@ -147,3 +147,11 @@ cuando se vacían**, pero **sin bajón de fps**:
 - Bloque de cristal oceánico: **4 cristales oceánicos en 2×2**.
 - Fragmentos por calamar: **0 a 3**.
 - Prismarina: **solo creativo** por ahora.
+
+## Estado
+
+Fases 1–6 implementadas, sin probar en el juego. Ids: bloques 168–171
+(prismarina, bloque de cristal, portal, marco del portal fijo), ítems 153
+(fragmento) y 154 (cristal), calamar `MobTypes::Squid = 17`. Texturas en
+las casillas 256–258 del atlas y 102/134 de `items.png`. `/summon squid`
+funciona para probarlo.
