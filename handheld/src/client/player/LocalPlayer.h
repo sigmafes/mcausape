@@ -45,6 +45,7 @@ public:
 
 	void openContainer(ChestTileEntity* container);
 	void openFurnace(FurnaceTileEntity* e);
+	void openBrewingStand(BrewingStandTileEntity* e);
 
     bool isSneaking();
 

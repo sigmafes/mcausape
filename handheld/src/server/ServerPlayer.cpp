@@ -3,6 +3,7 @@
 
 #include "../network/RakNetInstance.h"
 #include "../network/packet/ContainerOpenPacket.h"
+#include "../world/level/tile/entity/BrewingStandTileEntity.h"
 #include "../network/packet/ContainerClosePacket.h"
 #include "../network/packet/ContainerSetDataPacket.h"
 #include "../network/packet/ContainerSetSlotPacket.h"
@@ -94,6 +95,14 @@ void ServerPlayer::openFurnace( FurnaceTileEntity* furnace ) {
 	ContainerOpenPacket packet(_containerCounter, ContainerType::FURNACE, furnace->getName(), furnace->getContainerSize());
 	_mc->raknetInstance->send(owner, packet);
 	setContainerMenu(new FurnaceMenu(furnace));
+}
+
+void ServerPlayer::openBrewingStand( BrewingStandTileEntity* stand ) {
+	// The furnace's menu: same slot numbers, fuel timer and progress.
+	nextContainerCounter();
+	ContainerOpenPacket packet(_containerCounter, ContainerType::BREWING_STAND, stand->getName(), stand->getContainerSize());
+	_mc->raknetInstance->send(owner, packet);
+	setContainerMenu(new FurnaceMenu(stand));
 }
 
 void ServerPlayer::closeContainer() {

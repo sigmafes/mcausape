@@ -23,6 +23,7 @@
 #ifndef STANDALONE_SERVER
 #include "../gui/Screen.h"
 #include "../gui/screens/FurnaceScreen.h"
+#include "../gui/screens/BrewingStandScreen.h"
 #include "../gui/screens/ChestScreen.h"
 #include "../gui/screens/crafting/WorkbenchScreen.h"
 #include "../gui/screens/crafting/StonecutterScreen.h"
@@ -462,6 +463,13 @@ void LocalPlayer::openFurnace( FurnaceTileEntity* e ) {
 #ifndef STANDALONE_SERVER
 	if (!minecraft->isCreativeMode())
 		minecraft->setScreen( new FurnaceScreen(this, e) );
+#endif
+}
+
+void LocalPlayer::openBrewingStand( BrewingStandTileEntity* e ) {
+#ifndef STANDALONE_SERVER
+	if (!minecraft->isCreativeMode())
+		minecraft->setScreen( new BrewingStandScreen(this, e) );
 #endif
 }
 

@@ -236,6 +236,8 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::oceanCrystalBlock));
 		addItem(new ItemInstance(Item::oceanCrystal));
 		addItem(new ItemInstance(Item::oceanShard));
+		addItem(new ItemInstance(Item::awkwardPotion));
+		addItem(new ItemInstance(Item::waterBreathingPotion));
 		addItem(new ItemInstance(Tile::mossyCobbleWall));
 		addItem(new ItemInstance(Item::door_spruce));
 		addItem(new ItemInstance(Item::door_birch));

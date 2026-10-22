@@ -6,6 +6,7 @@
 
 class Minecraft;
 class FurnaceTileEntity;
+class BrewingStandTileEntity;
 class ItemInstance;
 class FillingContainer;
 class ChestTileEntity;
@@ -29,6 +30,7 @@ public:
 
 	void openContainer(ChestTileEntity* furnace);
 	void openFurnace(FurnaceTileEntity* furnace);
+	void openBrewingStand(BrewingStandTileEntity* stand);
 	void closeContainer();
 	void doCloseContainer();
 

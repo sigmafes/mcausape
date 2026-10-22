@@ -10,6 +10,7 @@ TileEntity::MapTypeId TileEntity::classIdMap;
 #include "../../../../nbt/CompoundTag.h"
 #include "SignTileEntity.h"
 #include "MobSpawnerTileEntity.h"
+#include "BrewingStandTileEntity.h"
 
 int TileEntity::_runningId = 0;
 
@@ -24,6 +25,7 @@ TileEntity* TileEntityFactory::createTileEntity( int type )
     case TileEntityType::Sign:		return new SignTileEntity();
     case TileEntityType::NetherReactor:	return new NetherReactorTileEntity();
 	case TileEntityType::MobSpawner:	return new MobSpawnerTileEntity();
+	case TileEntityType::BrewingStand:	return new BrewingStandTileEntity();
 	default:
 		LOGE("Can't find TileEntity of type: %d\n", type);
 		return NULL;
@@ -44,6 +46,7 @@ void TileEntity::initTileEntities()
 	//         setId(DispenserTileEntity.class, "Trap");
 	setId(TileEntityType::Sign, "Sign");
 	setId(TileEntityType::MobSpawner, "MobSpawner");
+	setId(TileEntityType::BrewingStand, "Cauldron");	// Java's name for it
 	//         setId(MobSpawnerTileEntity.class, "MobSpawner");
 	//         setId(MusicTileEntity.class, "Music");
 	//         setId(PistonPieceEntity.class, "Piston");

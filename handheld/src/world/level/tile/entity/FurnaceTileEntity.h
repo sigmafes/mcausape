@@ -16,6 +16,11 @@ class FurnaceTileEntity: public TileEntity,
     typedef TileEntity super;
     static const int BURN_INTERVAL = 10 * 20;
     static const int NumItems = 3;
+protected:
+	/// For the brewing stand, which is a furnace with a fourth slot.
+	FurnaceTileEntity(int tileEntityType, int containerType);
+	/// Room for the brewing stand's bottles; the furnace uses the first three.
+	static const int MaxItems = 4;
 public:
     FurnaceTileEntity();
 	~FurnaceTileEntity();
@@ -61,7 +66,7 @@ public:
     int litTime;
     int litDuration;
     int tickCount;
-    ItemInstance items[NumItems];
+    ItemInstance items[MaxItems];
 
 	static const int SLOT_INGREDIENT = 0;
 	static const int SLOT_FUEL = 1;

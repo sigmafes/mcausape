@@ -209,6 +209,11 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* oceanCrystal;
+	// Potions (docs/brewing-plan.md). Not drinkable yet: the effects come later.
+	static Item* awkwardPotion;
+	static Item* waterBreathingPotion;
+	/// Every potion lasts this long once drunk (5 minutes), when effects exist.
+	static const int PotionDurationTicks = 5 * 60 * 20;
 	static Item* blazeRod;
 	static Item* blazePowder;
 	static Item* magmaCream;

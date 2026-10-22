@@ -15,6 +15,7 @@ class ItemInstance;
 class Inventory;
 class FillingContainer;
 class FurnaceTileEntity;
+class BrewingStandTileEntity;
 class CompoundTag;
 class ChestTileEntity;
 class BaseContainerMenu;
@@ -125,6 +126,7 @@ public:
 
 	virtual void openContainer(ChestTileEntity* container);
 	virtual void openFurnace(FurnaceTileEntity* e);
+	virtual void openBrewingStand(BrewingStandTileEntity* e) {}
 	void tileEntityDestroyed( int tileEntityId );
 
 	virtual void displayClientMessage(const std::string& messageId);

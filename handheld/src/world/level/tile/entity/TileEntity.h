@@ -21,6 +21,7 @@ public:
 	static const int NetherReactor = 3;
 	static const int Sign = 4;
 	static const int MobSpawner = 5;
+	static const int BrewingStand = 6;
 };
 
 class TileEntityFactory {

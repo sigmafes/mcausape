@@ -105,3 +105,18 @@ para cuando lleguen los efectos.
 6. **Creativo:** ¿añado las dos pociones al inventario creativo?
 7. **Bloque:** ¿quieres que el soporte muestre botellas en sus brazos cuando
    tiene algo dentro (como en Java), o lo dejamos para después?
+
+## Respuestas y estado
+
+Respuestas: de una en una (1 botella + 1 ingrediente = 1 poción), 20 s por
+poción, un polvo de blaze = 80 s = 4 pociones, las casillas de botellas e
+ingrediente admiten pilas para que siga solo, las pociones con efecto no se
+apilan (botellas y poción sin efecto hasta 16), líquido celeste verdoso,
+pociones en creativo, botellas visibles en los brazos del soporte.
+
+Implementado: `BrewingStandTileEntity` (un horno con una cuarta casilla, que
+reutiliza `FurnaceMenu`), `BrewingStandScreen` (copia de `FurnaceScreen`),
+red (`ContainerType::BREWING_STAND`), ítems 155 (poción sin efecto) y 156
+(respiración acuática, `Item::PotionDurationTicks` = 5 min), iconos en las
+casillas 147/148 de `items.png`, y los tres brazos del soporte (datos 1 =
+botellas esperando, 2 = poción hecha, 4 = más de una botella).

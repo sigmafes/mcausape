@@ -22,6 +22,17 @@ FurnaceTileEntity::FurnaceTileEntity()
 	//LOGI("CREATING FurnaceTileEntity! %p\n", this);
 }
 
+FurnaceTileEntity::FurnaceTileEntity(int tileEntityType, int containerType)
+:   super(tileEntityType),
+	Container(containerType),
+	litTime(0),
+	litDuration(0),
+	tickCount(0),
+	finished(false),
+	_canBeFinished(false)
+{
+}
+
 FurnaceTileEntity::~FurnaceTileEntity() {
 	//LOGI("DELETING FurnaceTileEntity! %p @ %d, %d, %d\n", this, x, y, z);
 }
@@ -58,7 +69,7 @@ std::string FurnaceTileEntity::getName() const {
 
 bool FurnaceTileEntity::shouldSave() {
 	if (litTime > 0) return true;
-	for (int i = 0; i < NumItems; ++i)
+	for (int i = 0; i < getContainerSize(); ++i)
 		if (!items[i].isNull()) return true;
 	return false;
 }
@@ -66,14 +77,14 @@ bool FurnaceTileEntity::shouldSave() {
 void FurnaceTileEntity::load(CompoundTag* base) {
 	super::load(base);
 	ListTag* inventoryList = base->getList("Items");
-	for (int i = 0; i < 3; ++i)
+	for (int i = 0; i < MaxItems; ++i)
 		items[i].setNull();
 	for (int i = 0; i < inventoryList->size(); i++) {
 		Tag* tt = inventoryList->get(i);
 		if (tt->getId() == Tag::TAG_Compound) {
 			CompoundTag* tag = (CompoundTag*)tt;
 			int slot = tag->getByte("Slot");
-			if (slot >= 0 && slot < NumItems) {
+			if (slot >= 0 && slot < getContainerSize()) {
 				ItemInstance* loaded = ItemInstance::fromTag(tag);
 				if (loaded) {
 					items[slot] = *loaded;
@@ -99,7 +110,7 @@ bool FurnaceTileEntity::save(CompoundTag* base) {
 	base->putShort("CookTime", (short) (tickCount));
 	ListTag* listTag = new ListTag();
 
-	for (int i = 0; i < NumItems; i++) {
+	for (int i = 0; i < getContainerSize(); i++) {
 		if (!items[i].isNull()) {
 			CompoundTag* tag = new CompoundTag();
 			tag->putByte("Slot", (char) i);

@@ -1222,6 +1222,35 @@ bool TileRenderer::tesselateBrewingStandInWorld(BrewingStandTile* tt, int x, int
 
 	tt->drawingBase = false;
 	tt->setShape(7 / 16.0f, 0, 7 / 16.0f, 9 / 16.0f, 14 / 16.0f, 9 / 16.0f);
+
+	// Three arms out from the rod, as Java draws them: the right half of the
+	// stand's picture is a bare arm, the left half an arm with a bottle on it.
+	// The data says which hold one (BrewingStandTileEntity::updateArms).
+	Tesselator& t = Tesselator::instance;
+	const float br = tt->getBrightness(level, x, y, z);
+	t.color(br, br, br);
+	const int data = level->getData(x, y, z);
+	const int tex = 13 + 9 * 16;
+	const float u = TerrainAtlas::px(tex) / TerrainAtlas::SizeF;
+	const float half = 8 / TerrainAtlas::SizeF;
+	const float v0 = TerrainAtlas::py(tex) / TerrainAtlas::SizeF;
+	const float v1 = (TerrainAtlas::py(tex) + 15.99f) / TerrainAtlas::SizeF;
+	for (int i = 0; i < 3; ++i) {
+		const float angle = i * Mth::PI * 2 / 3 + Mth::PI * 0.5f;
+		const float uIn = u + half;
+		const float uOut = (data & (1 << i)) ? u : u + 2 * half;
+		const float cx = x + 0.5f, cz = z + 0.5f;
+		const float ox = cx + Mth::sin(angle) * 0.5f, oz = cz + Mth::cos(angle) * 0.5f;
+		t.vertexUV(cx, y + 1, cz, uIn, v0);
+		t.vertexUV(cx, y + 0, cz, uIn, v1);
+		t.vertexUV(ox, y + 0, oz, uOut, v1);
+		t.vertexUV(ox, y + 1, oz, uOut, v0);
+
+		t.vertexUV(ox, y + 1, oz, uOut, v0);
+		t.vertexUV(ox, y + 0, oz, uOut, v1);
+		t.vertexUV(cx, y + 0, cz, uIn, v1);
+		t.vertexUV(cx, y + 1, cz, uIn, v0);
+	}
 	return true;
 }
 

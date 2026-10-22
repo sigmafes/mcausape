@@ -1,4 +1,5 @@
 
+#include "../world/level/tile/entity/BrewingStandTileEntity.h"
 #include "ClientSideNetworkHandler.h"
 #include "packet/PacketInclude.h"
 #include "RakNetInstance.h"
@@ -785,6 +786,13 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Containe
 		FurnaceTileEntity* te = new FurnaceTileEntity();
 		te->clientSideOnly = true;
 		minecraft->player->openFurnace(te);
+		if (minecraft->player->containerMenu)
+			minecraft->player->containerMenu->containerId = packet->containerId;
+	}
+	if (packet->type == ContainerType::BREWING_STAND) {
+		BrewingStandTileEntity* te = new BrewingStandTileEntity();
+		te->clientSideOnly = true;
+		minecraft->player->openBrewingStand(te);
 		if (minecraft->player->containerMenu)
 			minecraft->player->containerMenu->containerId = packet->containerId;
 	}

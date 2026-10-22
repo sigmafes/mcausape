@@ -111,6 +111,8 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::oceanCrystal = NULL;
+Item* Item::awkwardPotion = NULL;
+Item* Item::waterBreathingPotion = NULL;
 Item* Item::blazeRod = NULL;
 Item* Item::blazePowder = NULL;
 Item* Item::magmaCream = NULL;
@@ -310,8 +312,11 @@ void Item::initItems() {
 	// The Aquarium: the squid drops shards; four make a crystal, four crystals a block.
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
-	Item::waterBottle = (new BottleItem(117, true))->setIcon(11, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("emptyPotion");
-	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
+	// Bottles and the plain potion stack to 16; potions with an effect do not.
+	Item::waterBottle = (new BottleItem(117, true))->setIcon(11, 11)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("emptyPotion");
+	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
+	Item::awkwardPotion = (new Item(155))->setIcon(3, 9)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("awkwardPotion");
+	Item::waterBreathingPotion = (new Item(156))->setIcon(4, 9)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("waterBreathingPotion");
 	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");
 	Item::magmaCream = (new Item(122))->setIcon(13, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("magmaCream");
 	Item::carrot = (new PlantableFoodItem(135, 3, Tile::carrots->id, Tile::farmland->id))->setIcon(8, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
