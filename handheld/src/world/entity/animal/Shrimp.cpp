@@ -8,7 +8,7 @@ Shrimp::Shrimp(Level* level)
 {
 	entityRendererId = ER_SHRIMP_RENDERER;
 	textureName = "mob/shrimp.png";
-	setSize(0.4f, 0.3f);
+	setSize(0.25f, 0.2f);
 }
 
 int Shrimp::getEntityTypeId() const { return MobTypes::Shrimp; }

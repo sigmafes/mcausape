@@ -40,6 +40,9 @@ public:
 			case MobTypes::Shrimp:
 				mob = new Shrimp(level);
 				break;
+			case MobTypes::Turtle:
+				mob = new Turtle(level);
+				break;
 
 			// Monsters
 			case MobTypes::Creeper:

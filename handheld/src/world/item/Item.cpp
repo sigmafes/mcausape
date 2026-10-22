@@ -114,6 +114,9 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::turtleScute = NULL;
+Item* Item::crystalizedCoral = NULL;
+Item* Item::coralIngot = NULL;
 Item* Item::shrimp = NULL;
 Item* Item::spiderEye = NULL;
 Item* Item::pufferfish = NULL;
@@ -333,6 +336,9 @@ void Item::initItems() {
 	Item::spiderEye  = (new PoisonFoodItem(119, 2, 4 * 20))->setIcon(11, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("spiderEye");
 	Item::pufferfish = (new PoisonFoodItem(164, 1, MobEffects::PufferPoisonTicks))->setIcon(6, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pufferfish");
 	Item::shrimp = (new ShrimpItem(165))->setIcon(7, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("shrimp");
+	Item::turtleScute      = (new Item(166))->setIcon(8, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("turtleScute");
+	Item::crystalizedCoral = (new Item(167))->setIcon(0, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("crystalizedCoral");
+	Item::coralIngot       = (new Item(168))->setIcon(1, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("coralIngot");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.

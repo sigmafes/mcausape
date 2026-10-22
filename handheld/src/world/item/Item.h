@@ -209,6 +209,9 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* kelp;
+	static Item* turtleScute;
+	static Item* crystalizedCoral;
+	static Item* coralIngot;
 	static Item* shrimp;
 	static Item* spiderEye;
 	static Item* pufferfish;

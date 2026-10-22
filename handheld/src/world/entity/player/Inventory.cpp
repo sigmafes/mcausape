@@ -252,6 +252,9 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::cookedSalmon));
 		addItem(new ItemInstance(Item::pufferfish));
 		addItem(new ItemInstance(Item::shrimp));
+		addItem(new ItemInstance(Item::turtleScute));
+		addItem(new ItemInstance(Item::crystalizedCoral));
+		addItem(new ItemInstance(Item::coralIngot));
 		addItem(new ItemInstance(Item::spiderEye));
 		addItem(new ItemInstance(Item::unpoisonPotion));
 		addItem(new ItemInstance(Tile::doubleGrass));

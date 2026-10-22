@@ -22,6 +22,8 @@ protected:
 		}
 	}
 	float getBob(Mob* mob, float a) { return mob->tickCount + a; }
+	// Half the model's size: a shrimp, not a lobster.
+	void scale(Mob* mob, float a) { glScalef2(0.5f, 0.5f, 0.5f); }
 };
 
 #endif

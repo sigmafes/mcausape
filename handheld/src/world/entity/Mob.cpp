@@ -567,10 +567,10 @@ void Mob::travel( float xa, float ya )
 		// look steers up and down, the water holds back less (0.9 a tick
 		// instead of 0.8, so about twice the speed), and it barely sinks.
 		const bool swimming = isSwimming();
-		// The look steers up and down while swimming, or while moving forward
-		// with the head under water, and quickly: about 9 blocks a second
-		// looking straight down or up (it was 4, and only sprint-swimming).
-		const bool steering = swimming || (ya > 0 && isUnderLiquid(Material::water));
+		// The look steers up and down only while swimming, and quickly: about
+		// 9 blocks a second looking straight down or up. Walking forward with
+		// the head under water used to steer too, and sank like a stone.
+		const bool steering = swimming;
 		if (steering) {
 			const float look = -Mth::sin(xRot * Mth::DEGRAD);
 			const float pull = 0.12f;

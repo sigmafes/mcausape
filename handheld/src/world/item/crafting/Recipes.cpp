@@ -109,6 +109,13 @@ Recipes::Recipes()
 
 		definition('#', Item::oceanShard));
 
+	addShapedRecipe(ItemInstance(Item::coralIngot, 1), //
+		"###", //
+		"#S#", //
+		"###", //
+
+		definition('#', Item::crystalizedCoral, 'S', Item::turtleScute));
+
 	addShapedRecipe(ItemInstance(Tile::seaLantern, 1), //
 		"##", //
 		"##", //

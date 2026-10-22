@@ -51,6 +51,7 @@ public:
 	static const int Salmon     = 19;
 	static const int Pufferfish = 20;
 	static const int Shrimp     = 21;
+	static const int Turtle     = 22;
 
 	static const int Zombie		= 32;
 	static const int Creeper	= 33;

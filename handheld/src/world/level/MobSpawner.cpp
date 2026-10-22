@@ -331,13 +331,15 @@ int MobSpawner::spawnFish(Level* level)
 	// Pufferfish keep to the deep, under the shelf (its underside is 38-62);
 	// shrimp anywhere, in schools like the fish.
 	const bool deep = y < 50;
-	const int roll = level->random.nextInt(8);
+	const int roll = level->random.nextInt(9);
 	int type;
-	if (roll < 3) type = MobTypes::Cod;
+	if (roll == 8) type = MobTypes::Turtle;
+	else if (roll < 3) type = MobTypes::Cod;
 	else if (roll < 5) type = MobTypes::Shrimp;
 	else if (roll < 7 && deep) type = MobTypes::Pufferfish;
 	else type = MobTypes::Salmon;
-	const int count = (type == MobTypes::Cod || type == MobTypes::Shrimp) ? 3 + level->random.nextInt(4) : 1 + level->random.nextInt(3);
+	int count = (type == MobTypes::Cod || type == MobTypes::Shrimp) ? 3 + level->random.nextInt(4) : 1 + level->random.nextInt(3);
+	if (type == MobTypes::Turtle) count = 1 + level->random.nextInt(2);
 	int made = 0;
 	for (int i = 0; i < count; ++i) {
 		const float xx = x + 0.5f + level->random.nextInt(5) - 2;
