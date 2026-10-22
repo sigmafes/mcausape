@@ -86,7 +86,11 @@ private:
         int r = 0;
         for (int xx = x - r; xx <= x + r; xx++)
             for (int zz = z - r; zz <= z + r; zz++) {
-                if (level->getTile(xx, y + 1, zz) == Tile::crops->id) {
+                // Any crop keeps it tilled while dry, not only wheat: carrots,
+                // potatoes and the stems were uprooted when it turned to dirt.
+                const int t = level->getTile(xx, y + 1, zz);
+                if (t == Tile::crops->id || t == Tile::carrots->id || t == Tile::potatoes->id
+                        || t == Tile::pumpkinStem->id || t == Tile::melonStem->id) {
                     return true;
                 }
             }

@@ -59,17 +59,18 @@ bool DyePowderItem::useOn( ItemInstance* itemInstance, Player* player, Level* le
 		  }
 		  }
 		  return true;
-		  }*/ else if (tile == Tile::melonStem->id/* || tile == Tile::pumpkinStem->id*/) {
+		  }*/ else if (tile == Tile::melonStem->id || tile == Tile::pumpkinStem->id) {
 			  if (!level->isClientSide) {
 				((StemTile*) Tile::tiles[tile])->growCropsToMax(level, x, y, z);
 			  }
 			  itemInstance->count--;
 			  return true;
-		  } else if (tile == Tile::crops->id) {
+		  } else if (tile == Tile::crops->id || tile == Tile::carrots->id || tile == Tile::potatoes->id) {
 			  if (!level->isClientSide) {
-				  ((CropTile*) Tile::crops)->growCropsToMax(level, x, y, z);
+				  ((CropTile*) Tile::tiles[tile])->growCropsToMax(level, x, y, z);
 			  }
 			  itemInstance->count--;
+			  return true;
 		  } else if (tile == Tile::grass->id) {
 			  if (!level->isClientSide) {
 				  

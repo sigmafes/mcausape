@@ -60,12 +60,14 @@ void LevelChunk::init()
     block change lands. A block that allows it, put where a water source is,
     keeps the water; one replaced by air leaves its water behind as a source
     (whatever broke it: a player, an explosion, the host for a visitor); any
-    other block takes the water away. `tile` and `data` are what is about to
+    other block takes the water away. (oldData is unused now: any water fills.) `tile` and `data` are what is about to
     be written and come back changed when the water stays instead. */
 void LevelChunk::applyWaterlogging(int x, int y, int z, int old, int oldData, int& tile, int& data_)
 {
 	const bool wasLogged = isWaterlogged(x, y, z);
-	const bool wasSource = (old == Tile::water->id || old == Tile::calmWater->id) && oldData == 0;
+	// Flowing water fills it too, not only a source; the block then holds a
+	// still source (as a block holding water always does).
+	const bool wasSource = (old == Tile::water->id || old == Tile::calmWater->id);
 	if (Tile::canBeWaterlogged(tile)) {
 		setWaterlogged(x, y, z, wasLogged || wasSource);
 	} else {
@@ -100,7 +102,7 @@ bool LevelChunk::setTileAndData(int x, int y, int z, int tile_, int data_) {
     data.set(x, y, z, data_);
 
     if (!level->dimension->hasCeiling) {
-        if (Tile::lightBlock[tile] != 0) {
+        if (lightBlockAt(x << 11 | z << 7 | y) != 0) {
             if (y >= oldHeight) {
                 recalcHeight(x, y + 1, z);
             }
@@ -143,7 +145,7 @@ bool LevelChunk::setTile(int x, int y, int z, int tile_) {
     }
     data.set(x, y, z, newData);
 
-    if (Tile::lightBlock[tile & 0xff] != 0) {
+    if (lightBlockAt(x << 11 | z << 7 | y) != 0) {
         if (y >= oldHeight) {
             recalcHeight(x, y + 1, z);
         }
@@ -182,7 +184,7 @@ void LevelChunk::recalcHeightmapOnly() {
         for (int z = 0; z < 16; z++) {
             int y = Level::DEPTH - 1;
             int p = x << 11 | z << 7;
-            while (y > 0 && Tile::lightBlock[blocks[p + y - 1] & 0xff] == 0)
+            while (y > 0 && lightBlockAt(p + y - 1) == 0)
                 y--;
             heightmap[z << 4 | x] = (char) y;
             if (y < min) min = y;
@@ -199,7 +201,7 @@ void LevelChunk::recalcHeightmap() {
         for (int z = 0; z < 16; z++) {
             int y = Level::DEPTH - 1;
             int p = x << 11 | z << 7;
-            while (y > 0 && Tile::lightBlock[blocks[p + y - 1] & 0xff] == 0)
+            while (y > 0 && lightBlockAt(p + y - 1) == 0)
                 y--;
             heightmap[z << 4 | x] = (char) y;
             if (y < min) min = y;
@@ -208,7 +210,7 @@ void LevelChunk::recalcHeightmap() {
                 int br = Level::MAX_BRIGHTNESS;
                 int yy = Level::DEPTH - 1;
                 do {
-                    br -= Tile::lightBlock[blocks[p + yy] & 0xff];
+                    br -= lightBlockAt(p + yy);
                     if (br > 0) {
                         skyLight.set(x, yy, z, br);
                     }
@@ -235,7 +237,7 @@ void LevelChunk::recalcHeight(int x, int yStart, int z) {
     if (yStart > yOld) y = yStart;
 
     int p = x << 11 | z << 7;
-    while (y > 0 && Tile::lightBlock[blocks[p + y - 1] & 0xff] == 0)
+    while (y > 0 && lightBlockAt(p + y - 1) == 0)
         y--;
     if (y == yOld) return;
 
@@ -270,13 +272,13 @@ void LevelChunk::recalcHeight(int x, int yStart, int z) {
     int y0 = y;
     while (y > 0 && br > 0) {
         y--;
-        int block = Tile::lightBlock[getTile(x, y, z)];
+        int block = lightBlockAt(x << 11 | z << 7 | y);
         if (block == 0) block = 1;
         br -= block;
         if (br < 0) br = 0;
         skyLight.set(x, y, z, br);
     }
-    while (y > 0 && Tile::lightBlock[getTile(x, y - 1, z)] == 0)
+    while (y > 0 && lightBlockAt(x << 11 | z << 7 | (y - 1)) == 0)
         y--;
     if (y != y0) {
         level->updateLight(LightLayer::Sky, xOffs - 1, y, zOffs - 1, xOffs + 1, y0, zOffs + 1);
@@ -746,4 +748,14 @@ bool LevelChunk::isEmpty()
 
 const LevelChunk::TEMap& LevelChunk::getTileEntityMap() const {
     return tileEntities;
+}
+
+int LevelChunk::lightBlockAt(int i) const
+{
+	int b = Tile::lightBlock[blocks[i] & 0xff];
+	if ((waterlogged[i >> 3] >> (i & 7)) & 1) {
+		const int w = Tile::lightBlock[Tile::calmWater->id];
+		if (b < w) b = w;
+	}
+	return b;
 }

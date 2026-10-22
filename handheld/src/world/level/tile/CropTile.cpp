@@ -64,15 +64,17 @@ float CropTile::getGrowthSpeed( Level* level, int x, int y, int z ) {
 	return speed;
 }
 
+/** Eight ages, seven pictures: in this terrain.png the cell before them
+    (tex) holds a green grid -- the mob-spawner-looking thing a fresh field
+    showed -- and the wheat's stages are the seven after it, the first one
+    serving ages 0 and 1. */
 int CropTile::getTexture( LevelSource* level, int x, int y, int z, int face ) {
-	int data = level->getData(x, y, z);
-	if (data < 0) data = 7;
-	return tex + data;
+	return getTexture(face, level->getData(x, y, z));
 }
 
 int CropTile::getTexture( int face, int data ) {
-	if (data < 0) data = 7;
-	return tex + data;
+	if (data < 0 || data > 7) data = 7;
+	return tex + 1 + (data > 0 ? data - 1 : 0);
 }
 
 int CropTile::getRenderShape() {

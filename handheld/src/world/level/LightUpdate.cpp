@@ -109,6 +109,9 @@ void LightUpdate::update(Level* level)
                     int target = 0;
                     int tile = level->getTile(x, y, z);
                     int block = Tile::lightBlock[tile];
+                    // Water held by a stair, glass, leaves... dims like water.
+                    if (block < Tile::lightBlock[Tile::calmWater->id] && level->isWaterlogged(x, y, z))
+                        block = Tile::lightBlock[Tile::calmWater->id];
                     if (block == 0) block = 1;
                     int emit = 0;
                     if (layer == &LightLayer::Sky) {

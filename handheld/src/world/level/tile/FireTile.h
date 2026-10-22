@@ -139,12 +139,15 @@ public:
         return false;
     }
 
+    // A block holding water neither burns nor keeps a fire going.
     bool canBurn(LevelSource* level, int x, int y, int z) {
+        if (level->isWaterlogged(x, y, z)) return false;
         return flameOdds[level->getTile(x, y, z)] > 0;
     }
 
     int getFlammability(Level* level, int x, int y, int z, int odds) {
 
+        if (level->isWaterlogged(x, y, z)) return odds;
         int f = flameOdds[level->getTile(x, y, z)];
         if (f > odds) return f;
         return odds;
@@ -255,7 +258,7 @@ private:
 
     void checkBurn(Level* level, int x, int y, int z, int chance, Random* random) {
 
-		int odds = burnOdds[level->getTile(x, y, z)];
+		int odds = level->isWaterlogged(x, y, z) ? 0 : burnOdds[level->getTile(x, y, z)];
         if (random->nextInt(chance) < odds) {
             bool wasTnt = level->getTile(x, y, z) == Tile::tnt->id;
             if (random->nextInt(2) == 0) {

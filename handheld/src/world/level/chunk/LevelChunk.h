@@ -94,6 +94,10 @@ public:
 		const int i = x << 11 | z << 7 | y;
 		return (waterlogged[i >> 3] >> (i & 7)) & 1;
 	}
+	/// How much light this block takes away: a block holding water takes at
+	/// least what water does, so glass, leaves, a fence under water dim the
+	/// light like the water round them.
+	int lightBlockAt(int i) const;
 	void setWaterlogged(int x, int y, int z, bool on) {
 		const int i = x << 11 | z << 7 | y;
 		if (on) waterlogged[i >> 3] |= (unsigned char)(1 << (i & 7));

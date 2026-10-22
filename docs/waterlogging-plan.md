@@ -13,8 +13,9 @@ arrastra; cuadros incluidos); el agua del bloque alimenta y extiende el agua
 de alrededor, se nada y se ahoga ahí, vista bajo el agua; dibujo del agua
 dentro del bloque sin caras entre agua.
 
-Pendiente: la luz (un bloque con agua todavía no oscurece como el agua) y
-apagar fuego.
+Después: luz (un bloque con agua resta lo que resta el agua), fuego (no
+arde ni alimenta un fuego; las entidades se apagan dentro) y el agua que
+corre también llena un bloque al colocarlo, no solo una fuente.
 
 ## Cómo funciona hoy
 
