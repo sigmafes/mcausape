@@ -45,7 +45,9 @@ Gui::Gui(Minecraft* minecraft)
 	_currentDropTicks(-1),
 	_currentDropSlot(-1),
 	MAX_MESSAGE_WIDTH(240),
-	itemNameOverlayTime(2)
+	itemNameOverlayTime(2),
+	lastSelectedSlot(-1),
+	lastSelectedId(-1)
 {
 	glGenBuffers2(1, &_inventoryRc.vboId);
 	glGenBuffers2(1, &rcFeedbackInner.vboId);
@@ -242,6 +244,18 @@ void Gui::tick() {
 	tickCount++;
 	if(itemNameOverlayTime < 2)
 		itemNameOverlayTime += 1.0f / SharedConstants::TicksPerSecond;
+	// The name over the hotbar was only shown for a tap on it (touch); on a
+	// PC the hotbar changes by key or wheel, so watch the selection instead.
+	if (minecraft->player && minecraft->player->inventory) {
+		const int slot = minecraft->player->inventory->selected;
+		ItemInstance* item = minecraft->player->inventory->getSelected();
+		const int id = item ? item->id : 0;
+		if (slot != lastSelectedSlot || id != lastSelectedId) {
+			if (lastSelectedSlot != -1) itemNameOverlayTime = 0;
+			lastSelectedSlot = slot;
+			lastSelectedId = id;
+		}
+	}
 	for (unsigned int i = 0; i < guiMessages.size(); i++) {
 	    guiMessages.at(i).ticks++;
 	}

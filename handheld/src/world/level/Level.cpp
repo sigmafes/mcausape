@@ -465,14 +465,13 @@ void Level::setInitialSpawn() {
 
 /*public*/
 void Level::validateSpawn() {
-    // The Aquarium's spawn is its fixed portal. The search below wants ground
-    // just above y=63 and never ends in a world whose floor is at y~4.
-    if (dimension->isAllWater()) {
-        int x, y, z;
-        AquariumLevelSource::hubArrival(0, &x, &y, &z);
-        levelData.setSpawn(x, y, z);
-        return;
-    }
+    // The spawn is the world's, kept in level.dat, and the Overworld's: the
+    // Aquarium must not touch it. Setting it to the fixed portal (y=121) was
+    // saved with the world, and the Overworld then respawned players 121 up,
+    // to fall to their death and respawn there again. Arrival in the Aquarium
+    // comes from Minecraft::findArrival instead. (The search below would also
+    // never end there: it wants ground just above y=63.)
+    if (dimension->isAllWater()) return;
     if (levelData.getYSpawn() <= 0) {
         levelData.setYSpawn(64);
     }
@@ -489,6 +488,10 @@ void Level::validateSpawn() {
     }
     levelData.setXSpawn(xSpawn);
     levelData.setZSpawn(zSpawn);
+    // On the ground, whatever height was saved: repairs worlds whose spawn the
+    // Aquarium had moved up into the sky.
+    if (Dimension::isOverworld(dimension->id))
+        levelData.setYSpawn(getTopTileY(xSpawn, zSpawn));
 }
 
 int Level::getTopTile(int x, int z) {

@@ -98,6 +98,10 @@ private:
 	Minecraft* minecraft;
 	int tickCount;
 	float itemNameOverlayTime;
+	// What was in hand last tick: a change shows its name again, however it
+	// came (number keys, mouse wheel, a tap on the hotbar).
+	int lastSelectedSlot;
+	int lastSelectedId;
 	std::string overlayMessageString;
 	int overlayMessageTime;
 	bool animateOverlayMessageColor;
