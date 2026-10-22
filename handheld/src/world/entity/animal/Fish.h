@@ -35,7 +35,7 @@ protected:
 	int getDeathLoot();
 	void dropDeathLoot();
 
-private:
+protected:
 	bool waterAt(float x, float y, float z);
 	float tx, ty, tz;
 	bool hasTarget;

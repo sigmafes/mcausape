@@ -209,6 +209,7 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* kelp;
+	static Item* shrimp;
 	static Item* spiderEye;
 	static Item* pufferfish;
 	static Item* unpoisonPotion;

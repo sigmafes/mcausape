@@ -29,6 +29,11 @@ public:
 	void onRemove(Level* level, int x, int y, int z);
 
 	bool drawingBase;
+
+	/// Burning or not: a second tile (brewingStand_lit) that gives light, as
+	/// the furnace has (FurnaceTile::setLit). Its contents stay put.
+	static void setLit(bool lit, Level* level, int x, int y, int z);
+	static bool noDrop;
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL_TILE__BrewingStandTile_H__*/

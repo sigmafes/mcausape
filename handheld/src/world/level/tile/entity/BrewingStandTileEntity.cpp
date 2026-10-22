@@ -1,3 +1,4 @@
+#include "../BrewingStandTile.h"
 #include "BrewingStandTileEntity.h"
 #include "../../Level.h"
 #include "../../../Container.h"
@@ -91,6 +92,7 @@ void BrewingStandTileEntity::tick() {
 			tickCount = 0;
 		}
 		updateArms();
+		BrewingStandTile::setLit(litTime > 0, level, x, y, z);
 	}
 	if (changed) setChanged();
 }

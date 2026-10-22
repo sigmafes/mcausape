@@ -215,6 +215,7 @@ public:
 	static Tile* fenceGate;
 	static Tile* enchantTable;
 	static Tile* brewingStand;
+	static Tile* brewingStand_lit;
 	static Tile* cobbleWall;
 	// The Aquarium (docs/aquarium-plan.md).
 	static Tile* prismarine;

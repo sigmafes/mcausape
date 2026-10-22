@@ -1,5 +1,6 @@
 #include "ItemInclude.h"
 #include "PoisonFoodItem.h"
+#include "ShrimpItem.h"
 #include "ItemCategory.h"
 #include "../level/tile/Tile.h"
 #include "ItemInstance.h"
@@ -113,6 +114,7 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::shrimp = NULL;
 Item* Item::spiderEye = NULL;
 Item* Item::pufferfish = NULL;
 Item* Item::unpoisonPotion = NULL;
@@ -330,6 +332,7 @@ void Item::initItems() {
 	// Java's spider eye (id 375, icon 11,8 already in the atlas): poisons 4s.
 	Item::spiderEye  = (new PoisonFoodItem(119, 2, 4 * 20))->setIcon(11, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("spiderEye");
 	Item::pufferfish = (new PoisonFoodItem(164, 1, MobEffects::PufferPoisonTicks))->setIcon(6, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pufferfish");
+	Item::shrimp = (new ShrimpItem(165))->setIcon(7, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("shrimp");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.

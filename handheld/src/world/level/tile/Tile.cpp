@@ -156,6 +156,7 @@ Tile* Tile::fence       = NULL;
 Tile* Tile::fenceGate   = NULL;
 Tile* Tile::enchantTable = NULL;
 Tile* Tile::brewingStand = NULL;
+Tile* Tile::brewingStand_lit = NULL;
 Tile* Tile::cobbleWall = NULL;
 Tile* Tile::prismarine = NULL;
 Tile* Tile::oceanCrystalBlock = NULL;
@@ -345,6 +346,7 @@ void Tile::initTiles() {
 	seaLantern = (new SeaLanternTile(191, 283))->init()->setDestroyTime(0.3f)->setLightEmission(1.0f)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("seaLantern");
 	enchantTable = (new EnchantTableTile(116))->init()->setDestroyTime(5.0f)->setExplodeable(2000)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("enchantmentTable");
 	brewingStand = (new BrewingStandTile(117))->init()->setDestroyTime(0.5f)->setLightEmission(2 / 16.0f)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Decorations)->setDescriptionId("brewingStand");
+	brewingStand_lit = (new BrewingStandTile(196))->init()->setDestroyTime(0.5f)->setLightEmission(13 / 16.0f)->setSoundType(SOUND_METAL)->setDescriptionId("brewingStand");
 	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
 	potatoes = (new RootCropTile(142, 7 + 12 * 16, 11 + 12 * 16, &Item::potato))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("potatoes");
 	melonStem = (new StemTile(105, Tile::melon))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pumpkinStem");//->sendTileData();

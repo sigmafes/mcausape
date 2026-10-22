@@ -125,7 +125,7 @@ void LocalPlayer::tickPressure() {
 	if (band > 5) band = 5;
 	++pressureTicks;
 	if (pressure < MAX_PRESSURE) {
-		if (pressureTicks >= SharedConstants::TicksPerSecond * 10) {
+		if (pressureTicks >= SharedConstants::TicksPerSecond * 30) {
 			pressureTicks = 0;
 			pressure += band;
 			if (pressure > MAX_PRESSURE) pressure = MAX_PRESSURE;

@@ -37,6 +37,9 @@ public:
 			case MobTypes::Pufferfish:
 				mob = new Pufferfish(level);
 				break;
+			case MobTypes::Shrimp:
+				mob = new Shrimp(level);
+				break;
 
 			// Monsters
 			case MobTypes::Creeper:

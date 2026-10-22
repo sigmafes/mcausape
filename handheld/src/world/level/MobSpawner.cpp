@@ -328,10 +328,16 @@ int MobSpawner::spawnFish(Level* level)
 	const int y = 8 + level->random.nextInt(110);
 	if (x < 0 || z < 0 || x >= LEVEL_WIDTH || z >= LEVEL_DEPTH || !level->allWaterAt(x, y, z)) return 0;
 	if (level->getNearestPlayer(x + 0.5f, (float) y, z + 0.5f, (float) MIN_SPAWN_DISTANCE) != NULL) return 0;
-	// The Aquarium is warm water: pufferfish there as in Java's warm oceans.
-	const int roll = level->random.nextInt(6);
-	const int type = roll < 3 ? MobTypes::Cod : (roll < 5 ? MobTypes::Pufferfish : MobTypes::Salmon);
-	const int count = type == MobTypes::Cod ? 3 + level->random.nextInt(4) : 1 + level->random.nextInt(3);
+	// Pufferfish keep to the deep, under the shelf (its underside is 38-62);
+	// shrimp anywhere, in schools like the fish.
+	const bool deep = y < 50;
+	const int roll = level->random.nextInt(8);
+	int type;
+	if (roll < 3) type = MobTypes::Cod;
+	else if (roll < 5) type = MobTypes::Shrimp;
+	else if (roll < 7 && deep) type = MobTypes::Pufferfish;
+	else type = MobTypes::Salmon;
+	const int count = (type == MobTypes::Cod || type == MobTypes::Shrimp) ? 3 + level->random.nextInt(4) : 1 + level->random.nextInt(3);
 	int made = 0;
 	for (int i = 0; i < count; ++i) {
 		const float xx = x + 0.5f + level->random.nextInt(5) - 2;

@@ -32,7 +32,7 @@ bool BrewingStandTile::use(Level* level, int x, int y, int z, Player* player)
 void BrewingStandTile::onRemove(Level* level, int x, int y, int z)
 {
 	// What is in it falls out, as from a furnace (FurnaceTile::onRemove).
-	if (!level->isClientSide) {
+	if (!level->isClientSide && !noDrop) {
 		BrewingStandTileEntity* stand = (BrewingStandTileEntity*) level->getTileEntity(x, y, z);
 		if (stand != NULL) {
 			for (int i = 0; i < stand->getContainerSize(); i++) {
@@ -46,4 +46,22 @@ void BrewingStandTile::onRemove(Level* level, int x, int y, int z)
 		}
 	}
 	super::onRemove(level, x, y, z);
+}
+
+bool BrewingStandTile::noDrop = false;
+
+void BrewingStandTile::setLit(bool lit, Level* level, int x, int y, int z)
+{
+	const int id = lit ? Tile::brewingStand_lit->id : Tile::brewingStand->id;
+	if (level->getTile(x, y, z) == id) return;
+	const int data = level->getData(x, y, z);
+	TileEntity* te = level->getTileEntity(x, y, z);
+	noDrop = true;
+	level->setTile(x, y, z, id);
+	noDrop = false;
+	level->setData(x, y, z, data);
+	if (te != NULL) {
+		te->clearRemoved();
+		level->setTileEntity(x, y, z, te);
+	}
 }
