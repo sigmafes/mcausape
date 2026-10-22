@@ -1,4 +1,5 @@
 #include "ItemInclude.h"
+#include "PoisonFoodItem.h"
 #include "ItemCategory.h"
 #include "../level/tile/Tile.h"
 #include "ItemInstance.h"
@@ -112,6 +113,9 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::spiderEye = NULL;
+Item* Item::pufferfish = NULL;
+Item* Item::unpoisonPotion = NULL;
 Item* Item::cookedCod = NULL;
 Item* Item::cookedSalmon = NULL;
 Item* Item::rawCod = NULL;
@@ -323,12 +327,16 @@ void Item::initItems() {
 	Item::rawSalmon = (new FoodItem(160, 2, false))->setIcon(2, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("rawSalmon");
 	Item::cookedCod    = (new FoodItem(161, 5, false))->setIcon(3, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("cookedCod");
 	Item::cookedSalmon = (new FoodItem(162, 6, false))->setIcon(4, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("cookedSalmon");
+	// Java's spider eye (id 375, icon 11,8 already in the atlas): poisons 4s.
+	Item::spiderEye  = (new PoisonFoodItem(119, 2, 4 * 20))->setIcon(11, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("spiderEye");
+	Item::pufferfish = (new PoisonFoodItem(164, 1, MobEffects::PufferPoisonTicks))->setIcon(6, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pufferfish");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.
 	Item::waterBottle = (new BottleItem(117, true))->setIcon(11, 11)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("emptyPotion");
 	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
 	Item::awkwardPotion = (new PotionItem(155, -1))->setIcon(3, 9)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("awkwardPotion");
+	Item::unpoisonPotion = (new PotionItem(163, MobEffects::Unpoison))->setIcon(5, 10)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("unpoisonPotion");
 	Item::waterBreathingPotion = (new PotionItem(156, MobEffects::WaterBreathing))->setIcon(4, 9)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("waterBreathingPotion");
 	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");
 	Item::magmaCream = (new Item(122))->setIcon(13, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("magmaCream");

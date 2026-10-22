@@ -25,6 +25,8 @@ public:
 
 	void tick();
 	void tickPressure();
+	void tickPoison();
+	int _poisonTicks;
     void move(float xa, float ya, float za);
 
     void aiStep();

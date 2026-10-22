@@ -37,7 +37,8 @@ bool BrewingStandTileEntity::isBottle(const ItemInstance& item) {
 }
 
 bool BrewingStandTileEntity::isIngredient(const ItemInstance& item) {
-	return !item.isNull() && (item.id == Item::netherStalkSeeds->id || item.id == Item::oceanCrystal->id);
+	return !item.isNull() && (item.id == Item::netherStalkSeeds->id || item.id == Item::oceanCrystal->id
+		|| item.id == Item::pufferfish->id || item.id == Item::spiderEye->id);
 }
 
 ItemInstance BrewingStandTileEntity::getBrewResult(const ItemInstance& bottle, const ItemInstance& ingredient) {
@@ -46,6 +47,8 @@ ItemInstance BrewingStandTileEntity::getBrewResult(const ItemInstance& bottle, c
 		return ItemInstance(Item::awkwardPotion);
 	if (bottle.id == Item::awkwardPotion->id && ingredient.id == Item::oceanCrystal->id)
 		return ItemInstance(Item::waterBreathingPotion);
+	if (bottle.id == Item::awkwardPotion->id && (ingredient.id == Item::pufferfish->id || ingredient.id == Item::spiderEye->id))
+		return ItemInstance(Item::unpoisonPotion);
 	return ItemInstance();
 }
 

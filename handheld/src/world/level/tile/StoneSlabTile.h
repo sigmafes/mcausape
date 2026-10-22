@@ -29,6 +29,8 @@ public:
 	// The second pair of slabs (see Tile::stoneSlab2): nether brick and quartz.
 	static const int NETHERBRICK_SLAB = 0;
 	static const int QUARTZ_SLAB = 1;
+	static const int PRISMARINE_BRICK_SLAB = 2;
+	static const int DARK_PRISMARINE_SLAB = 3;
 	static const std::string SLAB_NAMES2[];
 	static const int SLAB_NAMES2_COUNT;
 	static const int SLAB_NAMES_COUNT;

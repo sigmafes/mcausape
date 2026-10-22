@@ -328,15 +328,17 @@ int MobSpawner::spawnFish(Level* level)
 	const int y = 8 + level->random.nextInt(110);
 	if (x < 0 || z < 0 || x >= LEVEL_WIDTH || z >= LEVEL_DEPTH || !level->allWaterAt(x, y, z)) return 0;
 	if (level->getNearestPlayer(x + 0.5f, (float) y, z + 0.5f, (float) MIN_SPAWN_DISTANCE) != NULL) return 0;
-	const bool salmon = level->random.nextInt(3) == 0;
-	const int count = salmon ? 1 + level->random.nextInt(4) : 3 + level->random.nextInt(4);
+	// The Aquarium is warm water: pufferfish there as in Java's warm oceans.
+	const int roll = level->random.nextInt(6);
+	const int type = roll < 3 ? MobTypes::Cod : (roll < 5 ? MobTypes::Pufferfish : MobTypes::Salmon);
+	const int count = type == MobTypes::Cod ? 3 + level->random.nextInt(4) : 1 + level->random.nextInt(3);
 	int made = 0;
 	for (int i = 0; i < count; ++i) {
 		const float xx = x + 0.5f + level->random.nextInt(5) - 2;
 		const float yy = (float) y + level->random.nextInt(3) - 1;
 		const float zz = z + 0.5f + level->random.nextInt(5) - 2;
 		if (!level->allWaterAt(Mth::floor(xx), Mth::floor(yy), Mth::floor(zz))) continue;
-		Mob* mob = MobFactory::CreateMob(salmon ? MobTypes::Salmon : MobTypes::Cod, level);
+		Mob* mob = MobFactory::CreateMob(type, level);
 		if (!mob) continue;
 		if (addMob(level, mob, xx, yy, zz, level->random.nextFloat() * 360, 0, false)) ++made;
 		else delete mob;

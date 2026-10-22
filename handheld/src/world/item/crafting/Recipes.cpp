@@ -530,6 +530,37 @@ Recipes::Recipes()
 
 		definition('#', Tile::stoneBrickSmooth));
 
+	// Prismarine bricks: cut from prismarine (stone, so the stonecutter's).
+	addShapedRecipe(ItemInstance(Tile::prismarineBricks, 4), //
+		"##", //
+		"##", //
+
+		definition('#', Tile::prismarine));
+
+	addShapedRecipe(ItemInstance(Tile::stairs_prismarineBricks, 4), //
+		"#  ", //
+		"## ", //
+		"###", //
+
+		definition('#', Tile::prismarineBricks));
+
+	addShapedRecipe(ItemInstance(Tile::stairs_darkPrismarine, 4), //
+		"#  ", //
+		"## ", //
+		"###", //
+
+		definition('#', Tile::darkPrismarine));
+
+	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf2, 6, StoneSlabTile::PRISMARINE_BRICK_SLAB), //
+		"###", //
+
+		definition('#', Tile::prismarineBricks));
+
+	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf2, 6, StoneSlabTile::DARK_PRISMARINE_SLAB), //
+		"###", //
+
+		definition('#', Tile::darkPrismarine));
+
 	addShapedRecipe(ItemInstance(Tile::stairs_netherBricks, 4), //
 		"#  ", //
 		"## ", //

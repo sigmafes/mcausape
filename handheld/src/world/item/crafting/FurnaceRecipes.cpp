@@ -41,6 +41,7 @@ FurnaceRecipes::FurnaceRecipes()
 	addFurnaceRecipe(Tile::sand->id,        ItemInstance(Tile::glass));
 	addFurnaceRecipe(Item::porkChop_raw->id,ItemInstance(Item::porkChop_cooked));
 	addFurnaceRecipe(Item::rawCod->id, ItemInstance(Item::cookedCod));
+	addFurnaceRecipe(Tile::prismarineBricks->id, ItemInstance(Tile::darkPrismarine));
 	addFurnaceRecipe(Item::rawSalmon->id, ItemInstance(Item::cookedSalmon));
 	addFurnaceRecipe(Item::beef_raw->id,    ItemInstance(Item::beef_cooked));
 	addFurnaceRecipe(Item::chicken_raw->id, ItemInstance(Item::chicken_cooked));

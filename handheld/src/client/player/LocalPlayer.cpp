@@ -10,6 +10,7 @@
 #include "../../world/level/Level.h"
 #include "../../world/level/dimension/Dimension.h"
 #include "../../SharedConstants.h"
+#include "../../world/effect/MobEffect.h"
 #include "../../util/Mth.h"
 #include "../../world/level/tile/Tile.h"
 #include "../../world/level/tile/entity/TileEntity.h"
@@ -61,6 +62,7 @@ LocalPlayer::LocalPlayer(Minecraft* minecraft, Level* level, User* user, int dim
 :	Player(level, isCreative),
 	minecraft(minecraft),
 	input(NULL),
+	_poisonTicks(0),
 	sentInventoryItemId(-1),
 	sentInventoryItemData(-1),
 	armorTypeHash(0)
@@ -134,10 +136,20 @@ void LocalPlayer::tickPressure() {
 	}
 }
 
+/// Poison, as Java's at level I: a heart every 25 ticks, never the last one.
+void LocalPlayer::tickPoison() {
+	if (!hasEffect(MobEffects::Poison) || !isAlive()) { _poisonTicks = 0; return; }
+	if (++_poisonTicks >= 25) {
+		_poisonTicks = 0;
+		if (health > 1) hurt(NULL, 1);
+	}
+}
+
 void LocalPlayer::tick() {
 
 	super::tick();
 	tickPressure();
+	tickPoison();
 	if(!useItem.isNull()) {
 		ItemInstance* item = inventory->getSelected();
 		if(item != NULL && *item == useItem) {

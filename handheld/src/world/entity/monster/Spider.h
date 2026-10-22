@@ -56,7 +56,7 @@ protected:
 	int fireCheckTick;
     int getDeathLoot();
     /*@Override*/
-    //void dropDeathLoot();
+    void dropDeathLoot();
 };
 
 #endif /*NET_MINECRAFT_WORLD_ENTITY_MONSTER__Spider_H__*/

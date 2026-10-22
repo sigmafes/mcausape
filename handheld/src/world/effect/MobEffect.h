@@ -8,6 +8,11 @@
 namespace MobEffects
 {
 	static const int WaterBreathing = 13;
+	static const int Poison = 19;
+	/// Ours: no poison while it lasts (the Unpoison potion).
+	static const int Unpoison = 40;
+	/// How long a pufferfish's poison lasts, stung or eaten.
+	static const int PufferPoisonTicks = 15 * 20;
 
 	struct Info {
 		int id;
@@ -20,6 +25,9 @@ namespace MobEffects
 		static const Info table[] = {
 			// Cyan-green like the potion here, not Java's blue (0x2E5299).
 			{ WaterBreathing, 0x2EB4A6, 0, 2, "Water Breathing" },
+			{ Poison, 0x4E9331, 6, 0, "Poison" },
+			// Fuchsia; its icon is poison's with a red cross over it (0, 3).
+			{ Unpoison, 0xFF00FF, 0, 3, "Unpoison" },
 		};
 		for (unsigned int i = 0; i < sizeof(table) / sizeof(table[0]); ++i)
 			if (table[i].id == id) return &table[i];

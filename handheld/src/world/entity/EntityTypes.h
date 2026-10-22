@@ -49,6 +49,7 @@ public:
 	static const int Squid      = 17;
 	static const int Cod        = 18;
 	static const int Salmon     = 19;
+	static const int Pufferfish = 20;
 
 	static const int Zombie		= 32;
 	static const int Creeper	= 33;

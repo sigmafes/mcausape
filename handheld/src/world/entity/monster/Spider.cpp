@@ -135,3 +135,10 @@ int Spider::getDeathLoot() {
 //         return super::canBeAffected(newEffect);
 //     }
 // 
+
+void Spider::dropDeathLoot()
+{
+	super::dropDeathLoot();
+	// Java: a spider eye one time in three.
+	if (random.nextInt(3) == 0) spawnAtLocation(Item::spiderEye->id, 1);
+}

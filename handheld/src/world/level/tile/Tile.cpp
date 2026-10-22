@@ -165,6 +165,10 @@ Tile* Tile::coral[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::coralPlant[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::doubleGrass = NULL;
 Tile* Tile::kelp = NULL;
+Tile* Tile::prismarineBricks = NULL;
+Tile* Tile::darkPrismarine = NULL;
+Tile* Tile::stairs_prismarineBricks = NULL;
+Tile* Tile::stairs_darkPrismarine = NULL;
 Tile* Tile::boneBlock = NULL;
 Tile* Tile::seaLantern = NULL;
 Tile* Tile::mossyCobbleWall = NULL;
@@ -330,6 +334,12 @@ void Tile::initTiles() {
 	doubleGrass = (new DoublePlantTile(188, 277))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("doubleGrass");
 	// Kelp, stalk and tip in 279/280 (animated by KelpTexture).
 	kelp = (new KelpTile(189, 279))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("kelp");
+	// Prismarine bricks (284) and dark prismarine (285), with their stairs;
+	// their slabs are the second slab set's types 2 and 3.
+	prismarineBricks = (new Tile(192, 284, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("prismarineBricks");
+	darkPrismarine = (new Tile(193, 285, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("darkPrismarine");
+	stairs_prismarineBricks = (new StairTile(194, prismarineBricks))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsPrismarineBricks");
+	stairs_darkPrismarine = (new StairTile(195, darkPrismarine))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsDarkPrismarine");
 	// Bone block: sides 281, top and bottom 282. Sea lantern: 283.
 	boneBlock = (new BoneBlockTile(190, 281))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("boneBlock");
 	seaLantern = (new SeaLanternTile(191, 283))->init()->setDestroyTime(0.3f)->setLightEmission(1.0f)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("seaLantern");

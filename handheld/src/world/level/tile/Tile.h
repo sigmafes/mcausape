@@ -227,6 +227,10 @@ public:
 	static Tile* coralPlant[5];
 	static Tile* doubleGrass;
 	static Tile* kelp;
+	static Tile* prismarineBricks;
+	static Tile* darkPrismarine;
+	static Tile* stairs_prismarineBricks;
+	static Tile* stairs_darkPrismarine;
 	static Tile* boneBlock;
 	static Tile* seaLantern;
 	static Tile* mossyCobbleWall;

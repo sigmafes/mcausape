@@ -518,6 +518,12 @@ void Player::reset() {
 }
 
 void Player::addEffect(int id, int duration) {
+	// Unpoison: immune to poison, and drinking it cures what there was.
+	if (id == MobEffects::Poison && hasEffect(MobEffects::Unpoison)) return;
+	if (id == MobEffects::Unpoison) {
+		for (unsigned int i = 0; i < activeEffects.size(); ++i)
+			if (activeEffects[i].id == MobEffects::Poison) { activeEffects.erase(activeEffects.begin() + i); break; }
+	}
 	for (unsigned int i = 0; i < activeEffects.size(); ++i) {
 		if (activeEffects[i].id == id) {
 			if (activeEffects[i].duration < duration) activeEffects[i].duration = duration;
