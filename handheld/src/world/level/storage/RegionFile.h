@@ -30,6 +30,7 @@ public:
 private:
 	bool write(int sector, RakNet::BitStream& chunkData);
 	void close();
+	void forget(int x, int z);
 
 	FILE* file;
 	std::string	filename;

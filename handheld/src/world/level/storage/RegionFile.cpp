@@ -74,6 +74,30 @@ bool RegionFile::open()
 		// read offset table
 		logAssert(fread(offsets, sizeof(int), SECTOR_INTS, file), SECTOR_INTS);
 
+		// An entry pointing outside the file is damage (two writers fought over
+		// it once, see acquire): reading it gives garbage, and writing a chunk
+		// back "in place" there grew the in-memory file to wherever the number
+		// pointed -- hundreds of MB -- and the tab ran out of memory. Such
+		// entries are dropped (the chunk is made again) and the header fixed.
+		fseek(file, 0, SEEK_END);
+		const long fileSectors = ftell(file) / SECTOR_BYTES;
+		bool repaired = false;
+		for (int i = 0; i < SECTOR_INTS; i++) {
+			const int offset = offsets[i];
+			if (!offset) continue;
+			const long base = (unsigned int) offset >> 8;
+			const long count = offset & 0xff;
+			if (base < 1 || count < 1 || base + count > fileSectors) {
+				offsets[i] = 0;
+				repaired = true;
+			}
+		}
+		if (repaired) {
+			LOGI("RegionFile: dropped damaged entries in %s\n", filename.c_str());
+			fseek(file, 0, SEEK_SET);
+			logAssert(fwrite(offsets, sizeof(int), SECTOR_INTS, file), SECTOR_INTS);
+		}
+
 		// mark initial sector as blocked
 		sectorFree[0] = false;
 
@@ -122,6 +146,15 @@ void RegionFile::close()
 	}
 }
 
+/// Drops a damaged chunk's entry, so its next save takes fresh sectors
+/// instead of writing over whatever another chunk keeps there.
+void RegionFile::forget(int x, int z)
+{
+	offsets[x + z * SECTOR_COLS] = 0;
+	fseek(file, (x + z * SECTOR_COLS) * sizeof(int), SEEK_SET);
+	fwrite(&offsets[x + z * SECTOR_COLS], sizeof(int), 1, file);
+}
+
 bool RegionFile::readChunk(int x, int z, RakNet::BitStream** destChunkData)
 {
 	if (x < 0 || z < 0 || x >= SECTOR_COLS || z >= SECTOR_COLS) return false;
@@ -145,6 +178,7 @@ bool RegionFile::readChunk(int x, int z, RakNet::BitStream** destChunkData)
 			|| length <= (int) sizeof(int)
 			|| length > (offset & 0xff) * SECTOR_BYTES) {
 		LOGI("RegionFile: chunk %d,%d unreadable (length %d), regenerating\n", x, z, length);
+		forget(x, z);
 		return false;
 	}
 	length -= sizeof(int);
@@ -153,6 +187,7 @@ bool RegionFile::readChunk(int x, int z, RakNet::BitStream** destChunkData)
 	if ((int) fread(data, 1, length, file) != length) {
 		LOGI("RegionFile: chunk %d,%d truncated, regenerating\n", x, z);
 		delete [] data;
+		forget(x, z);
 		return false;
 	}
 	*destChunkData = new RakNet::BitStream(data, length, false);
