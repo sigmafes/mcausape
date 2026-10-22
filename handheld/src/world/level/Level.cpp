@@ -152,6 +152,9 @@ bool Level::checkAndHandleWater(const AABB& box, const Material* material, Entit
                         ok = true;
                         tile->handleEntityInside(this, x, y, z, e, current);
                     }
+                } else if (material == Material::water && isWaterlogged(x, y, z)) {
+                    // Still water sharing the block with a slab, fence...: in it, no current.
+                    ok = true;
                 }
             }
 	float len = current.length();
@@ -637,6 +640,24 @@ const Material* Level::getMaterial(int x, int y, int z) {
     return Tile::tiles[t]->material;
 }
 
+bool Level::isWaterlogged(int x, int y, int z) {
+    if (y < 0 || y >= DEPTH) return false;
+    if (x < 0 || z < 0 || x >= LEVEL_WIDTH || z >= LEVEL_DEPTH) return false;
+    return getChunk(x >> 4, z >> 4)->isWaterlogged(x & 15, y, z & 15);
+}
+
+void Level::setWaterlogged(int x, int y, int z, bool on) {
+    if (y < 0 || y >= DEPTH) return;
+    if (on && !Tile::canBeWaterlogged(getTile(x, y, z))) return;
+    LevelChunk* c = getChunk(x >> 4, z >> 4);
+    if (c->isWaterlogged(x & 15, y, z & 15) == on) return;
+    c->setWaterlogged(x & 15, y, z & 15, on);
+    c->markUnsaved();
+    c->updateMap[(x & 15) | ((z & 15) << 4)] |= (1 << (y >> LevelChunk::UpdateMapBitShift));
+    tileUpdated(x, y, z, getTile(x, y, z));
+    if (on && !isClientSide) spreadFromWaterlogged(x, y, z);
+}
+
 int Level::getData(int x, int y, int z) {
     //if (x < -MAX_LEVEL_SIZE || z < -MAX_LEVEL_SIZE || x >= MAX_LEVEL_SIZE || z > MAX_LEVEL_SIZE) {
     //    return 0;
@@ -761,6 +782,35 @@ void Level::updateNeighborsAt(int x, int y, int z, int tile) {
     if (noNeighborUpdate || isClientSide) return;
     Tile* tile = Tile::tiles[getTile(x, y, z)];
     if (tile != NULL) tile->neighborChanged(this, x, y, z, type);
+    if (isWaterlogged(x, y, z)) spreadFromWaterlogged(x, y, z);
+}
+
+/** A block holding water is a source nothing ticks (it is not a water tile),
+    so it pours here, when something next to it changes: down if it can, else
+    to the sides -- what LiquidTileDynamic::tick does for a source. The flowing
+    water it starts carries on by itself, and is fed by this block because
+    LiquidTile::getDepth counts it as a source. */
+void Level::spreadFromWaterlogged(int x, int y, int z) {
+    static const int side[4][2] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+    struct Can {
+        static bool flowInto(Level* level, int x, int y, int z) {
+            if (y < 0 || y >= DEPTH) return false;
+            const int t = level->getTile(x, y, z);
+            if (t == 0) return true;
+            if (!Tile::breaksInWater(t)) return false;
+            Tile::tiles[t]->spawnResources(level, x, y, z, level->getData(x, y, z));
+            return true;
+        }
+    };
+    if (Can::flowInto(this, x, y - 1, z)) {
+        setTileAndData(x, y - 1, z, Tile::water->id, 8);
+        return;
+    }
+    for (int i = 0; i < 4; ++i) {
+        const int xx = x + side[i][0], zz = z + side[i][1];
+        if (Can::flowInto(this, xx, y, zz))
+            setTileAndData(xx, y, zz, Tile::water->id, 1);
+    }
 }
 
 bool Level::canSeeSky(int x, int y, int z) {
@@ -1673,6 +1723,7 @@ bool Level::containsMaterial(const AABB& box, const Material* material) {
                 if (tile != NULL && tile->material == material) {
                     return true;
                 }
+                if (material == Material::water && isWaterlogged(x, y, z)) return true;
             }
     return false;
 }
@@ -2016,6 +2067,8 @@ bool Level::mayPlace(int tileId, int x, int y, int z, bool ignoreEntities,unsign
     AABB* aabb = tile->getAABB(this, x, y, z);
     if (ignoreEntities) aabb = NULL;
     if (aabb != NULL && !isUnobstructed(*aabb)) return false;
+    // Torches, ladders, flowers and the like cannot be put in water.
+    if (Tile::breaksInWater(tileId) && (targetTile == Tile::water || targetTile == Tile::calmWater || isWaterlogged(x, y, z))) return false;
     if (targetTile == Tile::water || targetTile == Tile::calmWater || targetTile == Tile::lava || targetTile == Tile::calmLava || targetTile == (Tile*)(Tile::fire) || targetTile == Tile::topSnow) targetTile = NULL;
     if (tileId > 0 && targetTile == NULL) {
         if (tile->mayPlace(this, x, y, z, face)) {
@@ -2292,4 +2345,8 @@ AdventureSettings::AdventureSettings()
 	immutableWorld(false),
 	showNameTags(false)
 {
+}
+
+bool LevelSource::hasWater(int x, int y, int z) {
+    return getMaterial(x, y, z) == Material::water || isWaterlogged(x, y, z);
 }

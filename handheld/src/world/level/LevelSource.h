@@ -24,6 +24,11 @@ public:
 
     virtual int getData(int x, int y, int z) = 0;
 
+	/// Water sharing this block with a stair, slab, fence... (LevelChunk::isWaterlogged).
+	virtual bool isWaterlogged(int x, int y, int z) { return false; }
+	/// Water here, alone or sharing the block.
+	bool hasWater(int x, int y, int z);
+
     virtual const Material* getMaterial(int xx, int i, int zz) = 0;
 
     virtual bool isSolidRenderTile(int x, int i, int z) = 0;

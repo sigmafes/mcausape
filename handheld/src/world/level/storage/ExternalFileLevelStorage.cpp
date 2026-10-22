@@ -395,6 +395,8 @@ void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 	chunkData.Write((const char*)levelChunk->blockLight.data, CHUNK_BLOCK_COUNT / 2);
 
 	chunkData.Write((const char*)levelChunk->updateMap, CHUNK_COLUMNS);
+	// Last, so a chunk saved before waterlogging simply ends here (see load).
+	chunkData.Write((const char*)levelChunk->waterlogged, LevelChunk::WaterloggedBytes);
 
 	file->writeChunk(levelChunk->x, levelChunk->z, chunkData);
 
@@ -437,6 +439,9 @@ LevelChunk* ExternalFileLevelStorage::load(Level* level, int x, int z)
 		chunkData->Read((char*)levelChunk->blockLight.data, CHUNK_BLOCK_COUNT / 2);
 	}
 	chunkData->Read((char*)levelChunk->updateMap, CHUNK_COLUMNS);
+	// Chunks saved before waterlogging stop here: nothing in them holds water.
+	if (chunkData->GetNumberOfUnreadBits() >= (RakNet::BitSize_t) LevelChunk::WaterloggedBytes * 8)
+		chunkData->Read((char*)levelChunk->waterlogged, LevelChunk::WaterloggedBytes);
 	// This will be difficult to maintain.. Storage version could be per chunk
 	// too (but probably better to just read all -> write all, so that all
 	// chunks got same version anyway)

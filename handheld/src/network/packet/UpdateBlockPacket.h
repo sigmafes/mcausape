@@ -2,6 +2,7 @@
 #define NET_MINECRAFT_NETWORK_PACKET__UpdateBlockPacket_H__
 
 #include "../Packet.h"
+#include "../../world/level/Level.h"
 
 class UpdateBlockPacket : public Packet
 {
@@ -11,6 +12,13 @@ public:
 	unsigned char y;
 	unsigned char blockId;
 	unsigned char blockData;
+
+	/// blockData's 4 bits are the block's own data; this one, above them, says
+	/// water shares the block (Level::isWaterlogged).
+	static const int WaterloggedBit = 0x10;
+	static int dataWithWater(Level* level, int x, int y, int z) {
+		return level->getData(x, y, z) | (level->isWaterlogged(x, y, z) ? WaterloggedBit : 0);
+	}
 
 	UpdateBlockPacket()
 	{

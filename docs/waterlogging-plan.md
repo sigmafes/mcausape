@@ -4,6 +4,18 @@ Es lo que Java Edition llama *waterlogged* (1.13): un bloque que no ocupa
 todo su espacio puede estar dentro de un bloque de agua. Se ve el agua
 alrededor, el jugador nada ahí y, al romper el bloque, queda el agua.
 
+## Estado
+
+Implementado: capa de datos, guardado y red (protocolo 14); colocar en una
+fuente, romper deja la fuente, cubos lleno y vacío, losa doble saca el agua;
+bloques que el agua rompe (no se colocan en agua, el agua que corre los
+arrastra; cuadros incluidos); el agua del bloque alimenta y extiende el agua
+de alrededor, se nada y se ahoga ahí, vista bajo el agua; dibujo del agua
+dentro del bloque sin caras entre agua.
+
+Pendiente: la luz (un bloque con agua todavía no oscurece como el agua) y
+apagar fuego.
+
 ## Cómo funciona hoy
 
 - Cada posición guarda **un id (8 bits) y un dato (4 bits)**. El agua es un id

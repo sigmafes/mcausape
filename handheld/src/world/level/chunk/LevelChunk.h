@@ -88,6 +88,17 @@ public:
 	virtual bool setTileAndData(int x, int y, int z, int tile_, int data_);
 
 	virtual int getData(int x, int y, int z);
+
+	/// Water sharing the block with a block that allows it (Tile::canBeWaterlogged).
+	bool isWaterlogged(int x, int y, int z) const {
+		const int i = x << 11 | z << 7 | y;
+		return (waterlogged[i >> 3] >> (i & 7)) & 1;
+	}
+	void setWaterlogged(int x, int y, int z, bool on) {
+		const int i = x << 11 | z << 7 | y;
+		if (on) waterlogged[i >> 3] |= (unsigned char)(1 << (i & 7));
+		else waterlogged[i >> 3] &= (unsigned char) ~(1 << (i & 7));
+	}
 	virtual void setData(int x, int y, int z, int val);
 
 	virtual void setBlocks(unsigned char* newBlocks, int sub);
@@ -100,6 +111,7 @@ public:
     virtual bool isEmpty();
     const TEMap& getTileEntityMap() const;
 private:
+	void applyWaterlogging(int x, int y, int z, int old, int oldData, int& tile, int& data_);
 	void lightGap(int x, int z, int source);
 	void lightGaps(int x, int z);
 
@@ -120,6 +132,10 @@ public:
 
 	char heightmap[CHUNK_COLUMNS];
 	unsigned char updateMap[CHUNK_COLUMNS]; // marks regions within block columns that have been modified
+	/// One bit a block, same order as blocks[]: see isWaterlogged. Saved after
+	/// the rest of the chunk and sent in ChunkDataPacket.
+	static const int WaterloggedBytes = CHUNK_BLOCK_COUNT / 8;
+	unsigned char waterlogged[WaterloggedBytes];
 	int minHeight;
 
 	const int x, z;

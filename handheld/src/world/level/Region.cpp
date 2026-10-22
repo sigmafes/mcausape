@@ -103,6 +103,14 @@ int Region::getRawBrightness(int x, int y, int z, bool propagate) {
     return chunks[xc][zc]->getRawBrightness(x & 15, y, z & 15, level->skyDarken);
 }
 
+bool Region::isWaterlogged(int x, int y, int z) {
+    if (y < 0 || y >= Level::DEPTH) return false;
+    int xc = (x >> 4) - xc1;
+    int zc = (z >> 4) - zc1;
+    if (xc < 0 || zc < 0 || xc >= size_x || zc >= size_z || !chunks[xc][zc]) return false;
+    return chunks[xc][zc]->isWaterlogged(x & 15, y, z & 15);
+}
+
 int Region::getData(int x, int y, int z) {
     if (y < 0) return 0;
     if (y >= Level::DEPTH) return 0;

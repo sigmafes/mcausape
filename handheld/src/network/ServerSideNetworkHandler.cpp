@@ -124,7 +124,7 @@ void ServerSideNetworkHandler::restoreBlocks(const RakNet::RakNetGUID& to, Level
 	for (int i = 0; i < 7; ++i) {
 		const int bx = x + d[i][0], by = y + d[i][1], bz = z + d[i][2];
 		if (by < 0 || by >= LEVEL_HEIGHT) continue;
-		UpdateBlockPacket packet(bx, by, bz, level->getTile(bx, by, bz), level->getData(bx, by, bz));
+		UpdateBlockPacket packet(bx, by, bz, level->getTile(bx, by, bz), UpdateBlockPacket::dataWithWater(level, bx, by, bz));
 		packet.priority = HIGH_PRIORITY;
 		packet.reliability = RELIABLE_ORDERED;
 		raknetInstance->send(to, packet);
@@ -218,7 +218,7 @@ void ServerSideNetworkHandler::tileChangedIn(Level* level, int x, int y, int z)
 	//LOGI("tileChanged(%d, %d, %d)\n", x, y, z);
 
 	// broadcast change event
-	UpdateBlockPacket packet(x, y, z, level->getTile(x, y, z), level->getData(x, y, z));
+	UpdateBlockPacket packet(x, y, z, level->getTile(x, y, z), UpdateBlockPacket::dataWithWater(level, x, y, z));
 	// In order: two changes to one block must arrive as they happened.
 	packet.priority = HIGH_PRIORITY;
 	packet.reliability = RELIABLE_ORDERED;

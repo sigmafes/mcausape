@@ -131,7 +131,12 @@ private:
     bool isWaterBlocking(Level* level, int x, int y, int z) {
         int t = level->getTile(x, y, z);
 		if (t == 0) return false;
-        if (t == Tile::door_wood->id /*|| t == Tile::door_iron->id */ || t == Tile::sign->id || t == Tile::ladder->id || t == Tile::reeds->id) {
+		// Torches, ladders, flowers, mushrooms, saplings and cactus are washed
+		// away (trySpreadTo drops them); blocks that can hold water are never
+		// filled from the side by flowing water -- only a source fills them.
+		if (Tile::breaksInWater(t)) return false;
+		if (Tile::canBeWaterlogged(t)) return true;
+        if (t == Tile::door_wood->id /*|| t == Tile::door_iron->id */ || t == Tile::sign->id || t == Tile::reeds->id) {
             return true;
         }
         const Material* m = Tile::tiles[t]->material;

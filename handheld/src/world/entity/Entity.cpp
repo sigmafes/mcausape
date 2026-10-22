@@ -372,6 +372,11 @@ bool Entity::isUnderLiquid(const Material* material) {
     int yt = Mth::floor((float)Mth::floor(yp));
     int zt = Mth::floor(z);
     int t = level->getTile(xt, yt, zt);
+    // Eyes in a block holding water (waterlogged) are under a full block of it.
+    if (material == Material::water && level->isWaterlogged(xt, yt, zt)) {
+        float hh = LiquidTile::getHeight(0) - 1 / 9.0f;
+        return yp < yt + 1 - hh;
+    }
     if (t != 0 && Tile::tiles[t]->material == material) {
         float hh = LiquidTile::getHeight(level->getData(xt, yt, zt)) - 1 / 9.0f;
         float h = yt + 1 - hh;

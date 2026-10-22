@@ -16,7 +16,8 @@
 class ChunkDataPacket : public Packet
 {
 public:
-	static const int RawSize = CHUNK_BLOCK_COUNT + 3 * (CHUNK_BLOCK_COUNT / 2);
+	// ...and the waterlogged bits (LevelChunk::waterlogged), last.
+	static const int RawSize = CHUNK_BLOCK_COUNT + 3 * (CHUNK_BLOCK_COUNT / 2) + LevelChunk::WaterloggedBytes;
 
 	int x, z;
 	std::vector<unsigned char> deflated;
@@ -35,6 +36,7 @@ public:
 		memcpy(&raw[CHUNK_BLOCK_COUNT], chunk->data.data, half);
 		memcpy(&raw[CHUNK_BLOCK_COUNT + half], chunk->skyLight.data, half);
 		memcpy(&raw[CHUNK_BLOCK_COUNT + 2 * half], chunk->blockLight.data, half);
+		memcpy(&raw[CHUNK_BLOCK_COUNT + 3 * half], chunk->waterlogged, LevelChunk::WaterloggedBytes);
 
 		uLongf size = compressBound(RawSize);
 		deflated.resize(size);
@@ -56,6 +58,7 @@ public:
 		memcpy(chunk->data.data, &raw[CHUNK_BLOCK_COUNT], half);
 		memcpy(chunk->skyLight.data, &raw[CHUNK_BLOCK_COUNT + half], half);
 		memcpy(chunk->blockLight.data, &raw[CHUNK_BLOCK_COUNT + 2 * half], half);
+		memcpy(chunk->waterlogged, &raw[CHUNK_BLOCK_COUNT + 3 * half], LevelChunk::WaterloggedBytes);
 		return true;
 	}
 

@@ -111,6 +111,13 @@ public:
     static bool shouldTick[NUM_BLOCK_TYPES];
     static bool solid[NUM_BLOCK_TYPES];
     static bool isEntityTile[NUM_BLOCK_TYPES];
+	/// Water can share the block with it (Java's waterlogged): stairs, half
+	/// slabs, fences and gates, doors, glass and panes, walls, trapdoors,
+	/// chests, beds, the enchanting table, the brewing stand, signs, leaves.
+	static bool canBeWaterlogged(int id);
+	/// Cannot stand in water: not placed in it, washed away by it (torches,
+	/// ladders, flowers, mushrooms, saplings, cactus).
+	static bool breaksInWater(int id);
     static int lightBlock[NUM_BLOCK_TYPES];
     static bool translucent[NUM_BLOCK_TYPES];
     static int lightEmission[NUM_BLOCK_TYPES];

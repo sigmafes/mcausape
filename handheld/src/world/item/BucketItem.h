@@ -51,6 +51,13 @@ public:
 			return instance;
 
 		const int x = hit.x, y = hit.y, z = hit.z;
+		// A stair, slab, fence... holding water gives it up and keeps standing.
+		if (level->isWaterlogged(x, y, z)) {
+			level->setWaterlogged(x, y, z, false);
+			if (!player->abilities.instabuild)
+				instance->id = Item::bucket_water->id;
+			return instance;
+		}
 		const Material* m = level->getMaterial(x, y, z);
 		if ((m != Material::water && m != Material::lava) || level->getData(x, y, z) != 0)
 			return instance;
@@ -69,6 +76,15 @@ public:
 	bool useOn(ItemInstance* instance, Player* player, Level* level, int x, int y, int z, int face, float clickX, float clickY, float clickZ) {
 		if (content == 0)
 			return false;
+
+		// Water poured on a block that can hold it fills that block (Java's
+		// waterlogging) instead of the space in front of it.
+		if (content == Tile::water->id && Tile::canBeWaterlogged(level->getTile(x, y, z)) && !level->isWaterlogged(x, y, z)) {
+			level->setWaterlogged(x, y, z, true);
+			if (!player->abilities.instabuild)
+				instance->id = Item::bucket_empty->id;
+			return true;
+		}
 
 		switch (face) {
 			case Facing::DOWN : y--; break;

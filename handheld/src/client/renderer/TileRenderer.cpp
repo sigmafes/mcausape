@@ -539,7 +539,9 @@ bool TileRenderer::tesselateWaterInWorld( Tile* tt, int x, int y, int z )
 	const float yo1 = 1;
 
 	const Material* m = tt->material;
-	int data = level->getData(x, y, z);
+	// The water of a block holding it (waterlogged) is a still, full source;
+	// the block's own data (a slab's half, a stair's facing) is not the water's.
+	int data = level->isWaterlogged(x, y, z) ? 0 : level->getData(x, y, z);
 
 	float h0 = getWaterHeight(x, y, z, m);
 	float h1 = getWaterHeight(x, y, z + 1, m);
@@ -668,12 +670,14 @@ float TileRenderer::getWaterHeight( int x, int y, int z, const Material* m )
 		int xx = x - (i & 1);
 		int yy = y;
 		int zz = z - ((i >> 1) & 1);
-		if (level->getMaterial(xx, yy + 1, zz) == m) {
+		const bool water = (m == Material::water);
+		if (level->getMaterial(xx, yy + 1, zz) == m || (water && level->isWaterlogged(xx, yy + 1, zz))) {
 			return 1;
 		}
 		const Material* tm = level->getMaterial(xx, yy, zz);
-		if (tm == m) {
-			int d = level->getData(xx, yy, zz);
+		const bool logged = water && level->isWaterlogged(xx, yy, zz);
+		if (tm == m || logged) {
+			int d = logged ? 0 : level->getData(xx, yy, zz);
 			if (d >= 8 || d == 0) {
 				h += (LiquidTile::getHeight(d)) * 10;
 				count += 10;

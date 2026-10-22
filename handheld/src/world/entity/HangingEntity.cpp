@@ -82,6 +82,8 @@ void HangingEntity::tick() {
 }
 
 bool HangingEntity::survives() {
+	// A painting cannot hang in water: not put there, and dropped when water reaches it.
+	if (level->containsAnyLiquid(bb.grow(0.05f, 0.05f, 0.05f))) return false;
 	if (!level->getCubes(this, bb).empty()) {
 		return false;
 	} else {

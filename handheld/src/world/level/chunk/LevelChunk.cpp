@@ -53,6 +53,28 @@ void LevelChunk::init()
 	lastSaveTime = 0;
 	memset(heightmap, 0, 256);
 	memset(updateMap, 0, 256);
+	memset(waterlogged, 0, sizeof(waterlogged));
+}
+
+/** Water and a block in one place (Java's waterlogging), decided where every
+    block change lands. A block that allows it, put where a water source is,
+    keeps the water; one replaced by air leaves its water behind as a source
+    (whatever broke it: a player, an explosion, the host for a visitor); any
+    other block takes the water away. `tile` and `data` are what is about to
+    be written and come back changed when the water stays instead. */
+void LevelChunk::applyWaterlogging(int x, int y, int z, int old, int oldData, int& tile, int& data_)
+{
+	const bool wasLogged = isWaterlogged(x, y, z);
+	const bool wasSource = (old == Tile::water->id || old == Tile::calmWater->id) && oldData == 0;
+	if (Tile::canBeWaterlogged(tile)) {
+		setWaterlogged(x, y, z, wasLogged || wasSource);
+	} else {
+		setWaterlogged(x, y, z, false);
+		if (wasLogged && tile == 0) {
+			tile = Tile::calmWater->id;
+			data_ = 0;
+		}
+	}
 }
 
 /*public*/
@@ -66,6 +88,7 @@ bool LevelChunk::setTileAndData(int x, int y, int z, int tile_, int data_) {
     if (old == tile && data.get(x, y, z) == data_) return false;
     int xOffs = xt + x;
     int zOffs = zt + z;
+    applyWaterlogging(x, y, z, old, data.get(x, y, z), tile, data_);
     blocks[x << 11 | z << 7 | y] = (unsigned char) tile;
     if (old != 0) {
 		if (!level->isClientSide) {
@@ -112,11 +135,13 @@ bool LevelChunk::setTile(int x, int y, int z, int tile_) {
     if (old == tile_) return false;
     int xOffs = xt + x;
     int zOffs = zt + z;
+    int newData = 0;
+    applyWaterlogging(x, y, z, old, data.get(x, y, z), tile, newData);
     blocks[x << 11 | z << 7 | y] = (unsigned char) (tile & 0xff);
     if (old != 0) {
         Tile::tiles[old]->onRemove(level, xOffs, y, zOffs);
     }
-    data.set(x, y, z, 0);
+    data.set(x, y, z, newData);
 
     if (Tile::lightBlock[tile & 0xff] != 0) {
         if (y >= oldHeight) {

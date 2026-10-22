@@ -25,6 +25,7 @@ public:
 	int   getRawBrightness(int x, int y, int z, bool propagate);
 
 	int getData(int x, int y, int z);
+	bool isWaterlogged(int x, int y, int z);
 	const Material* getMaterial(int x, int y, int z);
 	Biome* getBiome(int x, int z);
 private:

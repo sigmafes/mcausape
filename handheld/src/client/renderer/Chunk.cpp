@@ -149,6 +149,18 @@ void Chunk::rebuild()
 						} else if (renderLayer == l) {
 							rendered |= tileRenderer.tesselateInWorld(tile, x, y, z);
 						}
+
+						// A block holding water also draws the water round it,
+						// in the water's own (translucent) pass.
+						if (region.isWaterlogged(x, y, z)) {
+							const int waterLayer = Tile::calmWater->getRenderLayer();
+							if (waterLayer > l) {
+								renderNextLayer = true;
+								doRenderLayer[waterLayer] = true;
+							} else if (waterLayer == l) {
+								rendered |= tileRenderer.tesselateWaterInWorld(Tile::calmWater, x, y, z);
+							}
+						}
 					}
 				}
 			}

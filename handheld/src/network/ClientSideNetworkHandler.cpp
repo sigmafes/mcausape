@@ -483,7 +483,8 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, UpdateBl
 
 		int y = packet->y;
 		int tileId = Tile::transformToValidBlockId(packet->blockId, x, y, z);
-		level->setTileAndData(x, y, z, tileId, packet->blockData);
+		level->setTileAndData(x, y, z, tileId, packet->blockData & 15);
+		level->setWaterlogged(x, y, z, (packet->blockData & UpdateBlockPacket::WaterloggedBit) != 0);
 	} else {
 		SBufferedBlockUpdate update;
 		update.blockId = packet->blockId;
@@ -553,8 +554,10 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChunkDat
 		const SBufferedBlockUpdate& update = bufferedBlockUpdates[i];
 		if ((update.x >> 4) == packet->x && (update.z >> 4) == packet->z) {
 			int tileId = Tile::transformToValidBlockId(update.blockId, update.x, update.y, update.z);
-			if (update.setData)
-				level->setTileAndData(update.x, update.y, update.z, tileId, update.blockData);
+			if (update.setData) {
+				level->setTileAndData(update.x, update.y, update.z, tileId, update.blockData & 15);
+				level->setWaterlogged(update.x, update.y, update.z, (update.blockData & UpdateBlockPacket::WaterloggedBit) != 0);
+			}
 			else
 				level->setTile(update.x, update.y, update.z, tileId);
 			bufferedBlockUpdates.erase(bufferedBlockUpdates.begin() + i);

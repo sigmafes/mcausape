@@ -815,3 +815,42 @@ Tile* Tile::setCategory(int category) {
 	this->category = category;
 	return this;
 }
+
+
+// Built on first use: Tile::tiles is complete by then, and a table spares a
+// chain of dynamic_casts on every block placed or broken.
+static bool s_waterTablesBuilt = false;
+static bool s_waterloggable[256];
+static bool s_breaksInWater[256];
+
+static void buildWaterTables()
+{
+	s_waterTablesBuilt = true;
+	for (int id = 0; id < 256; ++id) {
+		Tile* t = Tile::tiles[id];
+		s_waterloggable[id] = false;
+		s_breaksInWater[id] = false;
+		if (!t) continue;
+		StoneSlabTile* slab = dynamic_cast<StoneSlabTile*>(t);
+		s_waterloggable[id] = (slab && !slab->isSolidRender())
+			|| dynamic_cast<StairTile*>(t) || dynamic_cast<FenceTile*>(t) || dynamic_cast<FenceGateTile*>(t)
+			|| dynamic_cast<DoorTile*>(t) || dynamic_cast<GlassTile*>(t) || dynamic_cast<ThinFenceTile*>(t)
+			|| dynamic_cast<WallTile*>(t) || dynamic_cast<TrapDoorTile*>(t) || dynamic_cast<ChestTile*>(t)
+			|| dynamic_cast<BedTile*>(t) || dynamic_cast<EnchantTableTile*>(t) || dynamic_cast<BrewingStandTile*>(t)
+			|| dynamic_cast<SignTile*>(t) || dynamic_cast<LeafTile*>(t);
+		s_breaksInWater[id] = dynamic_cast<TorchTile*>(t) || dynamic_cast<LadderTile*>(t)
+			|| dynamic_cast<Bush*>(t) || dynamic_cast<CactusTile*>(t);
+	}
+}
+
+bool Tile::canBeWaterlogged(int id)
+{
+	if (!s_waterTablesBuilt) buildWaterTables();
+	return id > 0 && id < 256 && s_waterloggable[id];
+}
+
+bool Tile::breaksInWater(int id)
+{
+	if (!s_waterTablesBuilt) buildWaterTables();
+	return id > 0 && id < 256 && s_breaksInWater[id];
+}

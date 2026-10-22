@@ -43,6 +43,8 @@ public:
     bool shouldRenderFace(LevelSource* level, int x, int y, int z, int face) {
         const Material* m = level->getMaterial(x, y, z);
         if (m == this->material) return false;
+        // No wall of water inside water: a neighbour holding water is water too.
+        if (this->material == Material::water && level->isWaterlogged(x, y, z)) return false;
         if (m == Material::ice) return false;
         if (face == 1) return true;
         return Tile::shouldRenderFace(level, x, y, z, face);
@@ -147,12 +149,17 @@ protected:
             level->addParticle(PARTICLETYPE(largesmoke), (float)x + Mth::random(), (float)y + 1.2f, (float)z + Mth::random(), 0, 0, 0);
         }
     }
+    // A block holding water (waterlogged) is a still source to the water
+    // around it: flows next to it are fed by it, and it counts towards a new
+    // source between two.
     int getDepth(Level* level, int x, int y, int z) {
+        if (material == Material::water && level->isWaterlogged(x, y, z)) return 0;
         if (level->getMaterial(x, y, z) != material) return -1;
         else return level->getData(x, y, z);
     }
 
     int getRenderedDepth(LevelSource* level, int x, int y, int z) {
+        if (material == Material::water && level->isWaterlogged(x, y, z)) return 0;
         if (level->getMaterial(x, y, z) != material) return -1;
         int d = level->getData(x, y, z);
         if (d >= 8) d = 0;
@@ -164,12 +171,12 @@ private:
         if (level->getTile(x, y, z) != id) return;
         if (material == Material::lava) {
             bool water = false;
-            if (water || level->getMaterial(x, y, z - 1) == Material::water) water = true;
-            if (water || level->getMaterial(x, y, z + 1) == Material::water) water = true;
-            if (water || level->getMaterial(x - 1, y, z) == Material::water) water = true;
-            if (water || level->getMaterial(x + 1, y, z) == Material::water) water = true;
+            if (water || level->hasWater(x, y, z - 1)) water = true;
+            if (water || level->hasWater(x, y, z + 1)) water = true;
+            if (water || level->hasWater(x - 1, y, z)) water = true;
+            if (water || level->hasWater(x + 1, y, z)) water = true;
             //            if (water || level->getMaterial(x, y - 1, z) == Material::water) water = true; // NM
-            if (water || level->getMaterial(x, y + 1, z) == Material::water) water = true;
+            if (water || level->hasWater(x, y + 1, z)) water = true;
             if (water) {
                 int data = level->getData(x, y, z);
                 if (data == 0) {

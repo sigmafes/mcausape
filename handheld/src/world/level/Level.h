@@ -119,6 +119,11 @@ public:
     void setTilesDirty(int x0, int y0, int z0, int x1, int y1, int z1);
 
     const Material* getMaterial(int x, int y, int z);
+	bool isWaterlogged(int x, int y, int z);
+	/// Puts water into (or takes it out of) a block that allows it; tells the
+	/// listeners, so it is redrawn and reaches visitors.
+	void setWaterlogged(int x, int y, int z, bool on);
+	void spreadFromWaterlogged(int x, int y, int z);
 
 	void loadPlayer(Player* player, bool doAddPlayer);
 

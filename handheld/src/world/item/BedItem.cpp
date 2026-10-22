@@ -1,6 +1,7 @@
 #include "BedItem.h"
 #include "../level/Level.h"
 #include "../level/tile/BedTile.h"
+#include "../level/material/Material.h"
 #include "../entity/player/Player.h"
 #include "../Direction.h"
 #include "../Facing.h"
@@ -20,7 +21,9 @@ bool BedItem::useOn( ItemInstance* itemInstance, Player* player, Level* level, i
 	if (dir == Direction::EAST) xra = 1;
 
 	//if (!player->mayBuild(x, y, z) || !player->mayBuild(x + xra, y, z + zra)) return false;
-	if (level->isEmptyTile(x, y, z) && level->isEmptyTile(x + xra, y, z + zra) && level->isSolidBlockingTile(x, y - 1, z) && level->isSolidBlockingTile(x + xra, y - 1, z + zra)) {
+	// Air, or water to share the block with (waterlogging): a bed can stand in water.
+	#define BED_ROOM(xx, zz) (level->isEmptyTile(xx, y, zz) || (level->getMaterial(xx, y, zz) == Material::water && level->getData(xx, y, zz) == 0))
+	if (BED_ROOM(x, z) && BED_ROOM(x + xra, z + zra) && level->isSolidBlockingTile(x, y - 1, z) && level->isSolidBlockingTile(x + xra, y - 1, z + zra)) {
 
 		level->setTileAndData(x, y, z, tile->id, dir);
 		// double-check that the bed was successfully placed
