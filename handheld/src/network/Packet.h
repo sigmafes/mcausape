@@ -91,6 +91,9 @@ enum MinecraftPacketIds
 
 	// Everything else this port adds, see ExtPacket.
 	PACKET_EXT,
+
+	// A visitor's saved player, see PlayerDataPacket.
+	PACKET_PLAYERDATA,
 /*
 	PACKET_PRELOGIN,
 	PACKET_CHAT,

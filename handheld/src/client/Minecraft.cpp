@@ -392,6 +392,9 @@ void Minecraft::leaveGame(bool renameLevel /*=false*/)
 	isGeneratingLevel = false;
 	bool saveLevel = level && (!level->isClientSide || renameLevel);
 	inputLocked = false;
+	// A visitor's last inventory and position, to the host before we go.
+	if (level && level->isClientSide && netCallback)
+		static_cast<ClientSideNetworkHandler*>(netCallback)->sendPlayerData();
 
 	raknetInstance->disconnect();
 	if (saveLevel) {

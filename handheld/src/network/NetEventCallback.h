@@ -52,6 +52,7 @@ class ChatPacket;
 class SignUpdatePacket;
 class PlayerSkinPacket;
 class ExtPacket;
+class PlayerDataPacket;
 class Minecraft;
 class Level;
 
@@ -125,6 +126,7 @@ public:
 	virtual void handle(const RakNet::RakNetGUID& source, AdventureSettingsPacket* packet) {}
 	virtual void handle(const RakNet::RakNetGUID& source, PlayerSkinPacket* packet) {}
 	virtual void handle(const RakNet::RakNetGUID& source, ExtPacket* packet) {}
+	virtual void handle(const RakNet::RakNetGUID& source, PlayerDataPacket* packet) {}
 
 	/// Once per game tick, from Minecraft::tick.
 	virtual void tick() {}

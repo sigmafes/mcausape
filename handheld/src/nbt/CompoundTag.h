@@ -226,6 +226,23 @@ public:
         return false;
     }
 
+	/// Takes a child out without deleting it (NULL if absent): the caller owns it.
+	Tag* take(const std::string& name) {
+		TagMap::iterator it = tags.find(name);
+		if (it == tags.end()) return NULL;
+		Tag* t = it->second;
+		tags.erase(it);
+		return t;
+	}
+
+	/// Takes a child out and deletes it.
+	void remove(const std::string& name) {
+		if (Tag* t = take(name)) {
+			t->deleteChildren();
+			delete t;
+		}
+	}
+
 	void deleteChildren() {
 		TagMap::iterator it = tags.begin();
 		for (; it != tags.end(); ++it) {

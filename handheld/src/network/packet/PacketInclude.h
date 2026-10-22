@@ -52,5 +52,6 @@
 #include "UseItemPacket.h"
 #include "PlayerSkinPacket.h"
 #include "ExtPacket.h"
+#include "PlayerDataPacket.h"
 
 #endif /*NET_MINECRAFT_NETWORK_PACKET__PacketInclude_H__*/

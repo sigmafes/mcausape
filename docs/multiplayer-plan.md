@@ -49,6 +49,11 @@ Fases 0 a 3 hechas. Banco de pruebas (`tools/mptest`), todo PASS:
 | Vuelta al Overworld | 26 s |
 | Bloque en vivo con 100 cerdos | 189 ms |
 
+Después del Deploy 67: fase 4 (las dos dimensiones siempre cargadas en el
+host, entidades del segundo nivel guardadas cada minuto) y fase 5 (el
+visitante ve la salida del host por el lobby; jugador del visitante guardado
+por nombre en `<mundo>/players/`, atado a `/register`).
+
 ## Plan
 
 Cada fase se compila, se despliega y se prueba por separado. El orden importa:

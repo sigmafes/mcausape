@@ -174,6 +174,9 @@ Packet* MinecraftPackets::createPacket(int id)
 	case PACKET_EXT:
 		packet = new ExtPacket();
 		break;
+	case PACKET_PLAYERDATA:
+		packet = new PlayerDataPacket();
+		break;
 	}
 
     return packet;

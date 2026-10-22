@@ -48,6 +48,8 @@ ClientSideNetworkHandler::ClientSideNetworkHandler(Minecraft* minecraft, IRakNet
 	level(NULL),
 	_kicked(false),
 	_holding(false),
+	_gotPlayerData(false),
+	_syncTicks(0),
 	_holdX(0), _holdY(0), _holdZ(0),
 	numChunksLoaded(0)
 {
@@ -868,8 +870,55 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, Adventur
     packet->fillIn(level->adventureSettings);
 }
 
+/** What the host keeps for our name in this world, sent once on joining:
+    the inventory, armour and health we had. The position is already ours
+    (StartGamePacket put us there), and so is the dimension. */
+void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerDataPacket* packet)
+{
+	LocalPlayer* p = minecraft->player;
+	if (!p || packet->entityId != p->entityId) return;
+	_gotPlayerData = true;
+	_syncTicks = 0;
+
+	CompoundTag* tag = PlayerDataPacket::fromBytes(packet->bytes);
+	if (!tag) return;	// a name new to this world
+	const float x = p->x, y = p->y, z = p->z, yRot = p->yRot, xRot = p->xRot;
+	const int dimension = p->dimension;
+	p->load(tag);
+	tag->deleteChildren();
+	delete tag;
+	p->xo = p->xOld = x; p->yo = p->yOld = y; p->zo = p->zOld = z;
+	p->setPos(x, y, z);
+	p->yRot = p->yRotO = yRot;
+	p->xRot = p->xRotO = xRot;
+	p->xd = p->yd = p->zd = 0;
+	p->dimension = dimension;
+	// In creative the inventory is the item palette, not what was carried.
+	if (p->inventory->isCreative()) p->inventory->clearInventoryWithDefault();
+	if (p->health <= 0) p->health = p->getMaxHealth();
+}
+
+void ClientSideNetworkHandler::sendPlayerData()
+{
+	LocalPlayer* p = minecraft->player;
+	if (!_gotPlayerData || !level || !p || p->health <= 0) return;
+	CompoundTag tag;
+	p->saveWithoutId(&tag);
+	// The palette is not ours to keep; the host holds on to the survival one.
+	if (p->inventory->isCreative()) tag.remove("Inventory");
+	PlayerDataPacket packet(p->entityId, PlayerDataPacket::toBytes(&tag));
+	tag.deleteChildren();
+	packet.priority = MEDIUM_PRIORITY;
+	packet.reliability = RELIABLE_ORDERED;
+	raknetInstance->send(packet);
+}
+
 void ClientSideNetworkHandler::tick()
 {
+	if (_gotPlayerData && level && minecraft->player && ++_syncTicks >= SyncTicks) {
+		_syncTicks = 0;
+		sendPlayerData();
+	}
 	if (!_holding || !level || !minecraft->player) return;
 	if (ringLoaded()) {
 		_holding = false;

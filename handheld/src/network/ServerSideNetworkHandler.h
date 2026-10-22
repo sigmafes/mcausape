@@ -102,6 +102,11 @@ public:
 	bool isAuthed(Player* player);
 	/// Puts the pvp rule on every running level.
 	void applyRules();
+	virtual void handle(const RakNet::RakNetGUID& source, PlayerDataPacket* packet);
+	std::string playerDataPath(const std::string& name, bool makeFolder);
+	std::string readPlayerData(const std::string& name);
+	void writePlayerData(const std::string& name, const std::string& bytes);
+	void sendPlayerData(Player* player);
 	void sendAdventure(Player* player);
 	void restoreBlocks(const RakNet::RakNetGUID& to, Level* level, int x, int y, int z);
 	/// True if /grief off stops this visitor from changing the world (and says so, now and then).
@@ -195,6 +200,7 @@ private:
 		std::vector<int> stream;
 		unsigned int streamPos;
 		Level* streamLevel;
+		bool dataSent;	///< it has been sent its saved player (PlayerDataPacket)
 	};
 	std::vector<Session> _sessions;
 	Session* sessionOf(const RakNet::RakNetGUID& guid);

@@ -102,6 +102,15 @@ private:
 	/// Until the chunks around the player have come, it is kept where it was put.
 	static const int RingRadius = 4;
 	bool _holding;
+	/// The host has sent the player it keeps for this name (PlayerDataPacket):
+	/// from then on ours is sent back to it, every SyncTicks and on leaving.
+	bool _gotPlayerData;
+	int _syncTicks;
+	static const int SyncTicks = 10 * 20;
+public:
+	virtual void handle(const RakNet::RakNetGUID& source, PlayerDataPacket* packet);
+	void sendPlayerData();
+private:
 	float _holdX, _holdY, _holdZ;
 
 	BlockUpdateList	bufferedBlockUpdates;

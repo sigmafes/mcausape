@@ -24,12 +24,15 @@
 #include "../raknet/RakNetStatistics.h"
 #include "../raknet/GetTime.h"
 #include <algorithm>
+#include <cstdio>
+#include <sys/stat.h>
 #include "../world/level/LevelListener.h"
 #include "../world/level/dimension/Dimension.h"
 #include "../world/level/tile/PortalTile.h"
 #include "../util/Mth.h"
 #if defined(MC_WASM)
 #include "WebRakNetInstance.h"
+#include "../platform/web/WebBridge.h"
 #endif
 #include "../world/level/storage/LevelStorage.h"
 #include "../world/level/storage/LevelData.h"
@@ -329,6 +332,10 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 	LOGI("onDisconnect\n");
 
 	removeSession(guid);
+#if defined(MC_WASM)
+	// Its last player file, out to the browser's storage now.
+	WebBridge::flushSaves();
+#endif
 	// Left before the world finished loading: no player in the level yet.
 	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i) {
 		if (_pendingPlayers[i]->owner == guid) {
@@ -412,10 +419,20 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	//
 	// Valid client version
 	//
-	// A newcomer starts in the Overworld, at its spawn, wherever the host is.
-	Level* level = minecraft->levelForDimension(Dimension::NORMAL, true);
+	// A newcomer starts in the Overworld, at its spawn, wherever the host is;
+	// a name this world has seen before starts where it left, as it was.
+	CompoundTag* saved = PlayerDataPacket::fromBytes(readPlayerData(loginName));
+	const bool savedNether = saved && saved->getInt("Dimension") == Dimension::NETHER;
+	Level* level = minecraft->levelForDimension(savedNether ? Dimension::NETHER : Dimension::NORMAL, true);
 	if (!level) level = minecraft->level;
 	Player* newPlayer = new ServerPlayer(minecraft, level);
+	if (saved) {
+		newPlayer->load(saved);
+		newPlayer->dimension = level->dimension->id;
+		if (newPlayer->health <= 0) newPlayer->health = newPlayer->getMaxHealth();
+		saved->deleteChildren();
+		delete saved;
+	}
 
 	minecraft->gameMode->initAbilities(newPlayer->abilities);
 	newPlayer->owner = source;
@@ -432,6 +449,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	session.griefNotice = 0;
 	session.streamPos = 0;
 	session.streamLevel = NULL;
+	session.dataSent = false;
 	session.creative = minecraft->isCreativeMode();
 	_sessions.push_back(session);
 	applyGameMode(newPlayer, session.creative);
@@ -567,6 +585,8 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 		ExtPacket lock(ExtPacket::AuthLock, isAuthed(newPlayer) ? 0 : 1);
 		sendExt(newPlayer, lock);
 	}
+	// What it had, once it is known to be who it says (see setAuthed).
+	if (isAuthed(newPlayer)) sendPlayerData(newPlayer);
 	startStream(source, level, newPlayer);
 }
 
@@ -1397,6 +1417,85 @@ void ServerSideNetworkHandler::sendMessage(Player* to, const std::string& messag
 	raknetInstance->send(to->owner, packet);
 }
 
+/** Visitors' players, by name, in <world>/players/<name>.dat: the same NBT a
+    world keeps for its host. A visitor's inventory is its own tab's (0.6.1
+    only ever told the host when it died), so the tab sends the whole player
+    every few seconds and on leaving, and the host keeps the latest. */
+std::string ServerSideNetworkHandler::playerDataPath(const std::string& name, bool makeFolder)
+{
+	if (!minecraft->level || !minecraft->level->getLevelStorage()) return "";
+	const std::string folder = minecraft->level->getLevelStorage()->getFolder();
+	if (folder.empty()) return "";
+	const std::string dir = folder + "/players";
+	if (makeFolder) mkdir(dir.c_str(), 0755);
+	return dir + "/" + ServerAccess::key(name) + ".dat";
+}
+
+std::string ServerSideNetworkHandler::readPlayerData(const std::string& name)
+{
+	const std::string path = playerDataPath(name, false);
+	std::string bytes;
+	if (path.empty()) return bytes;
+	FILE* fp = fopen(path.c_str(), "rb");
+	if (!fp) return bytes;
+	char buf[4096];
+	size_t n;
+	while ((n = fread(buf, 1, sizeof(buf), fp)) > 0) bytes.append(buf, n);
+	fclose(fp);
+	return bytes;
+}
+
+void ServerSideNetworkHandler::writePlayerData(const std::string& name, const std::string& bytes)
+{
+	const std::string path = playerDataPath(name, true);
+	if (path.empty() || bytes.empty()) return;
+	// Written aside and renamed over, so a tab that dies mid-write keeps the old one.
+	const std::string tmp = path + ".tmp";
+	FILE* fp = fopen(tmp.c_str(), "wb");
+	if (!fp) return;
+	const bool ok = fwrite(bytes.data(), 1, bytes.size(), fp) == bytes.size();
+	fclose(fp);
+	if (ok) ::rename(tmp.c_str(), path.c_str());
+	else ::remove(tmp.c_str());
+}
+
+void ServerSideNetworkHandler::sendPlayerData(Player* player)
+{
+	if (!player || player == (Player*) minecraft->player) return;
+	Session* s = sessionOf(player->owner);
+	if (!s || s->dataSent) return;
+	s->dataSent = true;
+	// Empty for a name never seen here: the tab keeps the fresh player it made.
+	PlayerDataPacket packet(player->entityId, readPlayerData(player->name));
+	packet.priority = HIGH_PRIORITY;
+	packet.reliability = RELIABLE_ORDERED;
+	raknetInstance->send(player->owner, packet);
+}
+
+void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerDataPacket* packet)
+{
+	Player* player = getPlayer(source);
+	Session* s = sessionOf(source);
+	// Not before it was sent its own (it would overwrite it with a fresh
+	// player), and not from someone who has not proved the name is theirs.
+	if (!player || !s || !s->dataSent || !isAuthed(player)) return;
+
+	CompoundTag* tag = PlayerDataPacket::fromBytes(packet->bytes);
+	if (!tag) return;
+	// A creative tab's inventory is the item palette, so it sends none; the
+	// survival one kept from before stays.
+	if (!tag->contains("Inventory")) {
+		if (CompoundTag* old = PlayerDataPacket::fromBytes(readPlayerData(player->name))) {
+			if (Tag* inventory = old->take("Inventory")) tag->put("Inventory", inventory);
+			old->deleteChildren();
+			delete old;
+		}
+	}
+	writePlayerData(player->name, PlayerDataPacket::toBytes(tag));
+	tag->deleteChildren();
+	delete tag;
+}
+
 void ServerSideNetworkHandler::sendExt(Player* to, ExtPacket& packet)
 {
 	if (!to || to == (Player*) minecraft->player) return;
@@ -1446,6 +1545,7 @@ void ServerSideNetworkHandler::setAuthed(Player* player, bool authed)
 	applyGameMode(player, s->creative);
 	ExtPacket lock(ExtPacket::AuthLock, authed ? 0 : 1);
 	sendExt(player, lock);
+	if (authed) sendPlayerData(player);
 }
 
 void ServerSideNetworkHandler::handleAuthCommand(Player* player, const std::string& cmd, const std::string& argument)
