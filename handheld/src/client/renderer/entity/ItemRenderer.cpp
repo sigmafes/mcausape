@@ -1,4 +1,5 @@
 #include "ItemRenderer.h"
+#include "../TerrainAtlas.h"
 #include "EntityRenderDispatcher.h"
 #include "../Tesselator.h"
 #include "../TileRenderer.h"
@@ -87,10 +88,15 @@ void ItemRenderer::render(Entity* itemEntity_, float x, float y, float z, float 
 		}
 		Tesselator& t = Tesselator::instance;
 
-		float u0 = ((icon % 16) * 16 + 0) / 256.0f;
-		float u1 = ((icon % 16) * 16 + 16) / 256.0f;
-		float v0 = ((icon / 16) * 16 + 0) / 256.0f;
-		float v1 = ((icon / 16) * 16 + 16) / 256.0f;
+		// A block's icon is in terrain.png (TerrainAtlas), an item's in gui/items.png (256).
+		const bool block = item->id < 256;
+		const float size = block ? TerrainAtlas::SizeF : 256.0f;
+		const int ix = block ? TerrainAtlas::px(icon) : (icon % 16) * 16;
+		const int iy = block ? TerrainAtlas::py(icon) : (icon / 16) * 16;
+		float u0 = (ix + 0) / size;
+		float u1 = (ix + 16) / size;
+		float v0 = (iy + 0) / size;
+		float v1 = (iy + 16) / size;
 
 		float r = 1.0f;
 		float xo = 0.5f;
@@ -251,17 +257,21 @@ void ItemRenderer::renderGuiItemCorrect(Font* font, Textures* textures, const It
 		}
 		//Tesselator& t = Tesselator::instance;
 		//t.scale2d(Gui::InvGuiScale, Gui::InvGuiScale);
-		blit((float)x, (float)y, (float)(item->getIcon() % 16 * 16), (float)(item->getIcon() / 16 * 16), 16, 16);
+		const int icon = item->getIcon();
+		if (item->id < 256)
+			blit((float)x, (float)y, (float)TerrainAtlas::px(icon), (float)TerrainAtlas::py(icon), 16, 16, TerrainAtlas::SizeF);
+		else
+			blit((float)x, (float)y, (float)(icon % 16 * 16), (float)(icon / 16 * 16), 16, 16);
 		//t.resetScale();
 	}
 	//glEnable(GL_CULL_FACE);
 }
 
 /*static*/
-void ItemRenderer::blit(float x, float y, float sx, float sy, float w, float h) {
+void ItemRenderer::blit(float x, float y, float sx, float sy, float w, float h, float atlasSize) {
 	float blitOffset = 0;
-	const float us = 1 / 256.0f;
-	const float vs = 1 / 256.0f;
+	const float us = 1 / atlasSize;
+	const float vs = 1 / atlasSize;
 	Tesselator& t = Tesselator::instance;
 	t.begin();
 	t.vertexUV(x, y + h, blitOffset, sx * us, (sy + h) * vs);

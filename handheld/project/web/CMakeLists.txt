@@ -122,6 +122,11 @@ target_link_options(minecraftpe PRIVATE
     # Emit minecraftpe.symbols next to the output so wasm stack traces from the
     # browser console (wasm-function[N]) can be resolved to C++ names.
     "--emit-symbol-map"
+
+    # Function names in the wasm itself (its name section), so a crash in the
+    # browser console reads LevelChunk::setTileAndData instead of 0x23d3d5,
+    # with nothing to look up. Costs a little size, not speed.
+    "--profiling-funcs"
 )
 
 set_target_properties(minecraftpe PROPERTIES

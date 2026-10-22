@@ -4,6 +4,7 @@
 //package net.minecraft.client.particle;
 
 #include "../renderer/Tesselator.h"
+#include "../renderer/TerrainAtlas.h"
 #include "../../world/level/Level.h"
 #include "../../world/level/tile/Tile.h"
 #include "../../world/level/tile/GrassTile.h"
@@ -38,10 +39,12 @@ public:
     }
 
     void render(Tesselator& t, float a, float xa, float ya, float za, float xa2, float za2) {
-        float u0 = ((tex & 15) + uo / 4.0f) / 16.0f;
-        float u1 = u0 + 0.999f / 16.0f / 4;
-        float v0 = ((tex >> 4) + vo / 4.0f) / 16.0f;
-        float v1 = v0 + 0.999f / 16.0f / 4;
+        // A quarter of the block's cell (TerrainAtlas), at a random corner.
+        const float cell = 16.0f / TerrainAtlas::SizeF;
+        float u0 = TerrainAtlas::px(tex) / TerrainAtlas::SizeF + uo / 4.0f * cell;
+        float u1 = u0 + 0.999f * cell / 4;
+        float v0 = TerrainAtlas::py(tex) / TerrainAtlas::SizeF + vo / 4.0f * cell;
+        float v1 = v0 + 0.999f * cell / 4;
         float r = 0.1f * size;
 
         float x = (float) (xo + (this->x - xo) * a - xOff);

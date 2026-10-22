@@ -1,4 +1,5 @@
 #include "Textures.h"
+#include "TerrainAtlas.h"
 
 #include "TextureData.h"
 #include "ptexture/DynamicTexture.h"
@@ -166,8 +167,10 @@ void Textures::tick(bool uploadToGraphicsCard)
             tex->bindTexture(this);
 		    for (int xx = 0; xx < tex->replicate; xx++)
 		    for (int yy = 0; yy < tex->replicate; yy++) {
-			    glTexSubImage2D2(GL_TEXTURE_2D, 0, tex->tex % 16 * 16 + xx * 16,
-				    tex->tex / 16 * 16 + yy * 16, 16, 16,
+			    // The animated water, lava, fire and portal cells, where
+			    // TerrainAtlas puts them (the flowing ones cover 2x2).
+			    glTexSubImage2D2(GL_TEXTURE_2D, 0, TerrainAtlas::px(tex->tex) + xx * 16,
+				    TerrainAtlas::py(tex->tex) + yy * 16, 16, 16,
 				    GL_RGBA, GL_UNSIGNED_BYTE, tex->pixels);
 		    }
         }

@@ -25,7 +25,7 @@ public:
 	//void renderGuiItemDecorations(Font* font, Textures* textures, ItemInstance* item, int x, int y);
 	static void renderGuiItemDecorations(const ItemInstance* item, float x, float y);
 
-	static void blit(float x, float y, float sx, float sy, float w, float h);
+	static void blit(float x, float y, float sx, float sy, float w, float h, float atlasSize = 256.0f);
 
 	static void teardown_static();
 private:

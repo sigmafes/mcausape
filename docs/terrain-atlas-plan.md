@@ -4,6 +4,18 @@
 Este documento recoge **todo** lo que en el motor asume ese tamaño, por qué
 ampliarlo "a lo bruto" rompe el juego entero, y cómo hacerlo sin romper nada.
 
+## Estado
+
+Hecho. `client/renderer/TerrainAtlas.h` (px/py/SizeF) en `TileRenderer`
+(144 usos), `Textures::tick` (animaciones), `TerrainParticle`, `ItemRenderer`
+e `ItemInHandRenderer` (rama bloque/ítem), y `terrain.png` es 512×512 con el
+atlas viejo intacto arriba a la izquierda. Casillas nuevas: 256–1023. Los
+ítems, partículas y la GUI siguen con sus atlas de 256. Sin prueba de
+píxeles todavía.
+
+De paso: la superposición de "cabeza dentro de un bloque" leía la casilla
+mal (usaba `tex % 16` como píxeles) y mostraba una esquina del atlas.
+
 ## Cómo encuentra el juego la textura de un bloque
 
 Cada bloque devuelve un **número de textura** (`Tile::getTexture`, un `int`):

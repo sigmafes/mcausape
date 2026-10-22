@@ -1,4 +1,5 @@
 #include "ItemInHandRenderer.h"
+#include "TerrainAtlas.h"
 
 #include "gles.h"
 #include "Tesselator.h"
@@ -136,12 +137,15 @@ void ItemInHandRenderer::renderItem(Mob* mob,  ItemInstance* item )
 			Tesselator& t = Tesselator::instance;
 			t.beginOverride();
 			t.color(0xff, 0xff, 0xff);
-			const int up = itemIcon & 15;
-			const int vp = itemIcon >> 4;
-			float u1 = (up * 16 + 0.00f) / 256.0f;
-			float u0 = (up * 16 + 15.99f) / 256.0f;
-			float v0 = (vp * 16 + 0.00f) / 256.0f;
-			float v1 = (vp * 16 + 15.99f) / 256.0f;
+			// A block's icon is in terrain.png (TerrainAtlas), an item's in gui/items.png (256).
+			const bool block = item->id < 256;
+			const float size = block ? TerrainAtlas::SizeF : 256.0f;
+			const int up = block ? TerrainAtlas::px(itemIcon) : (itemIcon & 15) * 16;
+			const int vp = block ? TerrainAtlas::py(itemIcon) : (itemIcon >> 4) * 16;
+			float u1 = (up + 0.00f) / size;
+			float u0 = (up + 15.99f) / size;
+			float v0 = (vp + 0.00f) / size;
+			float v1 = (vp + 15.99f) / size;
 
 			float r = 1.0f;
 //			float xo = 0.0f;
@@ -170,7 +174,7 @@ void ItemInHandRenderer::renderItem(Mob* mob,  ItemInstance* item )
 
 			for (int i = 0; i < 16; i++) {
 				float p = i / 16.0f;
-				float uu = u0 + (u1 - u0) * p - 0.5f / 256.0f;
+				float uu = u0 + (u1 - u0) * p - 0.5f / size;
 				float xx = r * p;
 				t.vertexUV(xx, 0, 0 - dd, uu, v1);
 				t.vertexUV(xx, 0, 0, uu, v1);
@@ -179,7 +183,7 @@ void ItemInHandRenderer::renderItem(Mob* mob,  ItemInstance* item )
 			}
 			for (int i = 0; i < 16; i++) {
 				float p = i / 16.0f;
-				float uu = u0 + (u1 - u0) * p - 0.5f / 256.0f;
+				float uu = u0 + (u1 - u0) * p - 0.5f / size;
 				float xx = r * p + 1 / 16.0f;
 				t.vertexUV(xx, 1, 0 - dd, uu, v0);
 				t.vertexUV(xx, 1, 0, uu, v0);
@@ -188,7 +192,7 @@ void ItemInHandRenderer::renderItem(Mob* mob,  ItemInstance* item )
 			}
 			for (int i = 0; i < 16; i++) {
 				float p = i / 16.0f;
-				float vv = v1 + (v0 - v1) * p - 0.5f / 256.0f;
+				float vv = v1 + (v0 - v1) * p - 0.5f / size;
 				float yy = r * p + 1 / 16.0f;
 				t.vertexUV(0, yy, 0, u0, vv);
 				t.vertexUV(r, yy, 0, u1, vv);
@@ -197,7 +201,7 @@ void ItemInHandRenderer::renderItem(Mob* mob,  ItemInstance* item )
 			}
 			for (int i = 0; i < 16; i++) {
 				float p = i / 16.0f;
-				float vv = v1 + (v0 - v1) * p - 0.5f / 256.0f;
+				float vv = v1 + (v0 - v1) * p - 0.5f / size;
 				float yy = r * p;
 				t.vertexUV(r, yy, 0, u1, vv);
 				t.vertexUV(0, yy, 0, u0, vv);
@@ -433,11 +437,13 @@ void ItemInHandRenderer::renderTex( float a, int tex )
 	float y1 = +1;
 	float z0 = -0.5f;
 
-	float r = 2 / 256.0f;
-	float u0 = (tex % 16) / 256.0f - r;
-	float u1 = (tex % 16 + 15.99f) / 256.0f + r;
-	float v0 = (tex / 16) / 256.0f - r;
-	float v1 = (tex / 16 + 15.99f) / 256.0f + r;
+	// The block the player's head is inside, over the view. (This used to
+	// read tex % 16 as pixels, not cells, and showed a corner of the atlas.)
+	float r = 2 / TerrainAtlas::SizeF;
+	float u0 = TerrainAtlas::px(tex) / TerrainAtlas::SizeF - r;
+	float u1 = (TerrainAtlas::px(tex) + 15.99f) / TerrainAtlas::SizeF + r;
+	float v0 = TerrainAtlas::py(tex) / TerrainAtlas::SizeF - r;
+	float v1 = (TerrainAtlas::py(tex) + 15.99f) / TerrainAtlas::SizeF + r;
 
 	t.begin();
 	t.vertexUV(x0, y0, z0, u1, v1);
@@ -497,13 +503,13 @@ void ItemInHandRenderer::renderFire( float a )
 	for (int i = 0; i < 2; i++) {
 		glPushMatrix2();
 		int tex = ((Tile*)Tile::fire)->tex + i * 16;
-		int xt = (tex & 0xf) << 4;
-		int yt = tex & 0xf0;
+		int xt = TerrainAtlas::px(tex);
+		int yt = TerrainAtlas::py(tex);
 
-		float u0 = (xt) / 256.0f;
-		float u1 = (xt + 15.99f) / 256.0f;
-		float v0 = (yt) / 256.0f;
-		float v1 = (yt + 15.99f) / 256.0f;
+		float u0 = (xt) / TerrainAtlas::SizeF;
+		float u1 = (xt + 15.99f) / TerrainAtlas::SizeF;
+		float v0 = (yt) / TerrainAtlas::SizeF;
+		float v1 = (yt + 15.99f) / TerrainAtlas::SizeF;
 
 		float x0 = (0 - size) / 2;
 		float x1 = x0 + size;
