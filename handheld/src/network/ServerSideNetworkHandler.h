@@ -183,6 +183,9 @@ private:
 	std::vector<Player*> _pendingPlayers;
 	/// Next chunk index of the other dimension to load (see warmOtherLevel).
 	int _warmPos;
+	/// Kicked visitors whose connection closes once their Kick has gone out.
+	struct Closing { RakNet::RakNetGUID guid; int ticks; };
+	std::vector<Closing> _closing;
 	bool _allowIncoming;
 
 	ServerAccess _access;

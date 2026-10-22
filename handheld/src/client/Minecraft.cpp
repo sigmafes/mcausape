@@ -1300,6 +1300,11 @@ void Minecraft::tickInput() {
 				// T opens the chat, in every mode (the commands need Allow Cheats).
 				if (key == Keyboard::KEY_T)
 					setScreen(new ChatScreen());
+				// F5 cycles the camera: first person -> behind -> in front. It
+				// sat among the debug-world keys and so did nothing in a real
+				// world (the page keeps F5 from reloading the tab).
+				if (key == Keyboard::KEY_F5)
+					options.toggle(&Options::Option::THIRD_PERSON, 1);
 			#endif
 			// The developer keys, now only in a world made with Debug Mode on. They
 			// used to be Windows-only; the SDL builds get them too.
@@ -1380,8 +1385,6 @@ void Minecraft::tickInput() {
 						if (player->inventory->getItem(i))
 							player->inventory->dropSlot(i, false);
 				}
-				if (key == Keyboard::KEY_F5)
-					options.toggle(&Options::Option::THIRD_PERSON, 1);
 				if (key == Keyboard::KEY_F3) {
 					options.renderDebug = !options.renderDebug;
 				}

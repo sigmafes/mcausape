@@ -684,6 +684,12 @@ void Player::take(Entity* e, int orgCount) {
 }
 
 float Player::getHeadHeight() {
+	// Lying flat (swimming), the eyes are 0.4 over the feet, as the camera is
+	// (GameRenderer::moveCameraToPlayer). Measured from y, which stays 1.62
+	// over the feet, that is below it. With the standing value a swimmer near
+	// the surface had its "eyes" in the air -- no underwater view, air back --
+	// and one in a one-block gap had them in the ceiling and suffocated.
+	if (bbHeight < 1.0f && !isSleeping()) return 0.4f - heightOffset;
     return 0.12f; // heightOffset; // 0.12f;
 }
 

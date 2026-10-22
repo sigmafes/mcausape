@@ -71,6 +71,7 @@ public:
 		joyTouchArea(-1, -1, 0, 0),
 		inventoryArea(-1,-1, 0, 0),
 		pauseArea(-1, -1, 0, 0),
+		chatArea(-1, -1, 0, 0),
 		_buildMovement(0),
 		_sentFirstRemove(false),
 		_canDestroy(false),
@@ -139,6 +140,7 @@ public:
 #ifdef MC_TOUCH_PAUSE_BUTTON
             _area.exclude(&pauseArea);
 #endif /*MC_TOUCH_PAUSE_BUTTON*/
+            _area.exclude(&chatArea);
 			//LOGI("Movearea: %f %f %f% f\n", moveArea._x0, moveArea._x1, moveArea._y0, moveArea._y1);
 
 			_model.clear();
@@ -369,6 +371,7 @@ public:
 	RectangleArea joyTouchArea;
 	RectangleArea inventoryArea;
     RectangleArea pauseArea;
+    RectangleArea chatArea;
 
 private:
 	IInputHolder* _holder;
@@ -436,6 +439,7 @@ public:
 #ifdef MC_TOUCH_PAUSE_BUTTON
 		_turnBuild.pauseArea = _move.getPauseRectangleArea();
 #endif
+		_turnBuild.chatArea = _move.getChatRectangleArea();
 		_turnBuild.inventoryArea = _mc->gui.getRectangleArea( _mc->options.isLeftHanded? 1 : -1 );
 		_turnBuild.setSensitivity(c.options->isJoyTouchArea? 1.8f : 1.0f);
 		((ITurnInput*)&_turnBuild)->onConfigChanged(c);

@@ -19,6 +19,8 @@
 #include "../../../world/level/LevelSettings.h"
 #include "../../../network/ServerSideNetworkHandler.h"
 #include "../../../server/ServerCommands.h"
+#include "DialogDefinitions.h"
+#include "../../../AppPlatform.h"
 
 #include <sstream>
 #include <vector>
@@ -26,7 +28,8 @@
 static const int MaxChatLength = 100;
 
 ChatScreen::ChatScreen()
-:	ticks(0)
+:	ticks(0),
+	awaitingDialog(false)
 {
 }
 
@@ -35,11 +38,34 @@ void ChatScreen::init() {
 	// chat line starts empty.
 	while (Keyboard::nextTextChar())
 		;
+	// A phone has no keyboard to type into the strip below; the page's text
+	// dialog brings up the phone's own (see OptionsScreen's name box).
+	if (minecraft->useTouchscreen()) {
+		awaitingDialog = true;
+		minecraft->platform()->createUserInput(DialogDefinitions::DIALOG_NEW_CHAT_MESSAGE, "");
+	}
 }
 
 void ChatScreen::render(int xm, int ym, float a)
 {
 	++ticks;
+
+	if (awaitingDialog) {
+		// -2 while it is still open; 1 sent, 0 cancelled.
+		const int status = minecraft->platform()->getUserInputStatus();
+		if (status > -1) {
+			awaitingDialog = false;
+			StringVector sv;
+			if (status == 1) sv = minecraft->platform()->getUserInput();
+			if (!sv.empty()) {
+				text = sv[0];
+				send();	// closes the screen
+			} else {
+				minecraft->setScreen(NULL);
+			}
+		}
+		return;
+	}
 
 	// A strip along the bottom: the typed line, with a blinking cursor.
 	const int bottom = height - 2;

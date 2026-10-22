@@ -199,15 +199,14 @@ void LocalPlayer::aiStep() {
 	// Sprint: forward pressed twice in quick succession, or forward with left
 	// Ctrl held. Ends when forward is let go, on crouching or using an item, or
 	// on running into something -- so it never has to be switched off by hand.
-	// Touch has no key to double-tap (the pad is analogue), so it never starts.
+	// On touch, two quick taps of the pad's forward arrow, the same edge test:
+	// the pad reports forward the moment it is pressed and nothing when let go.
 	const bool forward = input->ya > 0;
-	if (!minecraft->useTouchscreen()) {
-		if (forward && !wasForward) {
-			if (sprintTriggerTime > 0) setSprinting(true);
-			else sprintTriggerTime = 7;
-		}
-		if (forward && input->sprintHeld) setSprinting(true);
+	if (forward && !wasForward) {
+		if (sprintTriggerTime > 0) setSprinting(true);
+		else sprintTriggerTime = 7;
 	}
+	if (!minecraft->useTouchscreen() && forward && input->sprintHeld) setSprinting(true);
 	wasForward = forward;
 	if (isSprinting() && (!forward || input->sneaking || isUsingItem() || horizontalCollision))
 		setSprinting(false);

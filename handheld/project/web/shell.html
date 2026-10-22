@@ -880,6 +880,12 @@
       }, true);
     });
 
+    // F5 is the game's camera key; to the browser it means reload, which threw
+    // away the world. The text dialog keeps its own keys (see above).
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'F5' && !isOpen()) e.preventDefault();
+    }, true);
+
     window.mcpeDialog = {
       open: function (spec) {
         fieldsEl.innerHTML = '';

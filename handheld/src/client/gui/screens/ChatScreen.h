@@ -29,6 +29,8 @@ private:
 
 	std::string text;
 	int ticks;
+	/// Touch: the page's text dialog is up collecting the line.
+	bool awaitingDialog;
 };
 
 #endif /*NET_MINECRAFT_CLIENT_GUI_SCREENS__ChatScreen_H__*/

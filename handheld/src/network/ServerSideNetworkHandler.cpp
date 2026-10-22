@@ -1588,10 +1588,10 @@ void ServerSideNetworkHandler::handleAuthCommand(Player* player, const std::stri
 	} else if (_access.checkPassword(player->name, password)) {
 		setAuthed(player, true);
 		sendMessage(player, "Sesion iniciada.");
-	} else if (++s->failures >= 5) {
-		kick(player, "Demasiados intentos de contrasena.");
+	} else if (++s->failures >= 2) {
+		kick(player, "Wrong login password. Try Again.");
 	} else {
-		sendMessage(player, "Contrasena incorrecta.");
+		sendMessage(player, "Contrasena incorrecta. Te queda un intento.");
 	}
 }
 
@@ -1619,11 +1619,18 @@ void ServerSideNetworkHandler::kick(Player* player, const std::string& reason)
 	if (!player || player == (Player*) minecraft->player) return;
 	const RakNet::RakNetGUID guid = player->owner;
 	ExtPacket packet(ExtPacket::Kick, 0, 0, 0, reason);
+	packet.priority = HIGH_PRIORITY;
+	packet.reliability = RELIABLE_ORDERED;
 	sendExt(player, packet);
-	// Tells them (the Kick above is what they show); a local close raises no
-	// event here, so the player is removed by hand.
-	rakPeer->CloseConnection(guid, true);
+	// The player is out of the world now, but the connection is closed a
+	// second later: closing at once dropped the Kick still in the queue, and
+	// a visitor that never heard it stood in a world it was no longer in,
+	// held there by the lobby still listing the host (see tick()).
 	onDisconnect(guid);
+	Closing c;
+	c.guid = guid;
+	c.ticks = 20;
+	_closing.push_back(c);
 }
 
 void ServerSideNetworkHandler::enforceWhitelist()
@@ -1676,6 +1683,13 @@ void ServerSideNetworkHandler::announceLobbyInfo()
 void ServerSideNetworkHandler::tick()
 {
 	pumpStreams();
+
+	for (unsigned int i = 0; i < _closing.size(); ) {
+		if (--_closing[i].ticks <= 0) {
+			rakPeer->CloseConnection(_closing[i].guid, true);
+			_closing.erase(_closing.begin() + i);
+		} else ++i;
+	}
 
 	for (unsigned int i = 0; i < _sessions.size(); ++i)
 		if (_sessions[i].griefNotice > 0) --_sessions[i].griefNotice;

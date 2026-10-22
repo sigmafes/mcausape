@@ -9,6 +9,7 @@
 #include "../../../../platform/log.h"
 #include "../../../renderer/Textures.h"
 #include "../../../sound/SoundEngine.h"
+#include "../../../gui/screens/ChatScreen.h"
 
 static const int AREA_DPAD_FIRST = 100;
 static const int AREA_DPAD_N = 100;
@@ -17,6 +18,7 @@ static const int AREA_DPAD_W = 102;
 static const int AREA_DPAD_E = 103;
 static const int AREA_DPAD_C = 104;
 static const int AREA_PAUSE = 105;
+static const int AREA_CHAT = 106;
 
 static int cPressed = 0;
 static int cReleased = 0;
@@ -74,6 +76,7 @@ TouchscreenInput_TestFps::TouchscreenInput_TestFps( Minecraft* mc, Options* opti
 	aUp(0),
 	aDown(0),
 	aPause(0),
+	aChat(0),
 	aJump(0),
 	aUpLeft(0),
 	aUpRight(0),
@@ -167,6 +170,10 @@ void TouchscreenInput_TestFps::onConfigChanged(const Config& c) {
                                                           w - 4,
                                                           4 + btnSize));
 #endif /* MC_TOUCH_PAUSE_BUTTON */
+
+	// Drawn by Gui (it has the font), tapped here.
+	aChat = new RectangleArea(_minecraft->gui.getChatButtonArea());
+	_model.addArea(AREA_CHAT, aChat);
 
 	//rebuild();
 }
@@ -301,6 +308,12 @@ void TouchscreenInput_TestFps::tick( Player* player )
 			setButton = true;
 			xa -= 1;
 		}
+		else if (areaId == AREA_CHAT) {
+			if (Multitouch::isReleased(p) && !_minecraft->screen) {
+				_minecraft->soundEngine->playUI("random.click", 1, 1);
+				_minecraft->setScreen(new ChatScreen());
+			}
+		}
 #ifdef MC_TOUCH_PAUSE_BUTTON
 		else if (areaId == AREA_PAUSE) {
 			if (Multitouch::isReleased(p)) {
@@ -413,6 +426,11 @@ const RectangleArea& TouchscreenInput_TestFps::getRectangleArea()
 {
 	return _boundingRectangle;
 }
+const RectangleArea& TouchscreenInput_TestFps::getChatRectangleArea()
+{
+	return *aChat;
+}
+
 const RectangleArea& TouchscreenInput_TestFps::getPauseRectangleArea()
 {
     return *aPause;

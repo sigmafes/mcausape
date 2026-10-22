@@ -75,6 +75,15 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	blitOffset = -90;
 	renderProgressIndicator(isTouchInterface, screenWidth, screenHeight, a);
 
+	// A phone has no T: this opens the chat (TouchscreenInput handles the tap).
+	if (isTouchInterface && !minecraft->screen && !minecraft->options.hideGui) {
+		RectangleArea r = getChatButtonArea();
+		const int x0 = (int)(r._x0 * InvGuiScale), y0 = (int)(r._y0 * InvGuiScale);
+		const int x1 = (int)(r._x1 * InvGuiScale), y1 = (int)(r._y1 * InvGuiScale);
+		fill(x0, y0, x1, y1, 0x80000000);
+		drawCenteredString(font, "Chat", (x0 + x1) / 2, (y0 + y1) / 2 - 4, 0xffe0e0e0);
+	}
+
 	glColor4f2(1, 1, 1, 1);
 
 	// H: 4
@@ -180,6 +189,12 @@ RectangleArea Gui::getRectangleArea(int extendSide) {
 		return RectangleArea(pCenterX-pHalfWidth, (float)minecraft->height-pHeight, (float)minecraft->width, (float)minecraft->height);
 	
 	return RectangleArea(pCenterX-pHalfWidth, (float)minecraft->height-pHeight, pCenterX+pHalfWidth+2, (float)minecraft->height);
+}
+
+RectangleArea Gui::getChatButtonArea() {
+	const float w = 36 * Gui::GuiScale, h = 14 * Gui::GuiScale;
+	const float x0 = (float)(minecraft->width / 2) - w / 2;
+	return RectangleArea(x0, 4, x0 + w, 4 + h);
 }
 
 void Gui::handleClick(int button, int x, int y) {

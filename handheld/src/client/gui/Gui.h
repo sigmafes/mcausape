@@ -34,6 +34,8 @@ public:
 	void flashSlot(int slotId);
 	bool isInside(int x, int y);
 	RectangleArea getRectangleArea(int extendSide);
+	/// Touch only: the Chat button, top centre, in screen pixels.
+	RectangleArea getChatButtonArea();
 	void getSlotPos(int slot, int& posX, int& posY);
 	int getNumSlots();
 
