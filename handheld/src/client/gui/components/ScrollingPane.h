@@ -61,6 +61,9 @@ public:
 
 	void setSelected(int id, bool selected);
 
+	/// Where the mouse was at the last render (for hover, e.g. tooltips).
+	int lastMouseX, lastMouseY;
+
 	// This function is called with all visible GridItems. The base
 	// implementation just dispatches each item to renderItem in y,x order
 	virtual void renderBatch(std::vector<GridItem>& items, float alpha);

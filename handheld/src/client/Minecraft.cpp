@@ -620,18 +620,19 @@ void Minecraft::prepareLevelSave() {
 				chunk->unsaved = false;
 				chunk->clearUpdateMap();
 
-					// Terrain made while lights were off has no block light (lava, glowstone).
-					// Redo it near where the player arrives; further out it is lit as the
-					// chunks are visited with lights on.
-					if (_travelPlayer != NULL) {
-						int dx = x - (int) (_travelPlayer->x / 16);
-						int dz = z - (int) (_travelPlayer->z / 16);
-						if (dx >= -3 && dx <= 3 && dz >= -3 && dz <= 3) {
-							level->updateLight(LightLayer::Block, x * 16, 0, z * 16, x * 16 + 15, 127, z * 16 + 15);
-							if (!level->dimension->hasCeiling)
-								level->updateLight(LightLayer::Sky, x * 16, 0, z * 16, x * 16 + 15, 127, z * 16 + 15);
-						}
+					// Terrain made while lights were off (any world but a new one) has
+					// no light: in the Aquarium, where nothing else lights it, those
+					// chunks were saved black. Light every chunk made here; the quick
+					// start keeps them few.
+					if (!level->isNew()) {
+						level->updateLight(LightLayer::Block, x * 16, 0, z * 16, x * 16 + 15, 127, z * 16 + 15);
+						if (!level->dimension->hasCeiling)
+							level->updateLight(LightLayer::Sky, x * 16, 0, z * 16, x * 16 + 15, 127, z * 16 + 15);
 					}
+			} else if (chunk && !level->dimension->hasCeiling
+					&& chunk->getBrightness(LightLayer::Sky, 8, 125, 8) == 0) {
+				// ...and a chunk saved that way gets its sky light back when loaded.
+				level->updateLight(LightLayer::Sky, x * 16, 0, z * 16, x * 16 + 15, 127, z * 16 + 15);
 			}
 		}
 	}

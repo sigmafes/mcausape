@@ -20,6 +20,9 @@ public:
     static const int TERRAIN_TEXTURE = 1;
     static const int ITEM_TEXTURE = 2;
     static const int ENTITY_PARTICLE_TEXTURE = 3;
+	/// The camera is in front of the player looking back (set by GameRenderer):
+	/// particles face it, not the way the player looks.
+	static bool cameraFront;
 
     static const int TEXTURE_COUNT = 4;
 

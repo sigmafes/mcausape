@@ -36,6 +36,9 @@ public:
 	int fillMarginX;
 	int fillMarginY;
 
+	/// The item under the mouse at the last render, or -1.
+	int hoverIndex;
+
 	int markerType;
 	int markerIndex;
 	float markerShare;

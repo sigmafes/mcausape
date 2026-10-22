@@ -32,6 +32,7 @@ InventoryPane::InventoryPane( IInventoryPaneCallback* screen, Minecraft* mc, con
 	markerShare(0),
 	renderDecorations(true)
 {
+	hoverIndex = -1;
 	_clickArea = new RectangleArea(0, 0, 0, 0);
 	area._x0 = rect.x - clickMarginH;
 	area._x1 = rect.x + rect.w + clickMarginH;
@@ -69,11 +70,16 @@ void InventoryPane::renderBatch( std::vector<GridItem>& items, float alpha )
 
 	Tesselator& t = Tesselator::instance;
 
+	hoverIndex = -1;
+	const bool inPane = lastMouseX >= bbox.x && lastMouseX < bbox.x + bbox.w && lastMouseY >= bbox.y && lastMouseY < bbox.y + bbox.h;
 	t.beginOverride();
 	t.colorABGR(0xffffffff);
 	for (unsigned int i = 0; i < items.size(); ++i) {
 		GridItem& item = items[i];
 		blit(item.xf, item.yf, 200, 46, (float)itemBbox.w, (float)itemBbox.h, 16, 16);
+		if (inPane && lastMouseX >= item.xf && lastMouseX < item.xf + itemBbox.w
+				&& lastMouseY >= item.yf && lastMouseY < item.yf + itemBbox.h)
+			hoverIndex = item.id;
 	}
 	mc->textures->loadAndBindTexture("gui/gui.png");
 	t.endOverrideAndDraw();

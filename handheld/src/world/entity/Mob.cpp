@@ -1,3 +1,4 @@
+#include "../level/dimension/Dimension.h"
 #include "Mob.h"
 
 #include <cmath>
@@ -566,9 +567,13 @@ void Mob::travel( float xa, float ya )
 		// look steers up and down, the water holds back less (0.9 a tick
 		// instead of 0.8, so about twice the speed), and it barely sinks.
 		const bool swimming = isSwimming();
-		if (swimming) {
+		// The look steers up and down while swimming, or while moving forward
+		// with the head under water, and quickly: about 9 blocks a second
+		// looking straight down or up (it was 4, and only sprint-swimming).
+		const bool steering = swimming || (ya > 0 && isUnderLiquid(Material::water));
+		if (steering) {
 			const float look = -Mth::sin(xRot * Mth::DEGRAD);
-			const float pull = look < -0.2f ? 0.085f : 0.06f;
+			const float pull = 0.12f;
 			// Rising only while there is water over the head: at the surface
 			// it stays at the surface instead of leaping out.
 			if (look <= 0 || jumping || level->getMaterial(Mth::floor(x), Mth::floor(bb.y0 + 0.9f), Mth::floor(z)) == Material::water)
@@ -579,11 +584,14 @@ void Mob::travel( float xa, float ya )
 
 		const float drag = swimming ? 0.90f : 0.80f;
 		xd *= drag;
-		yd *= 0.80f;
+		yd *= steering ? 0.90f : 0.80f;
 		zd *= drag;
-		yd -= swimming ? 0.005f : 0.02f;
+		yd -= steering ? 0.005f : 0.02f;
 
-		if (horizontalCollision && isFree(xd, yd + 0.6f - y + yo, zd)) {
+		// Climbing out at a bank: the space above has to be clear of water,
+		// which in the Aquarium (its air is water, but containsAnyLiquid does
+		// not know) it never is -- every wall there was climbed like a spider's.
+		if (horizontalCollision && !level->dimension->isAllWater() && isFree(xd, yd + 0.6f - y + yo, zd)) {
 			yd = 0.3f;
 		}
 	} else if (isInLava() && !flying) {

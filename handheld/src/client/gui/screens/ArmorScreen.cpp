@@ -1,3 +1,4 @@
+#include "../ItemTooltip.h"
 #include "ArmorScreen.h"
 #include "../Screen.h"
 #include "../components/NinePatch.h"
@@ -264,6 +265,10 @@ void ArmorScreen::render(int xm, int ym, float a) {
 		drawHotbarSlotAt(t, i, hotbarButtons[i]->x, hotbarButtons[i]->y,
 			i == player->inventory->selected);
 	}
+	// What is under the mouse, Java-style (not on a touch screen).
+	if (inventoryPane && !minecraft->useTouchscreen() && !minecraft->isCreativeMode()
+			&& inventoryPane->hoverIndex >= 0 && inventoryPane->hoverIndex < (int) armorItems.size())
+		ItemTooltip::render(this, minecraft->font, armorItems[inventoryPane->hoverIndex], xm, ym, width, height);
 	glDisable2(GL_ALPHA_TEST);
 }
 

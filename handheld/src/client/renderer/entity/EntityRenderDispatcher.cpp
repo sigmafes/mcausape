@@ -119,6 +119,13 @@ void EntityRenderDispatcher::prepare( Level* level, Font* font, Mob* player, Opt
 	else {
 		playerRotY = player->yRotO + (player->yRot - player->yRotO) * a;
 		playerRotX = player->xRotO + (player->xRot - player->xRotO) * a;
+		// The camera in front, looking back (F5's third view): name tags turn
+		// to face it, not the way the player faces (they were drawn back to
+		// front, and culled).
+		if (options && options->thirdPersonView && options->thirdPersonFront) {
+			playerRotY += 180;
+			playerRotX = -playerRotX;
+		}
 	}
 	
 	xPlayer = player->xOld + (player->x - player->xOld) * a;

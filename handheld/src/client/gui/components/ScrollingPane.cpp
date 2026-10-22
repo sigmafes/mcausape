@@ -57,6 +57,7 @@ ScrollingPane::ScrollingPane(
 	_wasDown(false),//Mouse::isButtonDown(MouseAction::ACTION_LEFT)),
 	_lx(-9999), _ly(-9999)
 {
+	lastMouseX = lastMouseY = -1;
 	if (itemBoundingRect.w > 0)
 		itemBbox = itemBoundingRect;
 	else
@@ -137,6 +138,8 @@ bool ScrollingPane::getGridItemFor_slow(int itemIndex, GridItem& out) {
 
 
 void ScrollingPane::render( int xm, int ym, float alpha ) {
+	lastMouseX = xm;
+	lastMouseY = ym;
 	// Handle user interaction first
 	handleUserInput();
 

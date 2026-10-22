@@ -166,6 +166,7 @@ static const HelpEntry HELP[] = {
 	{ "help",      true,  "/help [comando]", "Lista los comandos, o explica uno." },
 	{ "register",  true,  "/register <contrasena>", "Con /auth activo: crea tu cuenta con ese nombre (minimo 4 caracteres)." },
 	{ "login",     true,  "/login <contrasena>", "Con /auth activo: inicia sesion. Sin hacerlo no puedes moverte, mirar ni abrir el inventario, y a los 30 s te expulsa." },
+	{ "kill",      true,  "/kill [jugador]", "Te mata. Con un nombre mata a ese jugador (solo anfitrion y operadores)." },
 	{ "list",      false, "/list", "Muestra quien esta en el mundo." },
 	{ "op",        false, "/op <jugador>", "Da permisos de operador: usar comandos e ignorar /grief off." },
 	{ "deop",      false, "/deop <jugador>", "Quita los permisos de operador." },
@@ -219,6 +220,27 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 	// For everyone: what they can type, and what each command does.
 	if (cmd == "help") {
 		help(mc, net, sender, isHost || (net && net->isOperator(sender)), words.size() >= 2 ? lower(words[1]) : "");
+		return;
+	}
+
+	// /kill: anyone may end themselves; someone else takes the host or an op.
+	if (cmd == "kill") {
+		Player* victim = sender;
+		if (words.size() >= 2) {
+			if (!isHost && !(net && net->isOperator(sender))) {
+				reply(mc, net, sender, "Solo el anfitrion y los operadores pueden matar a otro jugador.");
+				return;
+			}
+			victim = NULL;
+			if (net) victim = net->findPlayerByName(words[1]);
+			if (!victim && mc->player && mc->player->name == words[1]) victim = (Player*) mc->player;
+			if (!victim) { reply(mc, net, sender, "No esta en el mundo: " + words[1]); return; }
+		}
+		// Straight to no health, past armour and creative's invulnerability,
+		// as Java's /kill. A visitor's client hears it from ServerPlayer::tick.
+		victim->health = 0;
+		victim->die(NULL);
+		if (victim != sender) reply(mc, net, sender, victim->name + " ha muerto.");
 		return;
 	}
 

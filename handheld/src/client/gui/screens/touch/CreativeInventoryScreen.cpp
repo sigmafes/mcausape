@@ -1,4 +1,5 @@
 #include "CreativeInventoryScreen.h"
+#include "../../ItemTooltip.h"
 #include "../ArmorScreen.h"
 #include "../../../../platform/input/Keyboard.h"
 #include "../../components/NinePatch.h"
@@ -150,12 +151,15 @@ void CreativeInventoryScreen::init()
 void CreativeInventoryScreen::setupPositions()
 {
 	const int b = (int) BorderPixels;
-	tabSize = (height - 2 * b - 3) / 4;
+	// The right column starts under the close button, so the X is never
+	// covered by (and never loses a click to) the tools tab.
+	const int closeH = 19 + 2;
+	tabSize = (height - 2 * b - 3 - closeH) / 4;
 	for (int i = 0; i < NumSections; ++i) {
 		ImageButton* tab = tabs[i];
 		tab->width = tab->height = tabSize;
 		tab->x = i < 4 ? b : width - b - tabSize;
-		tab->y = b + (i % 4) * (tabSize + 1);
+		tab->y = (i < 4 ? b : b + closeH) + (i % 4) * (tabSize + 1);
 	}
 	bClose.width = bClose.height = 19;
 	bClose.x = width - bClose.width;
@@ -338,6 +342,9 @@ void CreativeInventoryScreen::render(int xm, int ym, float a)
 		glColor4f2(1, 1, 1, 1);
 		blit(x + (hotbarSlot - 14) / 2, y + (hotbarSlot - 4) / 2, 242, 252, 14, 4, 14, 4);
 	}
+	// What is under the mouse, Java-style (not on a touch screen).
+	if (pane && !minecraft->useTouchscreen() && pane->hoverIndex >= 0 && pane->hoverIndex < (int) slots.size())
+		ItemTooltip::render(this, minecraft->font, inventory->getItem(slots[pane->hoverIndex]), xm, ym, width, height);
 	glEnable2(GL_DEPTH_TEST);
 }
 

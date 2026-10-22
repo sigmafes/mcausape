@@ -323,6 +323,7 @@ void GameRenderer::renderLevel(float a) {
 		mc->levelRenderer->renderEntities(cameraEntity->getPos(a), &frustum, a);
 //        setupFog(0);
 		TIMER_POP_PUSH("particles");
+        ParticleEngine::cameraFront = mc->options.thirdPersonView && mc->options.thirdPersonFront;
         particleEngine->render(cameraEntity, a);
 
 		glDisable2(GL_BLEND);

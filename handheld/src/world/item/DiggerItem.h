@@ -14,6 +14,8 @@ class DiggerItem: public Item
 protected:
 	typedef std::vector<Tile*> TileList;
 public:
+	/// Its tier's speed on the blocks it is for (the tooltip's efficiency).
+	float getSpeed() const { return speed; }
     float getDestroySpeed(ItemInstance* itemInstance, Tile* tile) {
 		if (hasTile(tile))
 			return speed;

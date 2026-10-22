@@ -37,13 +37,19 @@ void ParticleEngine::tick() {
     }
 }
 
-void ParticleEngine::render(Entity* player, float a) {
-    float xa = (float) Mth::cos(player->yRot * Mth::PI / 180);
-    float za = (float) Mth::sin(player->yRot * Mth::PI / 180);
+bool ParticleEngine::cameraFront = false;
 
-    float xa2 = -za * (float) Mth::sin(player->xRot * Mth::PI / 180);
-    float za2 = xa * (float) Mth::sin(player->xRot * Mth::PI / 180);
-    float ya = (float) Mth::cos(player->xRot * Mth::PI / 180);
+void ParticleEngine::render(Entity* player, float a) {
+    // Billboards face the camera: with it in front of the player, that is
+    // the other way round (they were seen from behind and culled).
+    const float yRot = cameraFront ? player->yRot + 180 : player->yRot;
+    const float xRot = cameraFront ? -player->xRot : player->xRot;
+    float xa = (float) Mth::cos(yRot * Mth::PI / 180);
+    float za = (float) Mth::sin(yRot * Mth::PI / 180);
+
+    float xa2 = -za * (float) Mth::sin(xRot * Mth::PI / 180);
+    float za2 = xa * (float) Mth::sin(xRot * Mth::PI / 180);
+    float ya = (float) Mth::cos(xRot * Mth::PI / 180);
 
     Particle::xOff = (player->xOld+(player->x-player->xOld)*a);
     Particle::yOff = (player->yOld+(player->y-player->yOld)*a);
