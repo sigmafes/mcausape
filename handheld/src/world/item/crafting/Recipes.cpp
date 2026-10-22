@@ -95,11 +95,28 @@ Recipes::Recipes()
 
 		definition('B', Item::blazeRod, '#', Tile::stoneBrick));
 
+	// A diamond of four: the 2x2 of them is the sea lantern's now.
 	addShapedRecipe(ItemInstance(Item::oceanCrystal, 1), //
+		" # ", //
+		"# #", //
+		" # ", //
+
+		definition('#', Item::oceanShard));
+
+	addShapedRecipe(ItemInstance(Tile::seaLantern, 1), //
 		"##", //
 		"##", //
 
 		definition('#', Item::oceanShard));
+
+	addShapedRecipe(ItemInstance(Tile::boneBlock, 1), //
+		"##", //
+		"##", //
+
+		definition('#', Item::bone));
+
+	addShapelessRecipe(ItemInstance(Item::dye_powder, 9, DyePowderItem::WHITE), //
+		definition(0, Tile::boneBlock));
 
 	addShapedRecipe(ItemInstance(Tile::oceanCrystalBlock, 1), //
 		"##", //

@@ -61,7 +61,18 @@ void ItemEntity::tick()
 	yo = y;
 	zo = z;
 
-	yd -= 0.04f;
+	// In water (the Aquarium's included) it drifts as Java's (1.13+
+	// setUnderwaterMovement): no gravity, a slow lift, so a dropped item sinks
+	// on its own momentum a little and then floats up.
+	const int wx = Mth::floor(x), wy = Mth::floor(y + 0.1f), wz = Mth::floor(z);
+	if (level->allWaterAt(wx, wy, wz) || level->getMaterial(wx, wy, wz) == Material::water) {
+		xd *= 0.99f;
+		zd *= 0.99f;
+		if (yd < 0.06f) yd += 0.0005f;
+		yd *= 0.99f;
+	} else {
+		yd -= 0.04f;
+	}
 	if (level->getMaterial(Mth::floor(x), Mth::floor(y), Mth::floor(z)) == Material::lava) {
 		yd = 0.2f;
 		xd = (sharedRandom.nextFloat() - sharedRandom.nextFloat()) * 0.2f;

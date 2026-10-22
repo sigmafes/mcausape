@@ -3,6 +3,7 @@
 #include "../ChunkPos.h"
 #include "../chunk/LevelChunk.h"
 #include "../tile/Tile.h"
+#include "../LightLayer.h"
 #include "../dimension/AquariumDimension.h"
 #include "../../../util/Mth.h"
 #include "../../../util/Random.h"
@@ -100,6 +101,29 @@ LevelChunk* AquariumLevelSource::getChunk(int cx, int cz)
 			blocks[column | CeilingY] = (unsigned char) Tile::invisible_bedrock->id;
 		}
 	}
+	// Sea lanterns in the prismarine, like an ore: small clumps, plenty of
+	// them, some coming out in the open. Inside this chunk only, so nothing
+	// here reaches a neighbour.
+	{
+		Random r(seed ^ ((long) cx * 987234871L) ^ ((long) cz * 214537L) ^ 0x5ea1L);
+		const int veins = 10 + r.nextInt(8);
+		const int prismarine = Tile::prismarine->id, lantern = Tile::seaLantern->id;
+		for (int v = 0; v < veins; ++v) {
+			int x = r.nextInt(16), z = r.nextInt(16), y = 18 + r.nextInt(90);
+			const int size = 2 + r.nextInt(5);
+			for (int n = 0; n < size; ++n) {
+				if (x >= 0 && x < 16 && z >= 0 && z < 16 && y > 0 && y < CeilingY) {
+					unsigned char& b = blocks[x << 11 | z << 7 | y];
+					if (b == prismarine) b = (unsigned char) lantern;
+				}
+				switch (r.nextInt(6)) {
+					case 0: ++x; break; case 1: --x; break;
+					case 2: ++z; break; case 3: --z; break;
+					case 4: ++y; break; default: --y; break;
+				}
+			}
+		}
+	}
 	LevelChunk* chunk = new LevelChunk(level, blocks, cx, cz);
 	chunks.insert(std::make_pair(key, chunk));
 	chunk->recalcHeightmap();
@@ -109,8 +133,23 @@ LevelChunk* AquariumLevelSource::getChunk(int cx, int cz)
 void AquariumLevelSource::postProcess(ChunkSource* parent, int cx, int cz)
 {
 	decorate(cx, cz);
+	// The sea lanterns getChunk set into raw blocks give no light until it is
+	// worked out: the ones out in the open, which have somewhere to shine.
+	const int lantern = Tile::seaLantern->id;
+	for (int x = 0; x < 16; ++x)
+		for (int z = 0; z < 16; ++z)
+			for (int y = 18; y < 110; ++y) {
+				const int wx = cx * 16 + x, wz = cz * 16 + z;
+				if (level->getTile(wx, y, wz) != lantern) continue;
+				if (level->getTile(wx, y + 1, wz) && level->getTile(wx, y - 1, wz)
+						&& (x == 0 || level->getTile(wx - 1, y, wz)) && (x == 15 || level->getTile(wx + 1, y, wz))
+						&& (z == 0 || level->getTile(wx, y, wz - 1)) && (z == 15 || level->getTile(wx, y, wz + 1)))
+					continue;
+				level->updateLight(LightLayer::Block, wx, y, wz, wx, y, wz);
+			}
 	// The chunk holding the middle builds the fixed portal, once.
-	if (cx == (AquariumDimension::HubX >> 4) && cz == (AquariumDimension::HubZ >> 4))
+	AquariumDimension::loadHub(level);
+	if (!AquariumDimension::hubMoved && cx == (AquariumDimension::HubX >> 4) && cz == (AquariumDimension::HubZ >> 4))
 		buildHub(level);
 }
 
@@ -131,6 +170,7 @@ void AquariumLevelSource::hubArrival(int pick, int* x, int* y, int* z)
 
 void AquariumLevelSource::buildHub(Level* level)
 {
+	AquariumDimension::loadHub(level);
 	const int cx = AquariumDimension::HubX, cz = AquariumDimension::HubZ, y = AquariumDimension::HubY;
 	if (level->getTile(cx, y, cz) == Tile::aquariumPortal->id) {
 		// Built before the hub lost its platform: take the prismarine away, once.
@@ -180,6 +220,7 @@ void AquariumLevelSource::decorate(int cx, int cz)
 		}
 	}
 	kelp(r, x0, z0);
+	if (r.nextInt(8) == 0) fossil(r, x0, z0);
 	// Coral plants of the block's own colour on the reefs' open tops, as
 	// often as not. Only on blocks just placed: their chunks exist.
 	for (unsigned int i = 0; i < _placed.size(); ++i) {
@@ -292,4 +333,44 @@ void AquariumLevelSource::kelp(Random& r, int x0, int z0)
 			level->setTileNoUpdate(x, y + j, z, id);
 		}
 	}
+}
+
+/** A fossil on the sea floor, after Java's: a spine of bone blocks half sunk
+    in the sand, a rib arching over it every other block, a skull at one end,
+    a few blocks worn away. Small enough to stay within the next chunk. */
+void AquariumLevelSource::fossil(Random& r, int x0, int z0)
+{
+	const int bone = Tile::boneBlock->id, sand = Tile::sand->id;
+	const bool alongX = r.nextInt(2) == 0;
+	const int len = 5 + r.nextInt(4);
+	const int sx = x0 + 3 + r.nextInt(4), sz = z0 + 3 + r.nextInt(4);
+	// The sand's top under the spine's start.
+	int y = 1;
+	while (y < 40 && level->getTile(sx, y + 1, sz) != 0) ++y;
+	if (level->getTile(sx, y, sz) != sand || y >= 40) return;
+
+	struct Put {
+		static void at(Level* level, Random& r, bool alongX, int sx, int sz, int i, int side, int y, int id) {
+			if (r.nextInt(7) == 0) return;
+			const int x = alongX ? sx + i : sx + side, z = alongX ? sz + side : sz + i;
+			const int t = level->getTile(x, y, z);
+			if (t == 0 || t == Tile::sand->id) level->setTileNoUpdate(x, y, z, id);
+		}
+	};
+	for (int i = 0; i < len; ++i) {
+		Put::at(level, r, alongX, sx, sz, i, 0, y, bone);
+		if (i % 2 == 1 && i < len - 1) {
+			for (int s = -1; s <= 1; s += 2) {
+				Put::at(level, r, alongX, sx, sz, i, s, y + 1, bone);
+				Put::at(level, r, alongX, sx, sz, i, 2 * s, y + 2, bone);
+				Put::at(level, r, alongX, sx, sz, i, 2 * s, y + 3, bone);
+				Put::at(level, r, alongX, sx, sz, i, s, y + 4, bone);
+			}
+		}
+	}
+	// The skull: a 2x2x2 at the end, a block up.
+	for (int i = len; i < len + 2; ++i)
+		for (int s = 0; s <= 1; ++s)
+			for (int h = 1; h <= 2; ++h)
+				Put::at(level, r, alongX, sx, sz, i, s, y + h - 1, bone);
 }

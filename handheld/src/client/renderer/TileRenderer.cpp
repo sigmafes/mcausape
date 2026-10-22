@@ -301,7 +301,10 @@ bool TileRenderer::tesselateCrossInWorld( Tile* tt, int x, int y, int z )
 		zt += ((((seed >> 24) & 0xf) / 15.0f) - 0.5f) * 0.5f;
 	}
 
-	tesselateCrossTexture(tt, level->getData(x, y, z), xt, yt, zt);
+	int data = level->getData(x, y, z);
+	// Kelp: the stalk under more kelp, the tip on top (KelpTile::getTexture).
+	if (tt == Tile::kelp) data = level->getTile(x, y + 1, z) == tt->id ? 1 : 0;
+	tesselateCrossTexture(tt, data, xt, yt, zt);
 	return true;
 	//return true;
 	/*Tesselator& t = Tesselator::instance;

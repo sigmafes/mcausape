@@ -158,7 +158,7 @@ bool Level::checkAndHandleWater(const AABB& box, const Material* material, Entit
                 } else if (material == Material::water && isWaterlogged(x, y, z)) {
                     // Still water sharing the block with a slab, fence...: in it, no current.
                     ok = true;
-                } else if (material == Material::water && tile == NULL && dimension->isAllWater()) {
+                } else if (material == Material::water && allWaterAt(x, y, z)) {
                     // The Aquarium's air is water.
                     ok = true;
                 }
@@ -1743,7 +1743,7 @@ bool Level::containsMaterial(const AABB& box, const Material* material) {
                     return true;
                 }
                 if (material == Material::water && isWaterlogged(x, y, z)) return true;
-                if (material == Material::water && tile == NULL && dimension->isAllWater()) return true;
+                if (material == Material::water && allWaterAt(x, y, z)) return true;
             }
     return false;
 }
@@ -2089,6 +2089,8 @@ bool Level::mayPlace(int tileId, int x, int y, int z, bool ignoreEntities,unsign
     if (aabb != NULL && !isUnobstructed(*aabb)) return false;
     // Torches, ladders, flowers and the like cannot be put in water.
     if (Tile::breaksInWater(tileId) && (targetTile == Tile::water || targetTile == Tile::calmWater || isWaterlogged(x, y, z))) return false;
+    // Nor in the Aquarium, whose air is water.
+    if (Tile::breaksInWater(tileId) && targetTile == NULL && dimension && dimension->isAllWater()) return false;
     if (targetTile == Tile::water || targetTile == Tile::calmWater || targetTile == Tile::lava || targetTile == Tile::calmLava || targetTile == (Tile*)(Tile::fire) || targetTile == Tile::topSnow) targetTile = NULL;
     if (tileId > 0 && targetTile == NULL) {
         if (tile->mayPlace(this, x, y, z, face)) {
@@ -2369,4 +2371,14 @@ AdventureSettings::AdventureSettings()
 
 bool LevelSource::hasWater(int x, int y, int z) {
     return getMaterial(x, y, z) == Material::water || isWaterlogged(x, y, z);
+}
+
+/// The Aquarium's water fills its air and whatever does not fill a block:
+/// kelp, coral, slabs, torches. Not a solid block, nor lava.
+bool Level::allWaterAt(int x, int y, int z) {
+    if (!dimension || !dimension->isAllWater()) return false;
+    const int t = getTile(x, y, z);
+    if (t == 0) return true;
+    const Tile* tile = Tile::tiles[t];
+    return tile && !Tile::solid[t] && tile->material != Material::lava;
 }

@@ -120,6 +120,7 @@ public:
 
     const Material* getMaterial(int x, int y, int z);
 	bool isWaterlogged(int x, int y, int z);
+	bool allWaterAt(int x, int y, int z);
 	/// Puts water into (or takes it out of) a block that allows it; tells the
 	/// listeners, so it is redrawn and reaches visitors.
 	void setWaterlogged(int x, int y, int z, bool on);

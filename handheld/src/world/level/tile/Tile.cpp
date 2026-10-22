@@ -2,6 +2,7 @@
 #include "CoralPlantTile.h"
 #include "DoublePlantTile.h"
 #include "KelpTile.h"
+#include "SimpleBlocks.h"
 #include "../Level.h"
 #include "../LevelConstants.h"
 #include "../../entity/player/Player.h"
@@ -164,6 +165,8 @@ Tile* Tile::coral[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::coralPlant[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::doubleGrass = NULL;
 Tile* Tile::kelp = NULL;
+Tile* Tile::boneBlock = NULL;
+Tile* Tile::seaLantern = NULL;
 Tile* Tile::mossyCobbleWall = NULL;
 Tile* Tile::fence_spruce = NULL;
 Tile* Tile::fence_birch = NULL;
@@ -327,6 +330,9 @@ void Tile::initTiles() {
 	doubleGrass = (new DoublePlantTile(188, 277))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("doubleGrass");
 	// Kelp, stalk and tip in 279/280 (animated by KelpTexture).
 	kelp = (new KelpTile(189, 279))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("kelp");
+	// Bone block: sides 281, top and bottom 282. Sea lantern: 283.
+	boneBlock = (new BoneBlockTile(190, 281))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("boneBlock");
+	seaLantern = (new SeaLanternTile(191, 283))->init()->setDestroyTime(0.3f)->setLightEmission(1.0f)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("seaLantern");
 	enchantTable = (new EnchantTableTile(116))->init()->setDestroyTime(5.0f)->setExplodeable(2000)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("enchantmentTable");
 	brewingStand = (new BrewingStandTile(117))->init()->setDestroyTime(0.5f)->setLightEmission(2 / 16.0f)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Decorations)->setDescriptionId("brewingStand");
 	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");
@@ -870,7 +876,7 @@ static void buildWaterTables()
 			|| dynamic_cast<BedTile*>(t) || dynamic_cast<EnchantTableTile*>(t) || dynamic_cast<BrewingStandTile*>(t)
 			|| dynamic_cast<SignTile*>(t) || dynamic_cast<LeafTile*>(t);
 		s_breaksInWater[id] = dynamic_cast<TorchTile*>(t) || dynamic_cast<LadderTile*>(t)
-			|| dynamic_cast<Bush*>(t) || dynamic_cast<CactusTile*>(t);
+			|| (dynamic_cast<Bush*>(t) && !dynamic_cast<CoralPlantTile*>(t)) || dynamic_cast<CactusTile*>(t);
 	}
 }
 

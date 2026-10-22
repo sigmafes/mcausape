@@ -1,6 +1,7 @@
 #include "AquariumPortalTile.h"
 #include "../Level.h"
 #include "../dimension/Dimension.h"
+#include "../dimension/AquariumDimension.h"
 #include "../../entity/Entity.h"
 #include "../../entity/player/Player.h"
 #include "../../../util/Random.h"
@@ -39,6 +40,14 @@ static bool openForPortal(Level* level, int x, int y, int z)
 
 bool AquariumPortalTile::tryLight(Level* level, int x, int y, int z)
 {
+	// The Aquarium has one way back. Another can be lit only once that one is
+	// gone (broken in creative), and then it becomes the way back.
+	const bool inAquarium = level->dimension && level->dimension->id == Dimension::AQUARIUM;
+	if (inAquarium) {
+		AquariumDimension::loadHub(level);
+		if (level->getTile(AquariumDimension::HubX, AquariumDimension::HubY, AquariumDimension::HubZ) == Tile::aquariumPortal->id)
+			return false;
+	}
 	// Any of the four cells will do: try each as the one the water went in.
 	for (int dx = 0; dx < 2; ++dx) {
 		for (int dz = 0; dz < 2; ++dz) {
@@ -54,6 +63,15 @@ bool AquariumPortalTile::tryLight(Level* level, int x, int y, int z)
 			for (int i = 0; i < 2; ++i)
 				for (int j = 0; j < 2; ++j)
 					level->sendTileUpdated(cx + i, y, cz + j);
+			if (inAquarium) {
+				// Its frame turns into the kind nobody can break.
+				for (int i = 0; i < 2; ++i) {
+					const int cells[4][3] = { {cx + i, y, cz - 1}, {cx + i, y, cz + 2}, {cx - 1, y, cz + i}, {cx + 2, y, cz + i} };
+					for (int k = 0; k < 4; ++k)
+						level->setTile(cells[k][0], cells[k][1], cells[k][2], Tile::oceanCrystalHub->id);
+				}
+				AquariumDimension::moveHub(level, cx + 1, y, cz + 1);
+			}
 			return true;
 		}
 	}

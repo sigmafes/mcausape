@@ -227,6 +227,8 @@ public:
 	static Tile* coralPlant[5];
 	static Tile* doubleGrass;
 	static Tile* kelp;
+	static Tile* boneBlock;
+	static Tile* seaLantern;
 	static Tile* mossyCobbleWall;
 	static Tile* fence_spruce;
 	static Tile* fence_birch;

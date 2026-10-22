@@ -57,6 +57,7 @@ private:
 	void decorate(int cx, int cz);
 	void placeCoral(int x, int y, int z, int tile);
 	void kelp(Random& r, int x0, int z0);
+	void fossil(Random& r, int x0, int z0);
 	/// The coral blocks decorate() placed, for the plants on top.
 	std::vector<TilePos> _placed;
 	void coralMushroom(Random& r, int x, int y, int z, int tile);

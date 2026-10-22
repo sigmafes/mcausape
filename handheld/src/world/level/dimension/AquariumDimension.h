@@ -25,9 +25,15 @@ public:
 
 	/// The fixed portal, in the middle near the top: its four cells are
 	/// HubX-1..HubX, HubZ-1..HubZ at HubY.
-	static const int HubX = 256;
-	static const int HubZ = 256;
-	static const int HubY = 120;
+	/// 256/120/256 until somebody breaks it in creative and lights another
+	/// in the Aquarium: that one is the way back from then on (loadHub/saveHub,
+	/// aquarium_hub.txt in the world's folder).
+	static int HubX;
+	static int HubZ;
+	static int HubY;
+	static bool hubMoved;
+	static void loadHub(Level* level);
+	static void moveHub(Level* level, int x, int y, int z);
 };
 
 #endif

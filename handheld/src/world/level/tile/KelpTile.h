@@ -19,7 +19,8 @@ public:
 	int getTexture(LevelSource* level, int x, int y, int z, int face) {
 		return level->getTile(x, y + 1, z) == id ? tex : tex + 1;
 	}
-	int getTexture(int face, int data) { return tex + 1; }
+	/// The cross renderer passes data: 1 for a stalk (TileRenderer), 0 the tip.
+	int getTexture(int face, int data) { return data == 1 ? tex : tex + 1; }
 
 	bool mayPlace(Level* level, int x, int y, int z, unsigned char face) {
 		return Tile::mayPlace(level, x, y, z, face) && canSurvive(level, x, y, z);
