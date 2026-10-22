@@ -1,3 +1,4 @@
+#include "touch/CreativeInventoryScreen.h"
 #include "ScreenChooser.h"
 #include "StartMenuScreen.h"
 #include "SelectWorldScreen.h"
@@ -46,7 +47,11 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 		case SCREEN_JOINGAME:	screen = new Touch::JoinGameScreen();	break;
 		case SCREEN_PAUSE:	    screen = new PauseScreen(false); break;
 		case SCREEN_PAUSEPREV:	screen = new PauseScreen(true);	 break;
-		case SCREEN_BLOCKSELECTION:	screen = new Touch::IngameBlockSelectionScreen();	break;
+		case SCREEN_BLOCKSELECTION:
+			// Creative has its own, in sections (CreativeInventoryScreen).
+			if (_mc->isCreativeMode()) screen = new Touch::CreativeInventoryScreen();
+			else screen = new Touch::IngameBlockSelectionScreen();
+			break;
 
 		case SCREEN_NONE:
 		default:
@@ -60,7 +65,10 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 		case SCREEN_JOINGAME:	screen = new JoinGameScreen();   break;
 		case SCREEN_PAUSE:	    screen = new PauseScreen(false); break;
 		case SCREEN_PAUSEPREV:	screen = new PauseScreen(true);	 break;
-		case SCREEN_BLOCKSELECTION:	screen = new IngameBlockSelectionScreen();	break;
+		case SCREEN_BLOCKSELECTION:
+			if (_mc->isCreativeMode()) screen = new Touch::CreativeInventoryScreen();
+			else screen = new IngameBlockSelectionScreen();
+			break;
 
 		case SCREEN_NONE:
 		default:
