@@ -87,6 +87,10 @@ public:
 	    made when the first player goes through a portal, ticks beside the host's,
 	    and is saved and dropped when nobody is left in it. Hosts only. */
 	Level* otherLevel;
+	/** A visitor that has not logged in yet (/auth): it may chat, to type
+	    /login, and nothing else -- no walking, no turning, no inventory. Set
+	    by the host (ExtPacket::AuthLock). */
+	bool inputLocked;
 	/// The running Level of `dimension`; with `create`, the other one is made if it is not running.
 	Level* levelForDimension(int dimension, bool create);
 	void destroyOtherLevel();

@@ -918,6 +918,9 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ExtPacke
 		if (minecraft->player && packet->a > 0 && packet->a < Item::MAX_ITEMS && Item::items[packet->a])
 			minecraft->player->inventory->add(new ItemInstance(packet->a, packet->b, packet->c));
 		break;
+	case ExtPacket::AuthLock:
+		minecraft->inputLocked = (packet->a != 0);
+		break;
 	case ExtPacket::Kick:
 		_kicked = true;
 #ifndef STANDALONE_SERVER

@@ -102,6 +102,8 @@ public:
 	bool isAuthed(Player* player);
 	/// Puts the pvp rule on every running level.
 	void applyRules();
+	void sendAdventure(Player* player);
+	void restoreBlocks(const RakNet::RakNetGUID& to, Level* level, int x, int y, int z);
 	/// True if /grief off stops this visitor from changing the world (and says so, now and then).
 	bool griefBlocked(const RakNet::RakNetGUID& source);
 	/// Sends everyone the names of who is here (and keeps the host's own copy).

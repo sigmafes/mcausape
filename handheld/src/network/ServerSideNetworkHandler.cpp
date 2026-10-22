@@ -87,6 +87,53 @@ void ServerSideNetworkHandler::applyRules()
 	std::vector<Level*> all = levels();
 	for (unsigned int i = 0; i < all.size(); ++i)
 		all[i]->adventureSettings.noPvP = !_access.pvpOn();
+	std::vector<Player*> players = allPlayers();
+	for (unsigned int i = 0; i < players.size(); ++i)
+		sendAdventure(players[i]);
+}
+
+/** What a visitor's own game is told it may do. The host refuses what the
+    rules forbid either way, but a visitor's client hits and hurts its own copy
+    of a mob or player before asking: without this its target flinched and lost
+    hearts on its screen while nothing happened anywhere else. Its level's rules
+    plus, with /grief off and no operator rights, no hitting anything at all. */
+void ServerSideNetworkHandler::sendAdventure(Player* player)
+{
+	if (!player || player == (Player*) minecraft->player || !player->level) return;
+	AdventureSettings settings = player->level->adventureSettings;
+	if (!_access.griefOn() && !isOperator(player)) {
+		settings.noPvP = true;
+		settings.noPvM = true;
+	}
+	AdventureSettingsPacket packet(settings);
+	packet.priority = HIGH_PRIORITY;
+	packet.reliability = RELIABLE_ORDERED;
+	raknetInstance->send(player->owner, packet);
+}
+
+/** A change the host refused is still on the visitor's screen: it broke or
+    placed the block in its own copy before asking. Sending back what is really
+    there, at the spot and around it (a placed block lands on a neighbour),
+    puts it right, so a broken block grows back. */
+void ServerSideNetworkHandler::restoreBlocks(const RakNet::RakNetGUID& to, Level* level, int x, int y, int z)
+{
+	static const int d[7][3] = { {0,0,0}, {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1} };
+	for (int i = 0; i < 7; ++i) {
+		const int bx = x + d[i][0], by = y + d[i][1], bz = z + d[i][2];
+		if (by < 0 || by >= LEVEL_HEIGHT) continue;
+		UpdateBlockPacket packet(bx, by, bz, level->getTile(bx, by, bz), level->getData(bx, by, bz));
+		packet.priority = HIGH_PRIORITY;
+		packet.reliability = RELIABLE_ORDERED;
+		raknetInstance->send(to, packet);
+		// A chest or sign it broke comes back with what was in it.
+		if (TileEntity* te = level->getTileEntity(bx, by, bz)) {
+			if (Packet* p = te->getUpdatePacket()) {
+				p->priority = HIGH_PRIORITY;
+				p->reliability = RELIABLE_ORDERED;
+				raknetInstance->send(to, p);
+			}
+		}
+	}
 }
 
 bool ServerSideNetworkHandler::griefBlocked(const RakNet::RakNetGUID& source)
@@ -515,6 +562,11 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 	announceLobbyInfo();
 
 	// Its world, nearest first, from now on (pumpStreams).
+	sendAdventure(newPlayer);
+	{
+		ExtPacket lock(ExtPacket::AuthLock, isAuthed(newPlayer) ? 0 : 1);
+		sendExt(newPlayer, lock);
+	}
 	startStream(source, level, newPlayer);
 }
 
@@ -647,8 +699,10 @@ void ServerSideNetworkHandler::hostEntered(Level* to)
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBlockPacket* packet){
 	Level* level = levelOf(source);
 	if (!level) return;
-	if (isUnauthenticated(source)) return;
-	if (griefBlocked(source)) return;
+	if (isUnauthenticated(source) || griefBlocked(source)) {
+		restoreBlocks(source, level, packet->x, packet->y, packet->z);
+		return;
+	}
 
 	Player* player = getPlayer(source);
 	if (!player) return;
@@ -934,9 +988,11 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, UseItemP
 	Level* level = levelOf(source);
 	if (!level) return;
 
-	if (isUnauthenticated(source)) return;
 	// Eating and drawing a bow are not the world.
-	if (packet->face != 255 && griefBlocked(source)) return;
+	if (isUnauthenticated(source) || (packet->face != 255 && griefBlocked(source))) {
+		if (packet->face != 255) restoreBlocks(source, level, packet->x, packet->y, packet->z);
+		return;
+	}
 	LOGI("UseItemPacket\n");
 	Entity* entity = level->getEntity(packet->entityId);
 	if (entity && entity->isPlayer()) {
@@ -1254,6 +1310,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ChatPack
 
 		if (word == "register" || word == "login") {
 			handleAuthCommand(player, word, rest);
+		} else if (word == "help") {
+			ServerCommands::run(minecraft, this, player, commandLine);
 		} else if (_access.authOn() && !isAuthed(player)) {
 			sendMessage(player, "Primero inicia sesion: /login <contrasena> o /register <contrasena>.");
 		} else {
@@ -1386,6 +1444,8 @@ void ServerSideNetworkHandler::setAuthed(Player* player, bool authed)
 	s->authed = authed;
 	s->idleTicks = 0;
 	applyGameMode(player, s->creative);
+	ExtPacket lock(ExtPacket::AuthLock, authed ? 0 : 1);
+	sendExt(player, lock);
 }
 
 void ServerSideNetworkHandler::handleAuthCommand(Player* player, const std::string& cmd, const std::string& argument)
@@ -1522,7 +1582,7 @@ void ServerSideNetworkHandler::tick()
 
 	warmOtherLevel();
 
-	// Whoever has not logged in within a minute is sent out; reminded every 15 seconds.
+	// Whoever has not logged in within 30 seconds is sent out; reminded every 10.
 	std::vector<Player*> late;
 	std::vector<Player*> all = allPlayers();
 	for (unsigned int i = 0; i < all.size(); ++i) {
@@ -1531,12 +1591,12 @@ void ServerSideNetworkHandler::tick()
 		Session* s = sessionOf(p->owner);
 		if (!s || s->authed || !_access.authOn()) continue;
 		++s->idleTicks;
-		if (s->idleTicks >= 60 * 20) late.push_back(p);
-		else if (s->idleTicks % (15 * 20) == 0)
+		if (s->idleTicks >= 30 * 20) late.push_back(p);
+		else if (s->idleTicks % (10 * 20) == 0)
 			sendMessage(p, _access.hasAccount(p->name) ? "Usa /login <contrasena>." : "Usa /register <contrasena>.");
 	}
 	for (unsigned int i = 0; i < late.size(); ++i)
-		kick(late[i], "Tiempo agotado para iniciar sesion.");
+		kick(late[i], "Jugador no autorizado: no inicio sesion en 30 segundos.");
 
 	// A player count that moved without anyone joining or leaving through here
 	// (a visitor removed by the allow-incoming switch, say) still reaches the lobby.

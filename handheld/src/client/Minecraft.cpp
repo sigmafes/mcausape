@@ -97,6 +97,9 @@
 #include "gamemode/CreatorMode.h"
 #ifndef STANDALONE_SERVER
 #include "gui/screens/ArmorScreen.h"
+#include "gui/screens/IngameBlockSelectionScreen.h"
+#include "gui/screens/touch/TouchIngameBlockSelectionScreen.h"
+#include "gui/screens/crafting/WorkbenchScreen.h"
 #include "gui/screens/ChatScreen.h"
 #include "../world/level/tile/FireTile.h"
 #endif
@@ -212,6 +215,7 @@ Minecraft::Minecraft()
 	reserved_f1(0),reserved_f2(0)
 {
 _portalCooldown = 0;
+inputLocked = false;
 _travelPlayer = NULL;
 otherLevel = NULL;
 _pendingDim = 0;
@@ -387,6 +391,7 @@ void Minecraft::leaveGame(bool renameLevel /*=false*/)
     
 	isGeneratingLevel = false;
 	bool saveLevel = level && (!level->isClientSide || renameLevel);
+	inputLocked = false;
 
 	raknetInstance->disconnect();
 	if (saveLevel) {
@@ -1641,6 +1646,13 @@ void Minecraft::gameLostFocus() {
 void Minecraft::setScreen( Screen* screen )
 {
 #ifndef	STANDALONE_SERVER
+	// The inventory, armour and crafting screens wait for /login.
+	if (inputLocked && screen && (dynamic_cast<ArmorScreen*>(screen) || dynamic_cast<IngameBlockSelectionScreen*>(screen)
+			|| dynamic_cast<Touch::IngameBlockSelectionScreen*>(screen) || dynamic_cast<WorkbenchScreen*>(screen))) {
+		delete screen;
+		gui.addMessage("Primero inicia sesion: /login <contrasena> o /register <contrasena>.");
+		return;
+	}
 	Mouse::reset();
 	Multitouch::reset();
 	Multitouch::resetThisUpdate();

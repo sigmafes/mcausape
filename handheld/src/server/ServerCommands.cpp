@@ -154,6 +154,54 @@ static bool nameIsHost(Minecraft* mc, const std::string& name)
 	return mc->player && ServerAccess::key(mc->player->name) == ServerAccess::key(name);
 }
 
+struct HelpEntry {
+	const char* name;
+	bool everyone;	///< usable without being the host or an operator
+	const char* usage;
+	const char* text;
+};
+
+static const HelpEntry HELP[] = {
+	{ "help",      true,  "/help [comando]", "Lista los comandos, o explica uno." },
+	{ "register",  true,  "/register <contrasena>", "Con /auth activo: crea tu cuenta con ese nombre (minimo 4 caracteres)." },
+	{ "login",     true,  "/login <contrasena>", "Con /auth activo: inicia sesion. Sin hacerlo no puedes moverte, mirar ni abrir el inventario, y a los 30 s te expulsa." },
+	{ "list",      false, "/list", "Muestra quien esta en el mundo." },
+	{ "op",        false, "/op <jugador>", "Da permisos de operador: usar comandos e ignorar /grief off." },
+	{ "deop",      false, "/deop <jugador>", "Quita los permisos de operador." },
+	{ "whitelist", false, "/whitelist [add|remove|list] [jugador]", "/whitelist sola la activa o desactiva; activa, solo entran los jugadores de la lista y los operadores." },
+	{ "auth",      false, "/auth <enable|disable>", "Obliga a los visitantes a registrarse o iniciar sesion con contrasena, para que nadie use su nombre." },
+	{ "pvp",       false, "/pvp <on|off>", "Permite o impide que los jugadores se hagan dano entre si." },
+	{ "grief",     false, "/grief <on|off>", "Con off, los visitantes que no son operadores no pueden romper ni colocar bloques, usar cofres, hornos o mesas, ni danar jugadores o criaturas." },
+	{ "cheats",    false, "/cheats", "Habilita /summon, /give y /gamemode en este mundo. No se puede deshacer." },
+	{ "gamemode",  false, "/gamemode <s|c> [jugador]", "Cambia a supervivencia (s) o creativo (c), a ti o a otro jugador. Necesita /cheats." },
+	{ "give",      false, "/give <id o nombre> [cantidad] [dato]", "Te da un objeto. Necesita /cheats." },
+	{ "summon",    false, "/summon <mob>", "Invoca una criatura delante de ti. Necesita /cheats." },
+};
+
+static void help(Minecraft* mc, ServerSideNetworkHandler* net, Player* to, bool privileged, const std::string& topic)
+{
+	const unsigned int count = sizeof(HELP) / sizeof(HELP[0]);
+	if (!topic.empty()) {
+		std::string want = topic;
+		if (!want.empty() && want[0] == '/') want = want.substr(1);
+		for (unsigned int i = 0; i < count; ++i) {
+			if (want != HELP[i].name) continue;
+			reply(mc, net, to, std::string(HELP[i].usage));
+			reply(mc, net, to, std::string(HELP[i].text) + (HELP[i].everyone ? "" : " (solo anfitrion y operadores)"));
+			return;
+		}
+		reply(mc, net, to, "No existe /" + want + ". Usa /help para ver la lista.");
+		return;
+	}
+	std::string line = "Comandos:";
+	for (unsigned int i = 0; i < count; ++i) {
+		if (!privileged && !HELP[i].everyone) continue;
+		line += std::string(" /") + HELP[i].name;
+	}
+	reply(mc, net, to, line);
+	reply(mc, net, to, "Usa /help <comando> para saber que hace cada uno.");
+}
+
 void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* sender, const std::string& line)
 {
 	std::vector<std::string> words = splitWords(line);
@@ -164,6 +212,12 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 	const bool isHost = (sender == (Player*) mc->player);
 
 	if (!sender) {
+		return;
+	}
+
+	// For everyone: what they can type, and what each command does.
+	if (cmd == "help") {
+		help(mc, net, sender, isHost || (net && net->isOperator(sender)), words.size() >= 2 ? lower(words[1]) : "");
 		return;
 	}
 
@@ -200,12 +254,14 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 			else if (net->access().addOp(who)) {
 				reply(mc, net, sender, who + " ahora es operador.");
 				if (Player* p = net->findPlayerByName(who)) net->sendMessage(p, "Ahora eres operador: puedes usar comandos.");
+				net->applyRules();
 			} else reply(mc, net, sender, who + " ya es operador.");
 		} else {
 			if (nameIsHost(mc, who)) reply(mc, net, sender, "El anfitrion siempre tiene permisos.");
 			else if (net->access().removeOp(who)) {
 				reply(mc, net, sender, who + " ya no es operador.");
 				if (Player* p = net->findPlayerByName(who)) net->sendMessage(p, "Ya no eres operador.");
+				net->applyRules();
 			} else reply(mc, net, sender, who + " no era operador.");
 		}
 		return;
@@ -277,6 +333,7 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 			reply(mc, net, sender, on ? "PvP activado." : "PvP desactivado.");
 		} else {
 			net->access().setGrief(on);
+			net->applyRules();
 			reply(mc, net, sender, on
 				? "Interaccion de visitantes activada."
 				: "Interaccion de visitantes desactivada: no pueden romper ni colocar bloques, usar mesas, hornos, cofres ni cortapiedras, ni danar animales o enemigos.");

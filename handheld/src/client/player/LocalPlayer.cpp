@@ -185,6 +185,11 @@ void LocalPlayer::aiStep() {
     bool screenCovering = minecraft->screen && !minecraft->screen->passEvents;
 	if (!screenCovering)
 		input->tick(this);
+	// Not logged in yet on a world with /auth: stands still.
+	if (minecraft->inputLocked) {
+		input->xa = input->ya = 0;
+		input->jumping = input->sneaking = false;
+	}
 
     if (input->sneaking) {
         if (ySlideOffset < 0.2f) ySlideOffset = 0.2f;

@@ -129,7 +129,8 @@ void GameRenderer::render(float a) {
 	// ever polled, and on a touch build the turn input is the drag itself -- so
 	// gating on the grab alone left the d-pad and tap-to-place working, since
 	// those are ticked elsewhere, while the camera could not be moved at all.
-	if (mc->player && (mc->mouseGrabbed || mc->useTouchscreen())) {
+	// inputLocked: a visitor waiting to log in may not look around (/auth).
+	if (mc->player && !mc->inputLocked && (mc->mouseGrabbed || mc->useTouchscreen())) {
         mc->mouseHandler.poll();
         //printf("Controller.x,y : %f,%f\n", Controller::getX(0), Controller::getY(0));
 
