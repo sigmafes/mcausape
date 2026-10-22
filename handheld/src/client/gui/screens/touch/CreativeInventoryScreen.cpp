@@ -1,4 +1,6 @@
 #include "CreativeInventoryScreen.h"
+#include "../ArmorScreen.h"
+#include "../../../../platform/input/Keyboard.h"
 #include "../../components/NinePatch.h"
 #include "../../Gui.h"
 #include "../../../Minecraft.h"
@@ -161,7 +163,9 @@ void CreativeInventoryScreen::setupPositions()
 	// The hotbar under the grid, its slots the size the grid's items are drawn.
 	hotbarSlot = 22;
 	// getNumSlots counts the hotbar's last "..." button too.
-	const int slots = minecraft->gui.getNumSlots() - 1;
+	// One more than the hotbar's: the "..." that opens the inventory with the
+	// player in it (ArmorScreen), as on the HUD.
+	const int slots = minecraft->gui.getNumSlots();
 	hotbarX = width / 2 - slots * hotbarSlot / 2;
 	hotbarY = height - b - hotbarSlot - 2;
 
@@ -219,17 +223,32 @@ int CreativeInventoryScreen::hotbarSlotAt(int x, int y)
 {
 	if (y < hotbarY || y >= hotbarY + hotbarSlot || x < hotbarX) return -1;
 	const int slot = (x - hotbarX) / hotbarSlot;
-	return slot < minecraft->gui.getNumSlots() - 1 ? slot : -1;
+	return slot < minecraft->gui.getNumSlots() ? slot : -1;
 }
 
 void CreativeInventoryScreen::mouseClicked(int x, int y, int buttonNum)
 {
 	const int slot = hotbarSlotAt(x, y);
+	if (slot == minecraft->gui.getNumSlots() - 1) {
+		minecraft->setScreen(new ArmorScreen());
+		return;
+	}
 	if (slot >= 0) {
 		minecraft->player->inventory->selectSlot(slot);
 		return;
 	}
 	super::mouseClicked(x, y, buttonNum);
+}
+
+void CreativeInventoryScreen::keyPressed(int eventKey)
+{
+	// E closes it, as it opens it (Minecraft's key loop does not run while a
+	// screen is up).
+	if (eventKey == Keyboard::KEY_E) {
+		minecraft->setScreen(NULL);
+		return;
+	}
+	super::keyPressed(eventKey);
 }
 
 void CreativeInventoryScreen::mouseWheel(int dy)
@@ -306,6 +325,14 @@ void CreativeInventoryScreen::render(int xm, int ym, float a)
 		ItemInstance* item = inventory->getItem(i);
 		if (item && !item->isNull())
 			ItemRenderer::renderGuiItem(minecraft->font, minecraft->textures, item, x + 3, y + 3, true);
+	}
+	// The "..." slot, with the HUD's dots (gui/gui.png).
+	{
+		const int x = hotbarX + n * hotbarSlot, y = hotbarY;
+		fill(x + 1, y + 1, x + hotbarSlot - 1, y + hotbarSlot - 1, 0xff3a3a3a);
+		minecraft->textures->loadAndBindTexture("gui/gui.png");
+		glColor4f2(1, 1, 1, 1);
+		blit(x + (hotbarSlot - 14) / 2, y + (hotbarSlot - 4) / 2, 242, 252, 14, 4, 14, 4);
 	}
 	glEnable2(GL_DEPTH_TEST);
 }

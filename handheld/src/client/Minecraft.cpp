@@ -88,6 +88,7 @@
 #include "../world/entity/MobCategory.h"
 #ifndef STANDALONE_SERVER
 #include "gui/screens/FurnaceScreen.h"
+#include "gui/screens/touch/CreativeInventoryScreen.h"
 #endif
 #include "../world/Difficulty.h"
 #include "../server/ServerLevel.h"
@@ -1475,8 +1476,12 @@ void Minecraft::tickInput() {
 				// ArmorScreen::keyPressed), so this only runs when no screen is
 				// up. The old G (armour) and Q (craft) shortcuts are gone;
 				// crafting is now a button on the HUD.
-				if (key == Keyboard::KEY_E)
-					setScreen(new ArmorScreen());
+				// In creative it opens the creative inventory, in sections; its
+				// "..." slot leads on to this one.
+				if (key == Keyboard::KEY_E) {
+					if (isCreativeMode()) setScreen(new Touch::CreativeInventoryScreen());
+					else setScreen(new ArmorScreen());
+				}
 				// T opens the chat, in every mode (the commands need Allow Cheats).
 				if (key == Keyboard::KEY_T)
 					setScreen(new ChatScreen());

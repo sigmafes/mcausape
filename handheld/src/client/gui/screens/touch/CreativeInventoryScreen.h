@@ -49,6 +49,7 @@ public:
 protected:
 	void mouseClicked(int x, int y, int buttonNum);
 	void mouseWheel(int dy);
+	void keyPressed(int eventKey);
 
 private:
 	void selectSection(int section);
