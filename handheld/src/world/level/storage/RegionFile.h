@@ -15,6 +15,15 @@ public:
 	RegionFile(const std::string& basePath, const char* fileName = "chunks.dat");
 	virtual ~RegionFile();
 
+	/** The one RegionFile for a file, opened, shared by every storage that asks
+	    (NULL if it cannot be opened). A host runs two Levels of one world, each
+	    with its own storage; two RegionFiles on one file each kept their own
+	    table of used sectors, handed out the same ones and overwrote each
+	    other's header -- a chunk then read back with a garbage length. Give it
+	    back with release(), never delete. */
+	static RegionFile* acquire(const std::string& basePath, const char* fileName);
+	static void release(RegionFile* file);
+
 	bool open();
 	bool readChunk(int x, int z, RakNet::BitStream** destChunkData);
 	bool writeChunk(int x, int z, RakNet::BitStream& chunkData);
@@ -27,6 +36,7 @@ private:
 	int* offsets;
 	int* emptyChunk;
 	FreeSectorMap sectorFree;
+	int refs;
 };
 
 

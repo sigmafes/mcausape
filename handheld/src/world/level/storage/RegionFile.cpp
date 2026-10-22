@@ -11,8 +11,38 @@ static void logAssert(int actual, int expected) {
 	}
 }
 
+typedef std::map<std::string, RegionFile*> OpenRegionFiles;
+static OpenRegionFiles& openRegionFiles() { static OpenRegionFiles m; return m; }
+
+RegionFile* RegionFile::acquire(const std::string& basePath, const char* fileName)
+{
+	const std::string key = basePath + "/" + fileName;
+	OpenRegionFiles& open = openRegionFiles();
+	OpenRegionFiles::iterator it = open.find(key);
+	if (it != open.end()) {
+		++it->second->refs;
+		return it->second;
+	}
+	RegionFile* f = new RegionFile(basePath, fileName);
+	if (!f->open()) {
+		delete f;
+		return NULL;
+	}
+	f->refs = 1;
+	open[key] = f;
+	return f;
+}
+
+void RegionFile::release(RegionFile* f)
+{
+	if (!f || --f->refs > 0) return;
+	openRegionFiles().erase(f->filename);
+	delete f;
+}
+
 RegionFile::RegionFile(const std::string& basePath, const char* fileName)
-:	file(NULL)
+:	file(NULL),
+	refs(0)
 {
 	filename = basePath;
 	filename += "/";
@@ -107,17 +137,24 @@ bool RegionFile::readChunk(int x, int z, RakNet::BitStream** destChunkData)
 
 	fseek(file, sectorNum * SECTOR_BYTES, SEEK_SET);
 	int length = 0;
-	fread(&length, sizeof(int), 1, file);
-
-	assert(length < ((offset & 0xff) * SECTOR_BYTES));
-	length -= sizeof(int);
-	if (length <= 0) {
-		//*destChunkData = NULL;
-		//return false;
+	// A chunk whose length cannot be what was written -- past the sectors it
+	// owns, or nothing there at all (a header saved without its data, or a
+	// file two writers fought over) -- is treated as never saved, so it is
+	// made again, instead of being allocated at that size and aborting.
+	if (fread(&length, sizeof(int), 1, file) != 1
+			|| length <= (int) sizeof(int)
+			|| length > (offset & 0xff) * SECTOR_BYTES) {
+		LOGI("RegionFile: chunk %d,%d unreadable (length %d), regenerating\n", x, z, length);
+		return false;
 	}
+	length -= sizeof(int);
 
 	unsigned char* data = new unsigned char[length];
-	logAssert(fread(data, 1, length, file), length);
+	if ((int) fread(data, 1, length, file) != length) {
+		LOGI("RegionFile: chunk %d,%d truncated, regenerating\n", x, z);
+		delete [] data;
+		return false;
+	}
 	*destChunkData = new RakNet::BitStream(data, length, false);
 	//delete [] data;
 

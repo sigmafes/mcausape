@@ -120,8 +120,8 @@ ExternalFileLevelStorage::ExternalFileLevelStorage(const std::string& levelId, c
 
 ExternalFileLevelStorage::~ExternalFileLevelStorage()
 {
-	delete regionFile;
-	delete netherRegionFile;
+	RegionFile::release(regionFile);
+	RegionFile::release(netherRegionFile);
 	delete loadedLevelData;
 }
 
@@ -172,9 +172,9 @@ LevelData* ExternalFileLevelStorage::prepareLevel(Level* _level)
 		// A RegionFile keeps its table of where each chunk is. Another storage on
 		// this world (a second Level running for the other dimension) may have
 		// written the file since, so a new Level starts from what is on disk.
-		delete regionFile;
+		RegionFile::release(regionFile);
 		regionFile = NULL;
-		delete netherRegionFile;
+		RegionFile::release(netherRegionFile);
 		netherRegionFile = NULL;
 
 		delete loadedLevelData;
@@ -377,13 +377,8 @@ void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 	RegionFile*& file = isNetherLevel(level) ? netherRegionFile : regionFile;
 	if (!file)
 	{
-		file = new RegionFile(levelPath, chunkFileNameFor(level));
-		if (!file->open())
-		{
-			delete file;
-			file = NULL;
-			return;
-		}
+		file = RegionFile::acquire(levelPath, chunkFileNameFor(level));
+		if (!file) return;
 	}
 
 	// Write chunk
@@ -411,13 +406,8 @@ LevelChunk* ExternalFileLevelStorage::load(Level* level, int x, int z)
 	RegionFile*& file = isNetherLevel(level) ? netherRegionFile : regionFile;
 	if (!file)
 	{
-		file = new RegionFile(levelPath, chunkFileNameFor(level));
-		if (!file->open())
-		{
-			delete file;
-			file = NULL;
-			return NULL;
-		}
+		file = RegionFile::acquire(levelPath, chunkFileNameFor(level));
+		if (!file) return NULL;
 	}
 
 	RakNet::BitStream* chunkData = NULL;
