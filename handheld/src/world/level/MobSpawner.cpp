@@ -87,7 +87,6 @@ int MobSpawner::tick(Level* level, bool spawnEnemies, bool spawnFriendlies) {
 		if (numMobs > maxMobs)
 		    continue;
 		//LOGI("NumMobs: %d of Category: %d\n", numMobs, mobCategory.getBaseClassId());
-chunkLoop:
 		for(std::map<ChunkPos, bool>::iterator it = chunksToPoll.begin(); it != chunksToPoll.end(); ++it) {
 			const ChunkPos& cp = it->first;
             TilePos start = getRandomPosWithin(level, cp.x * 16, cp.z * 16);
@@ -177,7 +176,13 @@ chunkLoop:
 
 						if (addMob(level, mob, xx, yy, zz, level->random.nextFloat() * 360, 0, false)) {
 							++currentCreatureCount;
-							if (++clusterSize >= mob->getMaxSpawnClusterSize()) goto chunkLoop;
+							// Java's "continue chunkLoop": on to the next chunk. This was a
+							// goto to the label above the chunk loop, which starts it over
+							// from the first chunk, without checking the cap again: every
+							// full group restarted the whole pass. Land animals rarely
+							// filled one; squid in the Overworld's water do, and the
+							// spawner went on placing them forever on one frame.
+							if (++clusterSize >= mob->getMaxSpawnClusterSize()) goto nextChunk;
 						}
 						else
 							delete mob;
@@ -186,6 +191,8 @@ chunkLoop:
                     }
                 }
             }
+nextChunk:
+			;
         }
     }
     return count;
