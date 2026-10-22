@@ -20,6 +20,7 @@ struct GuiMessage
 {
 	std::string message;
 	int ticks;
+	int color;	///< 0xRRGGBB; white unless the line asked for one
 };
 
 typedef std::vector<GuiMessage> GuiMessageList;
@@ -61,7 +62,7 @@ public:
 
 	void renderProgressIndicator( const bool isTouchInterface, const int screenWidth, const int screenHeight, float a );
 
-    void addMessage(const std::string& string);
+    void addMessage(const std::string& string, int color = 0xffffff);
 	void postError(int errCode);
 
     void onGraphicsReset();

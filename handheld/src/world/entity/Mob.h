@@ -55,6 +55,8 @@ public:
 	virtual bool isWaterMob();
 	/// Air does not run out under water (a player's water breathing).
 	virtual bool canBreatheUnderwater() { return false; }
+	/// Flying in creative: liquids do not slow it.
+	virtual bool isFlyingFreely() { return false; }
 
     virtual bool isSneaking();
     virtual void setSneaking(bool value);

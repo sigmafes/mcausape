@@ -51,6 +51,9 @@ jobs:
           cp handheld/project/web/build/minecraftpe.js   site/
           cp handheld/project/web/build/minecraftpe.wasm site/
           cp handheld/project/web/build/minecraftpe.data site/
+          # The deploy number, same as the build's MC_DEPLOY_NUMBER: open pages
+          # poll it to tell their players a newer build is out.
+          git rev-list --count HEAD > site/version.txt
           cp handheld/project/web/build/menu.mp3 site/ 2>/dev/null || true
           ls -lh site
 

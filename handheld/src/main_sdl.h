@@ -18,6 +18,7 @@
 #if defined(_WIN32)
 	#define SDL_MAIN_HANDLED
 #endif
+#include "DeployNumber.h"
 #include <SDL2/SDL.h>
 
 #include <cstdio>
@@ -127,6 +128,18 @@ extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_storage_ready()
     and mouse movement would still turn the player. Releasing the grab here
     keeps the game's idea of the cursor in step with the browser's, and leaves
     Escape behaving as it does on the desktop, one step at a time. */
+/// This build's deploy number; the page compares it with version.txt.
+extern "C" EMSCRIPTEN_KEEPALIVE int mcpe_deploy_number()
+{
+	return MC_DEPLOY_NUMBER;
+}
+
+/// The page found a newer deploy than this one.
+extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_deploy_notice()
+{
+	if (g_state.app) g_state.app->deployNotice();
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE void mcpe_pointerlock_lost()
 {
 	if (g_state.app && g_state.app->mouseGrabbed)

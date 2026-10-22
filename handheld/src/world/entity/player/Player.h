@@ -191,6 +191,7 @@ public:
 	/// Told when an effect is given: a visitor's copy on the host passes it on.
 	virtual void onEffectAdded(int id, int duration) {}
 	bool canBreatheUnderwater();
+	bool isFlyingFreely() { return abilities.flying; }
 	void tickEffects();
 	/// The Overworld portal last taken into the Aquarium: where coming back
 	/// out of it lands (Minecraft::findArrival). Saved with the player.

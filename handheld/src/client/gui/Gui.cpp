@@ -267,7 +267,7 @@ void Gui::tick() {
         tickItemDrop();
 }
 
-void Gui::addMessage(const std::string& _string) {
+void Gui::addMessage(const std::string& _string, int color) {
 	if (!minecraft->font)
 		return;
 
@@ -277,12 +277,13 @@ void Gui::addMessage(const std::string& _string) {
 		while (i < string.length() && minecraft->font->width(string.substr(0, i + 1)) <= MAX_MESSAGE_WIDTH) {
 			i++;
 		}
-		addMessage(string.substr(0, i));
+		addMessage(string.substr(0, i), color);
 		string = string.substr(i);
 	}
 	GuiMessage message;
 	message.message = string;
 	message.ticks = 0;
+	message.color = color;
 	guiMessages.insert(guiMessages.begin(), message);
 	while (guiMessages.size() > 30) {
 		guiMessages.pop_back();
@@ -486,6 +487,15 @@ void Gui::tickItemDrop()
 	// Handle item drop
 	static bool isCurrentlyActive = false;
 	isCurrentlyActive = false;
+	// While the mouse is grabbed the cursor is hidden but parked where it was
+	// last seen, and holding the button to dig over the hotbar's spot dropped
+	// the slot under it. A grabbed cursor is the middle of the screen: no
+	// hotbar there. (Touch builds never grab.)
+	if (minecraft->mouseGrabbed) {
+		_currentDropSlot = -1;
+		_currentDropTicks = -1;
+		return;
+	}
 	if (Mouse::isButtonDown(MouseAction::ACTION_LEFT)) {
 		int slot = getSlotIdAt(Mouse::getX(), Mouse::getY());
 		if (slot >= 0 && slot < getNumSlots()-1) {
@@ -821,7 +831,7 @@ void Gui::renderChatMessages( const int screenHeight, unsigned int max, bool isC
 					font->drawShadow(tag, x, y, 0xffff55 + (alpha << 24));
 					font->drawShadow(msg.substr(tag.size()), x + font->width(tag), y, 0xffffff + (alpha << 24));
 				} else {
-					font->drawShadow(msg, x, y, 0xffffff + (alpha << 24));
+					font->drawShadow(msg, x, y, guiMessages.at(i).color + (alpha << 24));
 				}
 			}
 		}

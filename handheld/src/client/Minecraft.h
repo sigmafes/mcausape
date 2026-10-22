@@ -321,6 +321,14 @@ protected:
 	unsigned int _genBackground;
 	void tickBackgroundGeneration(int maxMs);
 	bool prepareLevelLightStep(int maxMs);
+public:
+	/// Q: drops one of the held item, or the whole stack.
+	void dropHeldItem(bool wholeStack);
+	/// The page saw a newer deploy (shell.html polls version.txt): tell the
+	/// player, in the chat, once they are in a world.
+	void deployNotice();
+	bool _deployNoticePending;
+protected:
 	/// Set while the web is driving prepareLevel a slice at a time.
 	bool _prepInProgress;
 	/// 0 chunk pass, 1 save, 2 prepare -- one frame drawn between each.

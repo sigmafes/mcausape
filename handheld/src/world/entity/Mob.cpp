@@ -558,7 +558,9 @@ void Mob::causeFallDamage( float distance )
 
 void Mob::travel( float xa, float ya )
 {
-	if (isInWater()) {
+	// Flying (creative) goes through water and lava as through air.
+	const bool flying = isFlyingFreely();
+	if (isInWater() && !flying) {
 		float yo = y;
 		// Swimming, as Java Edition 1.13 does it (LivingEntity.travel): the
 		// look steers up and down, the water holds back less (0.9 a tick
@@ -584,7 +586,7 @@ void Mob::travel( float xa, float ya )
 		if (horizontalCollision && isFree(xd, yd + 0.6f - y + yo, zd)) {
 			yd = 0.3f;
 		}
-	} else if (isInLava()) {
+	} else if (isInLava() && !flying) {
 		float yo = y;
 		moveRelative(xa, ya, 0.02f);
 		move(xd, yd, zd);

@@ -197,6 +197,7 @@ Minecraft::Minecraft()
 	_hasSignaledGeneratingLevelFinished(true),
 	_prepChunkIndex(0),
 	_prepCount(0),
+	_deployNoticePending(false),
 	_genBackground(0),
 	_prepInProgress(false),
 	_prepPhase(0),
@@ -509,6 +510,33 @@ void Minecraft::prepareLevelBegin() {
 		if (!quick || byDistance[i].first <= Radius * Radius) ++_prepCount;
 	}
 	_genBackground = (unsigned int) _genOrder.size();	// none until in the world
+}
+
+void Minecraft::dropHeldItem(bool wholeStack)
+{
+	if (!player || !player->inventory) return;
+	Inventory* inventory = player->inventory;
+	ItemInstance* held = inventory->getSelected();
+	if (!held || held->isNull() || held->count <= 0) return;
+	if (isCreativeMode()) {
+		// Creative's stacks never run out: drop copies, keep the slot.
+		ItemInstance copy(*held);
+		copy.count = wholeStack ? copy.getMaxStackSize() : 1;
+		player->drop(new ItemInstance(copy), false);
+	} else if (wholeStack || held->count == 1) {
+		inventory->dropSlot(inventory->selected, false);
+	} else {
+		ItemInstance one(*held);
+		one.count = 1;
+		held->count--;
+		player->drop(new ItemInstance(one), false);
+	}
+	level->playSound(player, "random.pop", 0.3f, 1);
+}
+
+void Minecraft::deployNotice()
+{
+	_deployNoticePending = true;
 }
 
 void Minecraft::tickBackgroundGeneration(int maxMs)
@@ -1288,6 +1316,12 @@ void Minecraft::tick(int nTick, int maxTick) {
 			if (ticks % 200 == 0 && !otherLevels.empty())
 				unloadEmptyLevels();
 			tickBackgroundGeneration(4);
+			// Plain ASCII: the font draws one byte per glyph, and UTF-8 accents
+			// would come out as two wrong ones.
+			if (_deployNoticePending && player) {
+				_deployNoticePending = false;
+				gui.addMessage("[Deploy] Nueva actualizacion disponible, recarga la pagina para aplicar los cambios!", 0x80ff80);
+			}
 #ifndef STANDALONE_SERVER
 			TIMER_POP_PUSH("animateTick");
 			if (player) {
@@ -1482,6 +1516,9 @@ void Minecraft::tickInput() {
 					if (isCreativeMode()) setScreen(new Touch::CreativeInventoryScreen());
 					else setScreen(new ArmorScreen());
 				}
+				// Q drops one of what is in hand; Ctrl+Q the whole stack.
+				if (key == Keyboard::KEY_Q)
+					dropHeldItem(Keyboard::isKeyDown(Keyboard::KEY_LCTRL));
 				// T opens the chat, in every mode (the commands need Allow Cheats).
 				if (key == Keyboard::KEY_T)
 					setScreen(new ChatScreen());

@@ -12,6 +12,7 @@
 #include "../../../sound/SoundEngine.h"
 #include "../../../../world/entity/player/Inventory.h"
 #include "../../../../world/item/Item.h"
+#include "../../../../world/item/ShearsItem.h"
 #include "../../../../world/item/ItemInstance.h"
 #include "../../../../world/level/tile/TileInclude.h"
 #include "../../../../util/Mth.h"
@@ -81,7 +82,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 		Item::shovel_wood, Item::shovel_stone, Item::shovel_iron, Item::shovel_gold, Item::shovel_emerald,
 		Item::hatchet_wood, Item::hatchet_stone, Item::hatchet_iron, Item::hatchet_gold, Item::hatchet_emerald,
 		Item::hoe_wood, Item::hoe_stone, Item::hoe_iron, Item::hoe_gold, Item::hoe_emerald,
-		Item::flintAndSteel, Item::bucket_empty, Item::bucket_water, Item::bucket_lava,
+		Item::flintAndSteel, Item::shears, Item::bucket_empty, Item::bucket_water, Item::bucket_lava,
 		Item::clock, Item::compass, Item::camera,
 	};
 	if (isOneOf(id, tools, COUNT(tools))) return Tools;
@@ -329,7 +330,10 @@ void CreativeInventoryScreen::render(int xm, int ym, float a)
 	// The "..." slot, with the HUD's dots (gui/gui.png).
 	{
 		const int x = hotbarX + n * hotbarSlot, y = hotbarY;
-		fill(x + 1, y + 1, x + hotbarSlot - 1, y + hotbarSlot - 1, 0xff3a3a3a);
+		// A slot like the others, then the dots. (A fill() here left the
+		// texture off and the dots never drew.)
+		guiSlot->draw(t, (float) x, (float) y);
+		glEnable2(GL_TEXTURE_2D);
 		minecraft->textures->loadAndBindTexture("gui/gui.png");
 		glColor4f2(1, 1, 1, 1);
 		blit(x + (hotbarSlot - 14) / 2, y + (hotbarSlot - 4) / 2, 242, 252, 14, 4, 14, 4);

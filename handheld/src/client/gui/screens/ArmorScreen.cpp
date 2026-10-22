@@ -213,7 +213,7 @@ void ArmorScreen::tick() {
 }
 
 void ArmorScreen::handleRenderPane(Touch::InventoryPane* pane, Tesselator& t, int xm, int ym, float a) {
-	if (pane) {
+	if (pane && !minecraft->isCreativeMode()) {
 		pane->render(xm, ym, a);
 		guiPaneFrame->draw(t, (float)(pane->rect.x - 1), (float)(pane->rect.y - 1));
 	}
@@ -367,6 +367,9 @@ std::vector<const ItemInstance*> ArmorScreen::getItems( const Touch::InventoryPa
 void ArmorScreen::updateItems() {
 	armorItems.clear();
 	armorItemSlots.clear();
+	// In creative everything is in the sectioned creative inventory
+	// (CreativeInventoryScreen), which leads here: no list of it all again.
+	if (minecraft->isCreativeMode()) return;
 
 	// This screen is now the player's inventory, so list every item in the
 	// main grid (the hotbar/selection row is excluded, as before), not just

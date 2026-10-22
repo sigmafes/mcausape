@@ -1213,6 +1213,27 @@
     // returns immediately while frames are flowing, where runFrame has it.
     setInterval(pumpIfFrameLoopStalled, 1000);
 
+    // A newer deploy: version.txt (written by the deploy) holds its number.
+    // Every two minutes, compare it with this build's; once it is ahead, the
+    // game says so in the chat (Minecraft::deployNotice), once.
+    (function () {
+      var told = false;
+      function checkDeploy() {
+        if (told || !window.mcpeReady || !window.Module || !Module._mcpe_deploy_number) return;
+        fetch('version.txt?t=' + Date.now(), { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.text() : ''; })
+          .then(function (text) {
+            var latest = parseInt(text, 10), mine = Module._mcpe_deploy_number();
+            if (latest > 0 && mine > 0 && latest > mine && !told) {
+              told = true;
+              Module._mcpe_deploy_notice();
+            }
+          })
+          .catch(function () {});
+      }
+      setInterval(checkDeploy, 120000);
+    })();
+
     // Last word on the way out. The peer timeout is long enough to ride out a
     // throttled background tab (see WebRakNetInstance), which would otherwise
     // mean a closed tab standing in everyone's world for two minutes. This is
