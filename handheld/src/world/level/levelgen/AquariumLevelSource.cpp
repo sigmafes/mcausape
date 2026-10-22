@@ -18,6 +18,8 @@ AquariumLevelSource::AquariumLevelSource(Level* level, long seed)
 	topNoise = new PerlinNoise(random, 4);
 	bottomNoise = new PerlinNoise(random, 4);
 	dripNoise = new PerlinNoise(random, 3);
+	sandNoise = new PerlinNoise(random, 3);
+	reefNoise = new PerlinNoise(random, 3);
 }
 
 AquariumLevelSource::~AquariumLevelSource()
@@ -25,6 +27,8 @@ AquariumLevelSource::~AquariumLevelSource()
 	delete topNoise;
 	delete bottomNoise;
 	delete dripNoise;
+	delete sandNoise;
+	delete reefNoise;
 	delete random;
 }
 
@@ -84,6 +88,15 @@ LevelChunk* AquariumLevelSource::getChunk(int cx, int cz)
 			shelfAt(cx * 16 + x, cz * 16 + z, &shelfBottom, &shelfTop);
 			for (int y = shelfBottom; y <= shelfTop; ++y)
 				blocks[column | y] = (unsigned char) Tile::prismarine->id;
+			// Big patches of sand over the prismarine, two or three deep.
+			if (shelfTop >= shelfBottom) {
+				const float s = unit(sandNoise->getValue((cx * 16 + x) / 4.0f, (cz * 16 + z) / 4.0f), 3);
+				if (s > 0.25f) {
+					const int depth = s > 0.55f ? 3 : 2;
+					for (int y = shelfTop; y > shelfTop - depth && y >= shelfBottom; --y)
+						blocks[column | y] = (unsigned char) Tile::sand->id;
+				}
+			}
 			blocks[column | CeilingY] = (unsigned char) Tile::invisible_bedrock->id;
 		}
 	}
@@ -95,6 +108,7 @@ LevelChunk* AquariumLevelSource::getChunk(int cx, int cz)
 
 void AquariumLevelSource::postProcess(ChunkSource* parent, int cx, int cz)
 {
+	decorate(cx, cz);
 	// The chunk holding the middle builds the fixed portal, once.
 	if (cx == (AquariumDimension::HubX >> 4) && cz == (AquariumDimension::HubZ >> 4))
 		buildHub(level);
@@ -136,4 +150,100 @@ void AquariumLevelSource::buildHub(Level* level)
 	for (int dx = -1; dx <= 0; ++dx)
 		for (int dz = -1; dz <= 0; ++dz)
 			level->setTileNoUpdate(cx + dx, y, cz + dz, Tile::aquariumPortal->id);
+}
+
+/** Coral, after Java's warm ocean: reefs of three shapes -- mushroom (a
+    lumpy blob), tree (a stalk that splits into branches) and claw (arms
+    reaching out and up) -- each of one coral, on the top of the shelf.
+    Like any decoration they start in the middle of the chunk (+8) so they
+    can spill into neighbours that already exist. Thick where reefNoise is
+    high, a few elsewhere. */
+void AquariumLevelSource::decorate(int cx, int cz)
+{
+	Random r(seed ^ ((long) cx * 341873128712L) ^ ((long) cz * 132897987541L));
+	const int x0 = cx * 16 + 8, z0 = cz * 16 + 8;
+	const float reef = unit(reefNoise->getValue(x0 / 6.0f, z0 / 6.0f), 3);
+	const int count = reef > 0.2f ? 10 + r.nextInt(8) : r.nextInt(3);
+	for (int i = 0; i < count; ++i) {
+		const int x = x0 + r.nextInt(16), z = z0 + r.nextInt(16);
+		// The shelf's top: the first block from the top down, if it is shelf.
+		int y = 110;
+		while (y > 60 && level->getTile(x, y, z) == 0) --y;
+		const int ground = level->getTile(x, y, z);
+		if (y <= 60 || (ground != Tile::prismarine->id && ground != Tile::sand->id)) continue;
+		const int tile = Tile::coral[r.nextInt(5)]->id;
+		switch (r.nextInt(3)) {
+			case 0: coralMushroom(r, x, y + 1, z, tile); break;
+			case 1: coralTree(r, x, y + 1, z, tile); break;
+			default: coralClaw(r, x, y + 1, z, tile); break;
+		}
+	}
+}
+
+void AquariumLevelSource::placeCoral(int x, int y, int z, int tile)
+{
+	if (y > 0 && y < CeilingY && level->getTile(x, y, z) == 0)
+		level->setTileNoUpdate(x, y, z, tile);
+}
+
+void AquariumLevelSource::coralMushroom(Random& r, int x, int y, int z, int tile)
+{
+	// Java's CoralMushroomFeature: a box 3-5 a side, its edges trimmed,
+	// a few blocks missing, sitting a block or so up on a short stem.
+	const int w = r.nextInt(3) + 3, h = r.nextInt(3) + 3, d = r.nextInt(3) + 3;
+	const int lift = r.nextInt(2);
+	placeCoral(x, y, z, tile);
+	for (int i = 0; i < w; ++i)
+		for (int j = 0; j < h; ++j)
+			for (int k = 0; k < d; ++k) {
+				const int edges = (i == 0 || i == w - 1) + (j == 0 || j == h - 1) + (k == 0 || k == d - 1);
+				if (edges >= 2 || r.nextInt(6) == 0) continue;
+				placeCoral(x + i - w / 2, y + lift + j, z + k - d / 2, tile);
+			}
+}
+
+void AquariumLevelSource::coralTree(Random& r, int x, int y, int z, int tile)
+{
+	// Java's CoralTreeFeature: a stalk 1-3 high, then 2-4 branches that step
+	// out one block and climb, now and then stepping aside again.
+	const int stalk = r.nextInt(3) + 1;
+	for (int j = 0; j < stalk; ++j) placeCoral(x, y + j, z, tile);
+	const int top = y + stalk;
+	static const int dirs[4][2] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+	const int branches = r.nextInt(3) + 2;
+	const int first = r.nextInt(4);
+	for (int b = 0; b < branches; ++b) {
+		const int* dir = dirs[(first + b) % 4];
+		int bx = x + dir[0], bz = z + dir[1], by = top;
+		const int len = r.nextInt(5) + 2;
+		for (int j = 0; j < len; ++j) {
+			placeCoral(bx, by, bz, tile);
+			++by;
+			if (r.nextInt(4) == 0) { bx += dir[0]; bz += dir[1]; }
+		}
+	}
+}
+
+void AquariumLevelSource::coralClaw(Random& r, int x, int y, int z, int tile)
+{
+	// Java's CoralClawFeature: a base block, and 2-3 arms reaching out
+	// diagonally for a while, then straight up.
+	placeCoral(x, y, z, tile);
+	static const int dirs[4][2] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+	const int arms = r.nextInt(2) + 2;
+	const int first = r.nextInt(4);
+	for (int a = 0; a < arms; ++a) {
+		const int* dir = dirs[(first + a) % 4];
+		int ax = x, ay = y, az = z;
+		const int out = r.nextInt(2) + 1, up = r.nextInt(3) + 2;
+		for (int j = 0; j < out; ++j) {
+			ax += dir[0]; az += dir[1]; ++ay;
+			placeCoral(ax, ay, az, tile);
+			placeCoral(ax, ay - 1, az, tile);
+		}
+		for (int j = 0; j < up; ++j) {
+			++ay;
+			placeCoral(ax, ay, az, tile);
+		}
+	}
 }

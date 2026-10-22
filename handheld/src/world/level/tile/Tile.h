@@ -222,6 +222,8 @@ public:
 	static Tile* aquariumPortal;
 	/// The fixed portal's frame: an ocean crystal block nobody can break.
 	static Tile* oceanCrystalHub;
+	/// Coral blocks: tube (blue), brain (pink), bubble (violet), fire (red), horn (yellow).
+	static Tile* coral[5];
 	static Tile* mossyCobbleWall;
 	static Tile* fence_spruce;
 	static Tile* fence_birch;

@@ -48,6 +48,15 @@ private:
 	PerlinNoise* topNoise;
 	PerlinNoise* bottomNoise;
 	PerlinNoise* dripNoise;
+	// Sand patches on the shelf, and where the reefs are thick or thin.
+	PerlinNoise* sandNoise;
+	PerlinNoise* reefNoise;
+	/// Coral reefs on the shelf of chunk (cx, cz), Java-style.
+	void decorate(int cx, int cz);
+	void placeCoral(int x, int y, int z, int tile);
+	void coralMushroom(Random& r, int x, int y, int z, int tile);
+	void coralTree(Random& r, int x, int y, int z, int tile);
+	void coralClaw(Random& r, int x, int y, int z, int tile);
 	/// Where the shelf is in a column: [bottom, top], empty if bottom > top.
 	void shelfAt(int x, int z, int* bottom, int* top) const;
 	std::map<int, LevelChunk*> chunks;
