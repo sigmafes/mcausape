@@ -20,6 +20,8 @@ public:
 	virtual Vec3 getFogColor(float td, float a);
 	virtual bool mayRespawn();
 	virtual bool isAllWater() { return true; }
+	// Any spot will do: the spawn is set to the fixed portal (Level::validateSpawn).
+	virtual bool isValidSpawn(int x, int z) { return true; }
 
 	/// The fixed portal, in the middle near the top: its four cells are
 	/// HubX-1..HubX, HubZ-1..HubZ at HubY.

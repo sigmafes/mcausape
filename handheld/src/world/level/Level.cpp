@@ -1,4 +1,5 @@
 #include "Level.h"
+#include "dimension/AquariumDimension.h"
 #include "LevelListener.h"
 #include "tile/entity/TileEntity.h"
 #include "../entity/player/Player.h"
@@ -463,6 +464,12 @@ void Level::setInitialSpawn() {
 
 /*public*/
 void Level::validateSpawn() {
+    // The Aquarium's spawn is its fixed portal. The search below wants ground
+    // just above y=63 and never ends in a world whose floor is at y~4.
+    if (dimension->isAllWater()) {
+        levelData.setSpawn(AquariumDimension::HubX + 3, AquariumDimension::HubY, AquariumDimension::HubZ);
+        return;
+    }
     if (levelData.getYSpawn() <= 0) {
         levelData.setYSpawn(64);
     }
