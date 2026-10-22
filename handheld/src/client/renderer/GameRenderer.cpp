@@ -48,6 +48,7 @@ GameRenderer::GameRenderer( Minecraft* mc )
 	thirdTilt(0), thirdTiltO(0),
 
 	fogBr(0), fogBrO(0),
+	waterVisionTime(0),
 
 	fr(0), fg(0), fb(0),
 	_rotX(0), _rotY(0),
@@ -560,6 +561,15 @@ void GameRenderer::bobView(float a) {
 }
 
 /*private*/
+/** Java's LocalPlayer.getWaterVision: fast for the first five seconds under
+    water, then slowly to full at thirty. */
+float GameRenderer::waterVision(float a) {
+	const float t = waterVisionTime + a;
+	if (t >= 600) return 1.0f;
+	if (t < 100) return 0.6f * (t / 100.0f);
+	return 0.6f + 0.4f * ((t - 100) / 500.0f);
+}
+
 void GameRenderer::setupFog(int i) {
     Mob* player = mc->cameraTargetPlayer;
 	float fogBuffer[4] = {fr, fg, fb, 1};
@@ -568,8 +578,14 @@ void GameRenderer::setupFog(int i) {
     glColor4f2(1, 1, 1, 1);
 
     if (player->isUnderLiquid(Material::water)) {
-        glFogx(GL_FOG_MODE, GL_EXP);
-        glFogf(GL_FOG_DENSITY, 0.1f); // was 0.06
+        // Java 1.13+: linear, opening out from 24 blocks to 96 as the eyes get
+        // used to the water (waterVision); it was a fixed exponential fog that
+        // hid everything past ten blocks or so. Never past what is drawn.
+        float end = 96.0f * Mth::Max(0.25f, waterVision(0));
+        if (end > renderDistance) end = renderDistance;
+        glFogx(GL_FOG_MODE, GL_LINEAR);
+        glFogf(GL_FOG_START, -8.0f);
+        glFogf(GL_FOG_END, end);
 
 //        float rr = 0.4f;
 //        float gg = 0.4f;
@@ -800,6 +816,9 @@ void GameRenderer::tick(int nTick, int maxTick) {
 
 	tickFov();
 
+	if (mc->cameraTargetPlayer->isUnderLiquid(Material::water)) ++waterVisionTime;
+	else waterVisionTime = 0;
+
     float brr = mc->level->getBrightness(	Mth::floor(mc->cameraTargetPlayer->x),
 											Mth::floor(mc->cameraTargetPlayer->y),
 											Mth::floor(mc->cameraTargetPlayer->z));
@@ -836,10 +855,20 @@ void GameRenderer::setupClearColor(float a) {
     fg += (sg - fg) * whiteness;
     fb += (sb - fb) * whiteness;
 
-    if (player->isUnderLiquid(Material::water)) {
-        fr = 0.02f;
-        fg = 0.02f;
-        fb = 0.2f;
+    const bool underWater = player->isUnderLiquid(Material::water);
+    if (underWater) {
+        // The water's own fog colour, dark, brightened as the eyes adjust until
+        // its strongest channel is full (Java's FogRenderer.setupColor): the
+        // old navy turns a clear blue, the Aquarium's a warm-ocean cyan.
+        if (level->dimension->isAllWater()) {
+            fr = 0.025f; fg = 0.18f; fb = 0.20f;
+        } else {
+            fr = 0.02f; fg = 0.02f; fb = 0.2f;
+        }
+        const float vision = waterVision(a);
+        const float scale = Mth::Min(1.0f / fr, Mth::Min(1.0f / fg, 1.0f / fb));
+        const float k = (1 - vision) + scale * vision;
+        fr *= k; fg *= k; fb *= k;
     } else if (player->isUnderLiquid(Material::lava)) {
         fr = 0.6f;
         fg = 0.1f;
@@ -847,6 +876,9 @@ void GameRenderer::setupClearColor(float a) {
     }
 
     float brr = fogBrO + (fogBr - fogBrO) * a;
+    // The Aquarium's light fades with depth; its fog dims with it, but only to
+    // half, so the bottom reads as deep without going black.
+    if (underWater && level->dimension->isAllWater()) brr = 0.5f + 0.5f * brr;
     fr *= brr;
     fg *= brr;
     fb *= brr;

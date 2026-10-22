@@ -28,8 +28,10 @@ public:
 
 	/// Top of the sand at a column (its height is the floor's swell).
 	int sandTop(int x, int z) const;
-	/// The fixed portal: a prismarine platform with the frame and portal on it.
+	/// The fixed portal: the frame and portal, floating at the top.
 	static void buildHub(Level* level);
+	/// Where an arrival stands: on top of one of the frame's 8 blocks (`pick` chooses).
+	static void hubArrival(int pick, int* x, int* y, int* z);
 
 	static const int CeilingY = 127;
 

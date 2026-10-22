@@ -60,23 +60,40 @@ void AquariumLevelSource::postProcess(ChunkSource* parent, int cx, int cz)
 		buildHub(level);
 }
 
+// The 8 cells of the frame round the 2x2 portal (HubX-1..HubX, HubZ-1..HubZ).
+static const int FrameCells[8][2] = {
+	{-1, -2}, {0, -2}, {-1, 1}, {0, 1}, {-2, -1}, {-2, 0}, {1, -1}, {1, 0}
+};
+
+void AquariumLevelSource::hubArrival(int pick, int* x, int* y, int* z)
+{
+	// On top of a frame block, not in the portal: standing in it would send
+	// the player straight back.
+	const int i = ((pick % 8) + 8) % 8;
+	*x = AquariumDimension::HubX + FrameCells[i][0];
+	*y = AquariumDimension::HubY + 1;
+	*z = AquariumDimension::HubZ + FrameCells[i][1];
+}
+
 void AquariumLevelSource::buildHub(Level* level)
 {
 	const int cx = AquariumDimension::HubX, cz = AquariumDimension::HubZ, y = AquariumDimension::HubY;
-	if (level->getTile(cx, y, cz) == Tile::aquariumPortal->id) return;
-
-	// A 10x10 prismarine platform under the frame.
-	for (int x = cx - 5; x < cx + 5; ++x)
-		for (int z = cz - 5; z < cz + 5; ++z)
-			level->setTileNoUpdate(x, y - 1, z, Tile::prismarine->id);
-	// The frame (4x4 without its corners), of the kind nobody can break, and
-	// the portal in its middle: the 2x2 at HubX-1..HubX, HubZ-1..HubZ.
-	for (int dx = -2; dx <= 1; ++dx) {
-		for (int dz = -2; dz <= 1; ++dz) {
-			const bool corner = (dx == -2 || dx == 1) && (dz == -2 || dz == 1);
-			const bool middle = (dx == -1 || dx == 0) && (dz == -1 || dz == 0);
-			if (corner) continue;
-			level->setTileNoUpdate(cx + dx, y, cz + dz, middle ? Tile::aquariumPortal->id : Tile::oceanCrystalHub->id);
+	if (level->getTile(cx, y, cz) == Tile::aquariumPortal->id) {
+		// Built before the hub lost its platform: take the prismarine away, once.
+		if (level->getTile(cx - 5, y - 1, cz - 5) == Tile::prismarine->id) {
+			for (int x = cx - 5; x < cx + 5; ++x)
+				for (int z = cz - 5; z < cz + 5; ++z)
+					if (level->getTile(x, y - 1, z) == Tile::prismarine->id)
+						level->setTile(x, y - 1, z, 0);
 		}
+		return;
 	}
+
+	// The frame, of the kind nobody can break, and the portal in its middle,
+	// floating in the water.
+	for (int i = 0; i < 8; ++i)
+		level->setTileNoUpdate(cx + FrameCells[i][0], y, cz + FrameCells[i][1], Tile::oceanCrystalHub->id);
+	for (int dx = -1; dx <= 0; ++dx)
+		for (int dz = -1; dz <= 0; ++dz)
+			level->setTileNoUpdate(cx + dx, y, cz + dz, Tile::aquariumPortal->id);
 }

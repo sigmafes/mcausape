@@ -734,11 +734,9 @@ void Minecraft::findArrival(Level* dst, int fromDim, float fromX, float fromZ, b
 		tz = p.z;
 		ty = dst->getTopTileY(tx, tz) + 1;
 	} else if (dstDim == Dimension::AQUARIUM) {
-		// Every way in comes out at the fixed portal, beside it on its platform.
+		// Every way in comes out at the fixed portal, on its frame.
 		AquariumLevelSource::buildHub(dst);
-		tx = AquariumDimension::HubX + 3;
-		tz = AquariumDimension::HubZ;
-		ty = AquariumDimension::HubY;
+		AquariumLevelSource::hubArrival(dst->random.nextInt(8), &tx, &ty, &tz);
 	} else if (fromDim == Dimension::AQUARIUM) {
 		// Back to the Overworld portal he went in by, or the spawn if he never
 		// did (a command, or a save from before he had one).
@@ -1206,6 +1204,18 @@ void Minecraft::tick(int nTick, int maxTick) {
 			TIMER_POP_PUSH("animateTick");
 			if (player) {
 				level->animateTick(Mth::floor(player->x), Mth::floor(player->y), Mth::floor(player->z));
+				// Specks hanging in the Aquarium's water (Java's underwater
+				// particle). Its water is air, so no tile's animateTick makes them.
+				if (level->dimension->isAllWater()) {
+					static Random specks;
+					for (int i = 0; i < 8; ++i) {
+						const float px = player->x + (specks.nextFloat() * 2 - 1) * 16;
+						const float py = player->y + (specks.nextFloat() * 2 - 1) * 12;
+						const float pz = player->z + (specks.nextFloat() * 2 - 1) * 16;
+						if (level->getTile(Mth::floor(px), Mth::floor(py), Mth::floor(pz)) == 0)
+							level->addParticle("suspended", px, py, pz, 0, 0, 0);
+					}
+				}
 			}
 #endif
 		}

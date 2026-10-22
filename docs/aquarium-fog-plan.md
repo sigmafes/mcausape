@@ -123,7 +123,13 @@ contrario (ver preguntas).
 | `world/level/dimension/AquariumDimension.cpp` | Color base de la niebla |
 | `client/particle/SuspendedParticle.h`, `LevelRenderer.cpp` | La partícula y su nombre (`"suspended"`) |
 
-## Preguntas
+## Respuestas
+
+1. Encima de uno de los 8 bloques del marco (dentro del portal te devolvería).
+2. Sí, también en el Overworld, con su azul de siempre.
+3. Sí, se ajusta después de probarlo.
+
+## Preguntas (respondidas arriba)
 
 1. Los "8 bloques" del portal: el portal tiene **4** bloques (2×2) y el marco
    tiene 8. ¿El spawn va en uno de los 4 de portal (dentro de él) o encima de

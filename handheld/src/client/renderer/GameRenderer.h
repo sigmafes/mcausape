@@ -98,6 +98,10 @@ private:
 	float fb;
 
 	float fogBrO, fogBr;
+	/// Ticks with the camera's eyes under water: Java's waterVisionTime, which
+	/// the underwater fog opens out with (waterVision).
+	int waterVisionTime;
+	float waterVision(float a);
 
 	float _rotX;
 	float _rotY;
