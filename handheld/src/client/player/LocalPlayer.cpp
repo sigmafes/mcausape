@@ -212,6 +212,15 @@ void LocalPlayer::aiStep() {
 	if (isSprinting() && (!forward || input->sneaking || isUsingItem() || horizontalCollision))
 		setSprinting(false);
 
+	// Swimming (Java Edition 1.13): sprinting with the head under water starts
+	// it; it lasts while sprinting in water. The pose and box follow the flag
+	// in Player::updateSwimPose, for this player and for everyone's copy of it.
+	const bool swim = isSwimming()
+		? (isSprinting() && isInWater())
+		: (isSprinting() && isUnderLiquid(Material::water));
+	if (swim != isSwimming())
+		setSwimming(swim);
+
 	// Everyone else draws this player crouching from the shared flag, not from
 	// our input, which only the touch controls ever copied into it. Keep the
 	// flag the keyboard's too.

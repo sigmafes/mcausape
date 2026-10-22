@@ -25,6 +25,13 @@ pero no se pueden copiar tal cual: Bedrock usa Molang, no código.
 backport" para 1.12) copian estas mismas funciones de Java. No aportan nada
 nuevo; el punto de partida es el código de Java de arriba.
 
+## Estado
+
+Fases 1 a 4 implementadas. Diferencia con el plan: `heightOffset` no cambia
+al nadar (la `y` del jugador sigue a 1,62 de los pies, en red y en todo el
+juego); solo se encoge la caja desde los pies y la cámara baja 1,22 mezclado
+con `swimAmount`. Así no hay saltos de posición al empezar o terminar.
+
 ## Dónde va en este juego
 
 | Qué | Archivo | Nota |

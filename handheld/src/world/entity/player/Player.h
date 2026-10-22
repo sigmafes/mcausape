@@ -56,6 +56,13 @@ public:
     static Player* asPlayer(Entity* e);
 
 	virtual void tick();
+
+	/// 0 standing .. 1 lying flat (Java's swimAmount), eased over ~half a second.
+	float getSwimAmount(float a) const { return swimAmountO + (swimAmount - swimAmountO) * a; }
+	float swimAmount, swimAmountO;
+protected:
+	void updateSwimPose();
+public:
     void aiStep();
 	void travel(float xa, float ya);
 

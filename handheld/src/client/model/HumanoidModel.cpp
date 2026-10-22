@@ -1,6 +1,7 @@
 #include "HumanoidModel.h"
 #include "../Minecraft.h"
 #include "../../util/Mth.h"
+#include <cmath>
 #include "../../world/entity/player/Player.h"
 #include "../../world/entity/player/Inventory.h"
 
@@ -9,6 +10,7 @@ HumanoidModel::HumanoidModel( float g /*= 0*/, float yOffset /*= 0*/ )
 	holdingRightHand(false),
 	sneaking(false),
 	bowAndArrow(false),
+	swimAmount(0),
 	head(0, 0),
 	//ear (24, 0),
 	//hair(32, 0),
@@ -87,9 +89,11 @@ void HumanoidModel::render( HumanoidModel* model, float scale )
 	//hair.xRot = head.xRot;
 
 	arm0.xRot = model->arm0.xRot;
+	arm0.yRot = model->arm0.yRot;
 	arm0.zRot = model->arm0.zRot;
 
 	arm1.xRot = model->arm1.xRot;
+	arm1.yRot = model->arm1.yRot;
 	arm1.zRot = model->arm1.zRot;
 
 	leg0.xRot = model->leg0.xRot;
@@ -217,6 +221,69 @@ void HumanoidModel::setupAnim( float time, float r, float bob, float yRot, float
 		arm0.xRot += bsin;
 		arm1.xRot -= bsin;
 	}
+
+	if (swimAmount > 0)
+		setupSwim(time);
+}
+
+/// Java's AnimationUtils/HumanoidModel helpers: the stroke's arm sweep, and an
+/// angle blend that goes the short way round.
+static float quadraticArmUpdate(float f) { return -65.0f * f + f * f; }
+static float rotlerpRad(float f, float from, float to) {
+	const float tau = Mth::PI * 2;
+	float d = fmodf(to - from, tau);
+	if (d < -Mth::PI) d += tau;
+	if (d >= Mth::PI) d -= tau;
+	return from + f * d;
+}
+static float lerp(float f, float from, float to) { return from + f * (to - from); }
+
+/** The crawl stroke and the kick from Java Edition 1.13's HumanoidModel,
+    blended in by swimAmount. `time` is the walk cycle, which only moves while
+    the player does: in still water the arms come to rest. The cycle is 26
+    long: arms reach forward overhead (0-14), sweep down to the sides (14-22),
+    and come back (22-26). arm0 is the right arm, arm1 the left. */
+void HumanoidModel::setupSwim(float time)
+{
+	const float s = swimAmount;
+	// The hitting arm finishes its swing instead of stroking.
+	const float right = attackTime > 0 ? 0 : s;
+	const float left = s;
+	const float halfPi = Mth::PI / 2;
+	const float t = fmodf(time, 26.0f);
+
+	if (t < 14.0f) {
+		const float sweep = 1.8707964f * quadraticArmUpdate(t) / quadraticArmUpdate(14.0f);
+		arm1.xRot = rotlerpRad(left, arm1.xRot, 0.0f);
+		arm0.xRot = lerp(right, arm0.xRot, 0.0f);
+		arm1.yRot = rotlerpRad(left, arm1.yRot, Mth::PI);
+		arm0.yRot = lerp(right, arm0.yRot, Mth::PI);
+		arm1.zRot = rotlerpRad(left, arm1.zRot, Mth::PI + sweep);
+		arm0.zRot = lerp(right, arm0.zRot, Mth::PI - sweep);
+	} else if (t < 22.0f) {
+		const float o = (t - 14.0f) / 8.0f;
+		arm1.xRot = rotlerpRad(left, arm1.xRot, halfPi * o);
+		arm0.xRot = lerp(right, arm0.xRot, halfPi * o);
+		arm1.yRot = rotlerpRad(left, arm1.yRot, Mth::PI);
+		arm0.yRot = lerp(right, arm0.yRot, Mth::PI);
+		arm1.zRot = rotlerpRad(left, arm1.zRot, 5.012389f - 1.8707964f * o);
+		arm0.zRot = lerp(right, arm0.zRot, 1.2707963f + 1.8707964f * o);
+	} else {
+		const float o = (t - 22.0f) / 4.0f;
+		arm1.xRot = rotlerpRad(left, arm1.xRot, halfPi - halfPi * o);
+		arm0.xRot = lerp(right, arm0.xRot, halfPi - halfPi * o);
+		arm1.yRot = rotlerpRad(left, arm1.yRot, Mth::PI);
+		arm0.yRot = lerp(right, arm0.yRot, Mth::PI);
+		arm1.zRot = rotlerpRad(left, arm1.zRot, Mth::PI);
+		arm0.zRot = lerp(right, arm0.zRot, Mth::PI);
+	}
+
+	// A small kick, the legs opposite each other.
+	leg1.xRot = lerp(s, leg1.xRot, 0.3f * Mth::cos(time * 0.33333334f + Mth::PI));
+	leg0.xRot = lerp(s, leg0.xRot, 0.3f * Mth::cos(time * 0.33333334f));
+
+	// Lying flat the head looks ahead, not at the bottom.
+	head.xRot = rotlerpRad(s, head.xRot, -Mth::PI / 4);
 }
 
 void HumanoidModel::onGraphicsReset()

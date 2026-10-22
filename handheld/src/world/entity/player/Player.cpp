@@ -51,6 +51,7 @@ Player::Player(Level* level, bool isCreative)
     //containerMenu = inventoryMenu;
 
 	heightOffset = 1.62f;
+	swimAmount = swimAmountO = 0;
 
 	Pos spawnPos = level->getSharedSpawnPos();
     this->moveTo((float)spawnPos.x + 0.5f, (float)(spawnPos.y + 1), (float)spawnPos.z + 0.5f, 0, 0);
@@ -217,7 +218,34 @@ bool Player::checkBed() {
 	return (level->getTile(bedPosition.x, bedPosition.y, bedPosition.z) == Tile::bed->id);
 }
 
+/** The swimming pose (Java's Pose.SWIMMING): a 0.6 x 0.6 box from the feet
+    up, so a swimmer fits through a one-block gap. heightOffset -- where y sits
+    above the feet, which positions on the wire and half of 0.6.1 assume is
+    1.62 -- is left alone; only the box shrinks, and the camera is lowered to
+    match (GameRenderer::moveCameraToPlayer). Standing up again waits until
+    there is room for it, so ending a swim under a ledge keeps it lying down. */
+void Player::updateSwimPose() {
+	swimAmountO = swimAmount;
+	if (isSleeping()) return;
+	bool lying = bbHeight < 1.0f;
+	if (isSwimming()) {
+		if (!lying) {
+			setSize(0.6f, 0.6f);
+			setPos(x, y, z);
+		}
+	} else if (lying) {
+		AABB standing(bb.x0, bb.y0, bb.z0, bb.x1, bb.y0 + 1.8f, bb.z1);
+		if (level->getCubes(this, standing).empty()) {
+			setSize(0.6f, 1.8f);
+			setPos(x, y, z);
+		}
+	}
+	lying = bbHeight < 1.0f;
+	swimAmount = lying ? Mth::Min(1.0f, swimAmount + 0.09f) : Mth::Max(0.0f, swimAmount - 0.09f);
+}
+
 void Player::tick() {
+	updateSwimPose();
 	bool shouldSleep = entityData.getFlag<SharedFlagsInformation::SharedFlagsInformationType>(DATA_PLAYER_FLAGS_ID, PLAYER_SLEEP_FLAG);
 	if(shouldSleep != isSleeping()) {
 		if(isSleeping()) {

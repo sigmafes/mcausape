@@ -58,6 +58,8 @@ public:
     virtual void setSneaking(bool value);
     bool isSprinting();
     void setSprinting(bool value);
+    bool isSwimming();
+    void setSwimming(bool value);
 
     virtual float getHeadHeight();
 

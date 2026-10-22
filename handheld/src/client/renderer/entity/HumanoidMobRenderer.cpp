@@ -77,7 +77,10 @@ void HumanoidMobRenderer::render( Entity* mob_, float x, float y, float z, float
 		humanoidModel->holdingRightHand = true;
 
 	humanoidModel->sneaking = mob->isSneaking();
+	humanoidModel->swimAmount = mob->isPlayer() ? ((Player*) mob)->getSwimAmount(a) : 0;
 
 	super::render(mob_, x, y, z, rot, a);
 	humanoidModel->holdingRightHand = false;
+	// The first-person hand is drawn with this model too.
+	humanoidModel->swimAmount = 0;
 }

@@ -17,12 +17,15 @@ public:
     void render(Entity* e, float time, float r, float bob, float yRot, float xRot, float scale);
 	void renderHorrible(float time, float r, float bob, float yRot, float xRot, float scale);
 	void onGraphicsReset();
+	void setupSwim(float time);
 
 	ModelPart head, /*hair,*/ body, arm0, arm1, leg0, leg1;//, ear;
 	bool holdingLeftHand;
 	bool holdingRightHand;
 	bool sneaking;
 	bool bowAndArrow;
+	/// 0..1, see Player::getSwimAmount: blends in the crawl stroke and kick.
+	float swimAmount;
 };
 
 #endif /*NET_MINECRAFT_CLIENT_MODEL__HumanoidModel_H__*/

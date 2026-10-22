@@ -560,13 +560,26 @@ void Mob::travel( float xa, float ya )
 {
 	if (isInWater()) {
 		float yo = y;
+		// Swimming, as Java Edition 1.13 does it (LivingEntity.travel): the
+		// look steers up and down, the water holds back less (0.9 a tick
+		// instead of 0.8, so about twice the speed), and it barely sinks.
+		const bool swimming = isSwimming();
+		if (swimming) {
+			const float look = -Mth::sin(xRot * Mth::DEGRAD);
+			const float pull = look < -0.2f ? 0.085f : 0.06f;
+			// Rising only while there is water over the head: at the surface
+			// it stays at the surface instead of leaping out.
+			if (look <= 0 || jumping || level->getMaterial(Mth::floor(x), Mth::floor(bb.y0 + 0.9f), Mth::floor(z)) == Material::water)
+				yd += (look - yd) * pull;
+		}
 		moveRelative(xa, ya, 0.02f);
 		move(xd, yd, zd);
 
-		xd *= 0.80f;
+		const float drag = swimming ? 0.90f : 0.80f;
+		xd *= drag;
 		yd *= 0.80f;
-		zd *= 0.80f;
-		yd -= 0.02f;
+		zd *= drag;
+		yd -= swimming ? 0.005f : 0.02f;
 
 		if (horizontalCollision && isFree(xd, yd + 0.6f - y + yo, zd)) {
 			yd = 0.3f;
@@ -1113,6 +1126,14 @@ bool Mob::isSprinting() {
 
 void Mob::setSprinting(bool value) {
     setSharedFlag(SharedFlagsInformation::FLAG_SPRINTING, value);
+}
+
+bool Mob::isSwimming() {
+    return getSharedFlag(SharedFlagsInformation::FLAG_SWIMMING);
+}
+
+void Mob::setSwimming(bool value) {
+    setSharedFlag(SharedFlagsInformation::FLAG_SWIMMING, value);
 }
 
 void Mob::setSneaking(bool value) {

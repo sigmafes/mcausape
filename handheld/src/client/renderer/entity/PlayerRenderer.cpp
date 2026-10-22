@@ -105,6 +105,19 @@ void PlayerRenderer::setupRotations( Entity* mob, float bob, float bodyRot, floa
 		return;
 	}
 	super::setupRotations(mob, bob, bodyRot, a);
+
+	// Swimming: tipped forward onto the front, following the look in water
+	// (diving tips it head first), as Java's PlayerRenderer.setupRotations.
+	// The model's origin is the feet, so once lying flat it is also moved so
+	// the turn is about the chest and the body lies inside its 0.6 box.
+	const float swim = player->getSwimAmount(a);
+	if (swim > 0) {
+		const float pitch = player->xRotO + (player->xRot - player->xRotO) * a;
+		const float target = player->isInWater() ? -90.0f - pitch : -90.0f;
+		glRotatef(swim * target, 1, 0, 0);
+		if (player->bbHeight < 1.0f)
+			glTranslatef(0, -1.0f, 0.3f);
+	}
 }
 
 void PlayerRenderer::renderName( Mob* mob, float x, float y, float z ){

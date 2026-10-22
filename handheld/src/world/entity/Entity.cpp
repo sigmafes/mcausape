@@ -103,7 +103,9 @@ void Entity::resetPos(bool clearMore) {
 }
 
 bool Entity::isInWater() {
-    return level->checkAndHandleWater(bb.grow(0, -0.4f, 0), Material::water, this);
+	// A swimmer's box is 0.6 tall; taking 0.4 off each end of that turned it
+	// inside out and it was never in water at all.
+    return level->checkAndHandleWater(bb.grow(0, bbHeight < 1.0f ? -0.1f : -0.4f, 0), Material::water, this);
 }
 
 bool Entity::isInLava() {

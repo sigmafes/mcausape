@@ -423,6 +423,10 @@ void GameRenderer::moveCameraToPlayer(float a) {
     Entity* player = mc->cameraTargetPlayer;
 
     float heightOffset = player->heightOffset - 1.62f;
+	// A swimmer's eyes are 0.4 above its feet, not 1.62 (its box is 0.6 tall):
+	// the view sinks with the body as it tips over.
+	if (player->isPlayer())
+		heightOffset += (1.62f - 0.4f) * ((Player*) player)->getSwimAmount(a);
 
     float x = player->xo + (player->x - player->xo) * a;
     float y = player->yo + (player->y - player->yo) * a - heightOffset;
