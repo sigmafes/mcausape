@@ -28,6 +28,12 @@ public:
 			case MobTypes::Squid:
 				mob = new Squid(level);
 				break;
+			case MobTypes::Cod:
+				mob = new Fish(level, false);
+				break;
+			case MobTypes::Salmon:
+				mob = new Fish(level, true);
+				break;
 
 			// Monsters
 			case MobTypes::Creeper:

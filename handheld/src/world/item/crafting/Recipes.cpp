@@ -103,6 +103,12 @@ Recipes::Recipes()
 
 		definition('#', Item::oceanShard));
 
+	// Prismarine: two shards side by side (the 2x2 is the sea lantern's).
+	addShapedRecipe(ItemInstance(Tile::prismarine, 1), //
+		"##", //
+
+		definition('#', Item::oceanShard));
+
 	addShapedRecipe(ItemInstance(Tile::seaLantern, 1), //
 		"##", //
 		"##", //

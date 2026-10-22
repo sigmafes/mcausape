@@ -112,6 +112,8 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::rawCod = NULL;
+Item* Item::rawSalmon = NULL;
 Item* Item::prismarineCrystals = NULL;
 Item* Item::oceanCrystal = NULL;
 Item* Item::awkwardPotion = NULL;
@@ -315,6 +317,8 @@ void Item::initItems() {
 	// The Aquarium: the squid drops shards; four make a crystal, four crystals a block.
 	Item::kelp         = (new TilePlanterItem(157, Tile::kelp))->setIcon(8, 9)->setCategory(ItemCategory::Decorations)->setDescriptionId("kelp");
 	Item::prismarineCrystals = (new Item(158))->setIcon(0, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("prismarineCrystals");
+	Item::rawCod    = (new FoodItem(159, 2, false))->setIcon(1, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("rawCod");
+	Item::rawSalmon = (new FoodItem(160, 2, false))->setIcon(2, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("rawSalmon");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.

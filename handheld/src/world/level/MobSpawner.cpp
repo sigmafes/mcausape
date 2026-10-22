@@ -34,8 +34,9 @@ int MobSpawner::tick(Level* level, bool spawnEnemies, bool spawnFriendlies) {
 	if (!spawnEnemies && !spawnFriendlies) {
         return 0;
     }
-	// The Aquarium is empty (for now): nothing spawns on its sand floor.
-	if (level->dimension && level->dimension->isAllWater()) return 0;
+	// The Aquarium: fish only, in schools, anywhere in its water.
+	if (level->dimension && level->dimension->isAllWater())
+		return spawnFish(level);
 
     chunksToPoll.clear();
 	// Add all chunks as a quick-and-dirty test
@@ -310,4 +311,35 @@ void MobSpawner::makeBabyMob( Mob* mob, float probability ) {
 		if (babyRandom.nextFloat() < probability)
 			((Animal*)mob)->setAge(-20 * 60 * SharedConstants::TicksPerSecond);
 	}
+}
+
+/** The Aquarium's own spawner: its biome is the Nether's (nothing asks it
+    for more) and its water is air, which the usual spawner's material check
+    never matches. A school of cod or salmon now and then near a player, up
+    to the water creatures' cap. */
+int MobSpawner::spawnFish(Level* level)
+{
+	if (level->players.empty() || level->random.nextInt(20) != 0) return 0;
+	if (level->countInstanceOfBaseType(MobTypes::BaseWaterCreature) >= MobCategory::waterCreature.getMaxInstancesPerLevel())
+		return 0;
+	Player* p = level->players[level->random.nextInt((int) level->players.size())];
+	const int x = Mth::floor(p->x) + level->random.nextInt(65) - 32;
+	const int z = Mth::floor(p->z) + level->random.nextInt(65) - 32;
+	const int y = 8 + level->random.nextInt(110);
+	if (x < 0 || z < 0 || x >= LEVEL_WIDTH || z >= LEVEL_DEPTH || !level->allWaterAt(x, y, z)) return 0;
+	if (level->getNearestPlayer(x + 0.5f, (float) y, z + 0.5f, (float) MIN_SPAWN_DISTANCE) != NULL) return 0;
+	const bool salmon = level->random.nextInt(3) == 0;
+	const int count = salmon ? 1 + level->random.nextInt(4) : 3 + level->random.nextInt(4);
+	int made = 0;
+	for (int i = 0; i < count; ++i) {
+		const float xx = x + 0.5f + level->random.nextInt(5) - 2;
+		const float yy = (float) y + level->random.nextInt(3) - 1;
+		const float zz = z + 0.5f + level->random.nextInt(5) - 2;
+		if (!level->allWaterAt(Mth::floor(xx), Mth::floor(yy), Mth::floor(zz))) continue;
+		Mob* mob = MobFactory::CreateMob(salmon ? MobTypes::Salmon : MobTypes::Cod, level);
+		if (!mob) continue;
+		if (addMob(level, mob, xx, yy, zz, level->random.nextFloat() * 360, 0, false)) ++made;
+		else delete mob;
+	}
+	return made;
 }

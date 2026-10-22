@@ -23,6 +23,7 @@
 #include "GhastRenderer.h"
 #include "BlazeRenderer.h"
 #include "SquidRenderer.h"
+#include "FishRenderer.h"
 #include "MagmaCubeRenderer.h"
 
 #include "ChickenRenderer.h"
@@ -56,6 +57,8 @@ EntityRenderDispatcher::EntityRenderDispatcher()
 	assign(	ER_GHAST_RENDERER,		new GhastRenderer());
 	assign(	ER_BLAZE_RENDERER,		new BlazeRenderer());
 	assign(	ER_SQUID_RENDERER,		new SquidRenderer());
+	assign(	ER_COD_RENDERER,		new FishRenderer(false));
+	assign(	ER_SALMON_RENDERER,		new FishRenderer(true));
 	assign(	ER_MAGMACUBE_RENDERER,	new MagmaCubeRenderer());
 	// The fire charge picture of the items atlas (14,2), big for a ghast's and small for a blaze's.
 	assign(	ER_FIREBALL_RENDERER,		new ItemSpriteRenderer(2 * 16 + 14, 2.0f));

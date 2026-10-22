@@ -49,6 +49,9 @@ Biome::Biome()
     // _friendlies.insert(_friendlies.end(), new MobSpawnerData(Wolf.class, 2));
 
     _waterFriendlies.insert(_waterFriendlies.end(), MobSpawnerData(MobTypes::Squid, 10, 4, 4));
+    // Java's ocean fish: cod in schools, salmon in smaller ones.
+    _waterFriendlies.insert(_waterFriendlies.end(), MobSpawnerData(MobTypes::Cod, 15, 3, 6));
+    _waterFriendlies.insert(_waterFriendlies.end(), MobSpawnerData(MobTypes::Salmon, 8, 1, 5));
 
 	//
 	// Sum up the weights

@@ -7,5 +7,6 @@
 #include "Pig.h"
 #include "Sheep.h"
 #include "Squid.h"
+#include "Fish.h"
 
 #endif /*NET_MINECRAFT_WORLD_ENTITY_ANIMAL__AnimalInclude_H__*/

@@ -311,7 +311,7 @@ void Tile::initTiles() {
 	cobbleWall = (new WallTile(139, Tile::stoneBrick->tex))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("cobbleWall");
 	mossyCobbleWall = (new WallTile(143, Tile::mossStone->tex))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("mossyCobbleWall");
 	// The Aquarium: new pictures in the second quadrant of terrain.png (256+).
-	prismarine        = (new Tile(168, 256, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("prismarine");
+	prismarine        = (new PrismarineTile(168, 256))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("prismarine");
 	oceanCrystalBlock = (new Tile(169, 257, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Structures)->setDescriptionId("oceanCrystalBlock");
 	aquariumPortal    = (new AquariumPortalTile(170, 258))->init()->setDestroyTime(-1)->setExplodeable(6000000)->setLightEmission(11 / 16.0f)->setDescriptionId("aquariumPortal");
 	oceanCrystalHub   = (new Tile(171, 257, Material::stone))->init()->setDestroyTime(-1)->setExplodeable(6000000)->setSoundType(SOUND_GLASS)->setDescriptionId("oceanCrystalBlock");

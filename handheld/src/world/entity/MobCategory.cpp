@@ -24,7 +24,7 @@ const MobCategory MobCategory::creature(
 
 const MobCategory MobCategory::waterCreature(
     MobTypes::BaseWaterCreature,
-    5,
+    15,	// was 5, for squid alone; cod and salmon share it now
 	10,
     true);
 
