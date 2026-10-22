@@ -19,7 +19,10 @@ bool isStonecutterItem(const ItemInstance& ins) {
 	// Special stone/sand cases
 	if (	tile == Tile::lapisBlock
 		||	tile == Tile::furnace
-		||	tile == Tile::stonecutterBench)
+		||	tile == Tile::stonecutterBench
+		// Stone by material, but made from ocean crystals at the workbench
+		// (or in the inventory's 2x2), not cut from stone.
+		||	tile == Tile::oceanCrystalBlock)
 		return false;
 
 	if (tile == Tile::stoneSlabHalf
