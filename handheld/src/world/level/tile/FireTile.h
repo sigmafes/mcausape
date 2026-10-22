@@ -155,6 +155,8 @@ public:
 
 
     bool mayPlace(Level* level, int x, int y, int z, unsigned char face) {
+        // Under water everywhere in the Aquarium: no fire at all.
+        if (level->dimension && level->dimension->isAllWater()) return false;
         return level->isSolidBlockingTile(x, y - 1, z) || isValidFireLocation(level, x, y, z);
     }
 
@@ -167,6 +169,10 @@ public:
     }
 
     void onPlace(Level* level, int x, int y, int z) {
+        if (level->dimension && level->dimension->isAllWater()) {
+            level->setTile(x, y, z, 0);
+            return;
+        }
         if (level->getTile(x, y - 1, z) != Tile::netherrack->id &&
             !level->isSolidBlockingTile(x, y - 1, z) && !isValidFireLocation(level, x, y, z)) {
             level->setTile(x, y, z, 0);

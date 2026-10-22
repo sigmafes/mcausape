@@ -1,6 +1,7 @@
 #include "Dimension.h"
 #include "NormalDayCycleDimension.h"
 #include "HellDimension.h"
+#include "AquariumDimension.h"
 
 //#include "../levelgen/SimpleLevelSource.h"
 #include "../levelgen/RandomLevelSource.h"
@@ -127,6 +128,7 @@ Dimension* Dimension::getNew( int id )
 {
 	if (id == NORMAL) return new Dimension();
 	if (id == NETHER) return new HellDimension();
+	if (id == AQUARIUM) return new AquariumDimension();
 	if (id == NORMAL_DAYCYCLE) return new NormalDayCycleDimension();
 	return NULL;
 }

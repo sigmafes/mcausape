@@ -77,15 +77,25 @@ public:
 // The Nether is the only dimension with its own files. Anything else (including
 // a NULL level, which only the constructor-time paths can produce) is the
 // Overworld, so existing worlds keep reading and writing chunks.dat as before.
+static int dimensionOf(const Level* level) {
+	return (level != NULL && level->dimension != NULL) ? level->dimension->id : Dimension::NORMAL;
+}
+
 static bool isNetherLevel(const Level* level) {
-	return level != NULL && level->dimension != NULL && level->dimension->id == Dimension::NETHER;
+	return dimensionOf(level) == Dimension::NETHER;
+}
+
+static bool isAquariumLevel(const Level* level) {
+	return dimensionOf(level) == Dimension::AQUARIUM;
 }
 
 static const char* chunkFileNameFor(const Level* level) {
+	if (isAquariumLevel(level)) return "chunks_aquarium.dat";
 	return isNetherLevel(level) ? "chunks_nether.dat" : "chunks.dat";
 }
 
 static const char* entitiesFileNameFor(const Level* level) {
+	if (isAquariumLevel(level)) return "entities_aquarium.dat";
 	return isNetherLevel(level) ? "entities_nether.dat" : "entities.dat";
 }
 
@@ -101,6 +111,7 @@ ExternalFileLevelStorage::ExternalFileLevelStorage(const std::string& levelId, c
 	loadedStorageVersion(SharedConstants::StorageVersion)
 {
 	netherRegionFile = NULL;
+	aquariumRegionFile = NULL;
 	_prepared = false;
 
 	createFolderIfNotExists(levelPath.c_str());
@@ -122,6 +133,7 @@ ExternalFileLevelStorage::~ExternalFileLevelStorage()
 {
 	RegionFile::release(regionFile);
 	RegionFile::release(netherRegionFile);
+	RegionFile::release(aquariumRegionFile);
 	delete loadedLevelData;
 }
 
@@ -176,6 +188,8 @@ LevelData* ExternalFileLevelStorage::prepareLevel(Level* _level)
 		regionFile = NULL;
 		RegionFile::release(netherRegionFile);
 		netherRegionFile = NULL;
+		RegionFile::release(aquariumRegionFile);
+		aquariumRegionFile = NULL;
 
 		delete loadedLevelData;
 		loadedLevelData = new LevelData();
@@ -374,7 +388,7 @@ void ExternalFileLevelStorage::tick()
 
 void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 {
-	RegionFile*& file = isNetherLevel(level) ? netherRegionFile : regionFile;
+	RegionFile*& file = isAquariumLevel(level) ? aquariumRegionFile : isNetherLevel(level) ? netherRegionFile : regionFile;
 	if (!file)
 	{
 		file = RegionFile::acquire(levelPath, chunkFileNameFor(level));
@@ -403,7 +417,7 @@ void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 
 LevelChunk* ExternalFileLevelStorage::load(Level* level, int x, int z)
 {
-	RegionFile*& file = isNetherLevel(level) ? netherRegionFile : regionFile;
+	RegionFile*& file = isAquariumLevel(level) ? aquariumRegionFile : isNetherLevel(level) ? netherRegionFile : regionFile;
 	if (!file)
 	{
 		file = RegionFile::acquire(levelPath, chunkFileNameFor(level));

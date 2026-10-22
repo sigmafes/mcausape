@@ -142,14 +142,8 @@ cuando se vacían**, pero **sin bajón de fps**:
 6. **Multijugador:** visitantes en el Aquarium y en el portal, pasando por
    los niveles bajo demanda.
 
-## Preguntas que quedan
+## Respuestas finales
 
-1. **Bloque de cristal oceánico vs. cristal (ítem):** los 4 fragmentos dan
-   un cristal (la gema). ¿Cómo se obtiene el **bloque** del marco? Opciones:
-   (a) 4 cristales en 2×2 → 1 bloque (recomendado: el marco cuesta 8 bloques
-   = 32 cristales = 128 fragmentos, un objetivo largo), (b) 9 cristales → 1
-   bloque, (c) el cristal (gema) **es** el bloque al colocarlo.
-2. **Fragmentos por calamar:** ¿cuántos suelta? Propongo 1 a 3 (más con
-   botín si algún día existe encantamiento).
-3. **Prismarina en supervivencia:** ¿solo creativo por ahora, o con receta
-   (en Java: 4 fragmentos de prismarina, que aquí no existen)?
+- Bloque de cristal oceánico: **4 cristales oceánicos en 2×2**.
+- Fragmentos por calamar: **0 a 3**.
+- Prismarina: **solo creativo** por ahora.

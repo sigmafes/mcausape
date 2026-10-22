@@ -193,7 +193,7 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, StartGam
 	LevelStorageSource* storageSource = minecraft->getLevelSource();
 	storageSource->deleteLevel(levelId);
 	//level = new Level(storageSource->selectLevel(levelId, true), "temp", packet->levelSeed, SharedConstants::StorageVersion);
-	Dimension* fixedDimension = (packet->dimension == Dimension::NETHER) ? Dimension::getNew(Dimension::NETHER) : NULL;
+	Dimension* fixedDimension = (packet->dimension == Dimension::NETHER || packet->dimension == Dimension::AQUARIUM) ? Dimension::getNew(packet->dimension) : NULL;
 	MultiPlayerLevel* level = new MultiPlayerLevel(
 		storageSource->selectLevel(levelId, true),
 		"temp",

@@ -98,10 +98,10 @@ void Level::_init(const std::string& levelName, const LevelSettings& settings, i
 
 	if (fixedDimension != NULL) {
 		dimension = fixedDimension;
-	} else if (levelData.getDimension() == Dimension::NETHER) {
+	} else if (levelData.getDimension() == Dimension::NETHER || levelData.getDimension() == Dimension::AQUARIUM) {
 		// Saved while the player was on the other side of a portal, so the
 		// reload lands there too instead of always starting in the Overworld.
-		dimension = Dimension::getNew(Dimension::NETHER);
+		dimension = Dimension::getNew(levelData.getDimension());
 	} else {
 		dimension = DimensionFactory::createDefaultDimension( &levelData );
 	}
@@ -154,6 +154,9 @@ bool Level::checkAndHandleWater(const AABB& box, const Material* material, Entit
                     }
                 } else if (material == Material::water && isWaterlogged(x, y, z)) {
                     // Still water sharing the block with a slab, fence...: in it, no current.
+                    ok = true;
+                } else if (material == Material::water && tile == NULL && dimension->isAllWater()) {
+                    // The Aquarium's air is water.
                     ok = true;
                 }
             }
@@ -1724,6 +1727,7 @@ bool Level::containsMaterial(const AABB& box, const Material* material) {
                     return true;
                 }
                 if (material == Material::water && isWaterlogged(x, y, z)) return true;
+                if (material == Material::water && tile == NULL && dimension->isAllWater()) return true;
             }
     return false;
 }

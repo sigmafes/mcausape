@@ -81,6 +81,7 @@ private:
 	// Overworld chunks live in regionFile; the Nether's in netherRegionFile.
 	// Entities follow the same split (see entitiesFileName).
 	RegionFile* netherRegionFile;
+	RegionFile* aquariumRegionFile;
 	bool _prepared;
 
 	Level* level;

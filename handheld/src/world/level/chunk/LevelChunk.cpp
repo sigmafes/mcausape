@@ -434,6 +434,11 @@ int LevelChunk::getRawBrightness( int x, int y, int z, int skyDampen )
 	int light = skyLight.get(x, y, z);
 	if (light > 0) LevelChunk::touchedSky = true;
 	light -= skyDampen;
+	// The Aquarium darkens with depth: the light from above fades to almost
+	// nothing at the sand floor, over the whole height rather than water's
+	// 3 a block (which would be black a few blocks down).
+	if (level->dimension && level->dimension->isAllWater() && light > 0)
+		light = (light * (y + 8)) / 135;
 	int block = blockLight.get(x, y, z);
 	if (block > light) light = block;
 

@@ -14,6 +14,8 @@ class Dimension
 public:
 	static const int NORMAL = 0;
 	static const int NETHER = 1;
+	/// The Aquarium (docs/aquarium-plan.md): all water.
+	static const int AQUARIUM = 2;
 	static const int NORMAL_DAYCYCLE = 10;
 
 	Dimension();
@@ -27,6 +29,12 @@ public:
 	virtual bool isNaturalDimension() {
 		return false;
 	}
+
+	/// The Aquarium: its air is water -- swum in, drowned in, no fire --
+	/// without a single water block to draw or flow.
+	virtual bool isAllWater() { return false; }
+	/// The Overworld, of either kind (NORMAL, or NORMAL_DAYCYCLE for creative).
+	static bool isOverworld(int id) { return id != NETHER && id != AQUARIUM; }
 
     virtual float getTimeOfDay(long time, float a);
     virtual float* getSunriseColor(float td, float a);

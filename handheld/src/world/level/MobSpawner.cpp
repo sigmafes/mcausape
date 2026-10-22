@@ -34,6 +34,8 @@ int MobSpawner::tick(Level* level, bool spawnEnemies, bool spawnFriendlies) {
 	if (!spawnEnemies && !spawnFriendlies) {
         return 0;
     }
+	// The Aquarium is empty (for now): nothing spawns on its sand floor.
+	if (level->dimension && level->dimension->isAllWater()) return 0;
 
     chunksToPoll.clear();
 	// Add all chunks as a quick-and-dirty test
