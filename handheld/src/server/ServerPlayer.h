@@ -31,6 +31,7 @@ public:
 	void openContainer(ChestTileEntity* furnace);
 	void openFurnace(FurnaceTileEntity* furnace);
 	void openBrewingStand(BrewingStandTileEntity* stand);
+	void onEffectAdded(int id, int duration);
 	void closeContainer();
 	void doCloseContainer();
 

@@ -2,6 +2,7 @@
 #include "ItemCategory.h"
 #include "../level/tile/Tile.h"
 #include "ItemInstance.h"
+#include "PotionItem.h"
 
 const std::string Item::ICON_DESCRIPTION_PREFIX("item.");
 Random Item::random;
@@ -315,8 +316,8 @@ void Item::initItems() {
 	// Bottles and the plain potion stack to 16; potions with an effect do not.
 	Item::waterBottle = (new BottleItem(117, true))->setIcon(11, 11)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("emptyPotion");
 	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
-	Item::awkwardPotion = (new Item(155))->setIcon(3, 9)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("awkwardPotion");
-	Item::waterBreathingPotion = (new Item(156))->setIcon(4, 9)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("waterBreathingPotion");
+	Item::awkwardPotion = (new PotionItem(155, -1))->setIcon(3, 9)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("awkwardPotion");
+	Item::waterBreathingPotion = (new PotionItem(156, MobEffects::WaterBreathing))->setIcon(4, 9)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("waterBreathingPotion");
 	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");
 	Item::magmaCream = (new Item(122))->setIcon(13, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("magmaCream");
 	Item::carrot = (new PlantableFoodItem(135, 3, Tile::carrots->id, Tile::farmland->id))->setIcon(8, 7)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");

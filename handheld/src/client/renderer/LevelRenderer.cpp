@@ -23,6 +23,7 @@
 #include "tileentity/TileEntityRenderDispatcher.h"
 #include "../particle/BreakingItemParticle.h"
 #include "../particle/SuspendedParticle.h"
+#include "../particle/SpellParticle.h"
 
 #include "../../client/player/LocalPlayer.h"
 
@@ -1113,6 +1114,7 @@ void LevelRenderer::addParticle(const std::string& name, float x, float y, float
 
     if (name == "bubble") mc->particleEngine->add(new BubbleParticle(level, x, y, z, xa, ya, za));
 	else if (name == "suspended") mc->particleEngine->add(new SuspendedParticle(level, x, y, z));
+	else if (name == "mobSpell") mc->particleEngine->add(new SpellParticle(level, x, y, z, xa, ya, za));
 	else if (name == "crit") mc->particleEngine->add(new CritParticle2(level, x, y, z, xa, ya, za));
 	else if (name == "smoke") mc->particleEngine->add(new SmokeParticle(level, x, y, z, xa, ya, za));
     //else if (name == "note") mc->particleEngine->add(new NoteParticle(level, x, y, z, xa, ya, za));

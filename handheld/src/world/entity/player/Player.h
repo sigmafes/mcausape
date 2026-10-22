@@ -3,6 +3,8 @@
 
 //package net.minecraft.world.entity.player;
 
+#include "../../effect/MobEffect.h"
+#include <vector>
 #include "Abilities.h"
 #include "../Mob.h"
 #include "../../Pos.h"
@@ -180,6 +182,16 @@ public:
 	// from PlayerSkinPacket -- the local player's comes from its profile.
 	int skinId;
     int dimension;
+	/// Potion effects on this player (world/effect/MobEffect.h), saved with
+	/// it as Java's ActiveEffects. Ticked down in tick(); lost on death.
+	std::vector<MobEffectInstance> activeEffects;
+	/// Gives an effect, or lengthens one already running.
+	void addEffect(int id, int duration);
+	bool hasEffect(int id) const;
+	/// Told when an effect is given: a visitor's copy on the host passes it on.
+	virtual void onEffectAdded(int id, int duration) {}
+	bool canBreatheUnderwater();
+	void tickEffects();
 	/// The Overworld portal last taken into the Aquarium: where coming back
 	/// out of it lands (Minecraft::findArrival). Saved with the player.
 	bool hasAquariumReturn;

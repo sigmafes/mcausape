@@ -31,6 +31,7 @@ WANTED.append(('mob_blaze_death', 'blazedeath', 'mob.blaze.death'))
 for i in range(1, 5): WANTED.append(('mob_magmacube_big%d' % i, 'magmacubebig%d' % i, 'mob.magmacube.big'))
 for i in range(1, 5): WANTED.append(('mob_magmacube_jump%d' % i, 'magmacubejump%d' % i, 'mob.magmacube.jump'))
 for i in range(1, 6): WANTED.append(('mob_magmacube_small%d' % i, 'magmacubesmall%d' % i, 'mob.magmacube.small'))
+WANTED.append(('random_drink', 'drink', 'random.drink'))
 
 def main():
     src, out = sys.argv[1], sys.argv[2]
@@ -41,7 +42,9 @@ def main():
     index = dict((nm, i) for i, nm in enumerate(names))
 
     inc, desc, add = [], [], []
+    only = sys.argv[3:]
     for bank_name, file_name, key in WANTED:
+        if only and bank_name not in only: continue
         i = index[bank_name]
         m = struct.unpack('>6I', d[segs[1][0] + 24 * i:segs[1][0] + 24 * (i + 1)])
         duration, fmt, off, length = m[0] >> 4, m[1], m[2], m[3]

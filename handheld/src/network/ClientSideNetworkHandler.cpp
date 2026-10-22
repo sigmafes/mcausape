@@ -981,6 +981,9 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ExtPacke
 	case ExtPacket::AuthLock:
 		minecraft->inputLocked = (packet->a != 0);
 		break;
+	case ExtPacket::MobEffect:
+		if (minecraft->player) minecraft->player->addEffect(packet->a, packet->b);
+		break;
 	case ExtPacket::Kick:
 		_kicked = true;
 #ifndef STANDALONE_SERVER

@@ -1,3 +1,5 @@
+#include "../../world/effect/MobEffect.h"
+#include <cstdio>
 #include "Gui.h"
 #include "Font.h"
 #include "screens/IngameBlockSelectionScreen.h"
@@ -127,6 +129,7 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
     bool isChatting = false;
 	renderChatMessages(screenHeight, max, isChatting, font);
 	renderPlayerList(screenWidth, font);
+	if (!minecraft->options.hideGui) renderEffects(screenWidth, font, isTouchInterface);
 #if !defined(RPI)
 	renderOnSelectItemNameText(screenWidth, font, ySlot);
 #endif
@@ -711,6 +714,37 @@ void Gui::renderOnSelectItemNameText( const int screenWidth, Font* font, int ySl
 			if(alpha != 0)
 				font->drawShadow(item->getName(), x, y, 0x00ffffff + (alpha << 24));
 		}
+	}
+}
+
+/** Potion effects in the top right corner: Java's icon (gui/effects.png, its
+    inventory.png grid) with the time left under it. In its last ten seconds
+    the icon blinks, as the HUD's does in Java. */
+void Gui::renderEffects(const int screenWidth, Font* font, bool isTouchInterface) {
+	const std::vector<MobEffectInstance>& effects = minecraft->player->activeEffects;
+	if (effects.empty()) return;
+
+	const int size = 18, gap = 4;
+	int x = screenWidth - size - 4;
+	// Below the touch screen's pause button.
+	const int y = isTouchInterface ? 26 : 4;
+
+	glEnable(GL_BLEND);
+	glColor4f2(1, 1, 1, 1);
+	for (unsigned int i = 0; i < effects.size(); ++i, x -= size + gap + 4) {
+		const MobEffects::Info* info = MobEffects::get(effects[i].id);
+		if (!info) continue;
+		const int left = effects[i].duration;
+		const bool hidden = left <= 200 && (left / 5) % 2 == 0;
+		if (!hidden) {
+			minecraft->textures->loadAndBindTexture("gui/effects.png");
+			blit(x, y, info->iconX * size, info->iconY * size, size, size);
+		}
+		const int seconds = left / SharedConstants::TicksPerSecond;
+		char text[16];
+		sprintf(text, "%d:%02d", seconds / 60, seconds % 60);
+		const int tw = font->width(text);
+		font->drawShadow(text, (float) (x + size / 2 - tw / 2), (float) (y + size + 1), 0xffffffff);
 	}
 }
 

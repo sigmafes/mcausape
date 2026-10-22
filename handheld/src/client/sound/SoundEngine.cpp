@@ -178,6 +178,7 @@ void SoundEngine::init( Minecraft* mc, Options* options )
 	sounds.add("mob.magmacube.small", SA_magmacubesmall4);
 	sounds.add("mob.magmacube.small", SA_magmacubesmall5);
 	sounds.add("random.eat", SA_eat1);
+	sounds.add("random.drink", SA_drink);
 	sounds.add("random.eat", SA_eat2);
 	sounds.add("random.eat", SA_eat3);
 	sounds.add("random.fuse", SA_fuse);

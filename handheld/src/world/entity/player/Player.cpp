@@ -6,6 +6,7 @@
 #include "../../item/BowItem.h"
 #include "../../inventory/BaseContainerMenu.h"
 #include "../../../nbt/CompoundTag.h"
+#include "../../../nbt/ListTag.h"
 
 #include "../../../network/RakNetInstance.h"
 #include "../../../network/packet/AnimatePacket.h"
@@ -248,6 +249,7 @@ void Player::updateSwimPose() {
 
 void Player::tick() {
 	updateSwimPose();
+	tickEffects();
 	bool shouldSleep = entityData.getFlag<SharedFlagsInformation::SharedFlagsInformationType>(DATA_PLAYER_FLAGS_ID, PLAYER_SLEEP_FLAG);
 	if(shouldSleep != isSleeping()) {
 		if(isSleeping()) {
@@ -509,9 +511,59 @@ void Player::die(Entity* source) {
 void Player::reset() {
 	super::reset();
 	this->_init();
+	activeEffects.clear();	// Effects end with the life, as in Java.
 	// What is worn is lost with the life; the rest of the inventory is kept.
 	for (int i = 0; i < NUM_ARMOR; i++)
 		armor[i].setNull();
+}
+
+void Player::addEffect(int id, int duration) {
+	for (unsigned int i = 0; i < activeEffects.size(); ++i) {
+		if (activeEffects[i].id == id) {
+			if (activeEffects[i].duration < duration) activeEffects[i].duration = duration;
+			onEffectAdded(id, activeEffects[i].duration);
+			return;
+		}
+	}
+	activeEffects.push_back(MobEffectInstance(id, duration));
+	onEffectAdded(id, duration);
+}
+
+bool Player::hasEffect(int id) const {
+	for (unsigned int i = 0; i < activeEffects.size(); ++i)
+		if (activeEffects[i].id == id) return true;
+	return false;
+}
+
+bool Player::canBreatheUnderwater() {
+	return hasEffect(MobEffects::WaterBreathing);
+}
+
+/** Effects run down, and while any runs the player gives off Java's swirls
+    in their colours mixed (an average, as Java's PotionUtils does). */
+void Player::tickEffects() {
+	if (activeEffects.empty()) return;
+	int r = 0, g = 0, b = 0, n = 0;
+	for (int i = (int) activeEffects.size() - 1; i >= 0; --i) {
+		if (--activeEffects[i].duration <= 0) {
+			activeEffects.erase(activeEffects.begin() + i);
+			continue;
+		}
+		if (const MobEffects::Info* info = MobEffects::get(activeEffects[i].id)) {
+			r += (info->color >> 16) & 0xff;
+			g += (info->color >> 8) & 0xff;
+			b += info->color & 0xff;
+			++n;
+		}
+	}
+	if (n > 0 && random.nextInt(4) == 0) {
+		// The colour rides in the speed arguments, as Java's mobSpell does.
+		level->addParticle("mobSpell",
+			x + (random.nextFloat() - 0.5f) * bbWidth,
+			y - heightOffset + random.nextFloat() * bbHeight,
+			z + (random.nextFloat() - 0.5f) * bbWidth,
+			r / (255.0f * n), g / (255.0f * n), b / (255.0f * n));
+	}
 }
 
 void Player::_init() {
@@ -638,6 +690,17 @@ void Player::readAdditionalSaveData(CompoundTag* entityTag) {
 		respawnPosition.set(entityTag->getInt("SpawnX"), entityTag->getInt("SpawnY"), entityTag->getInt("SpawnZ"));
     }
 	playerHasRespawnPosition = respawnPosition.y >= 0;
+	activeEffects.clear();
+	if (entityTag->contains("ActiveEffects")) {
+		ListTag* list = entityTag->getList("ActiveEffects");
+		for (int i = 0; i < list->size(); ++i) {
+			Tag* t = list->get(i);
+			if (t->getId() != Tag::TAG_Compound) continue;
+			CompoundTag* e = (CompoundTag*) t;
+			if (e->getInt("Duration") > 0)
+				activeEffects.push_back(MobEffectInstance(e->getByte("Id"), e->getInt("Duration")));
+		}
+	}
 	hasAquariumReturn = entityTag->contains("AqRetY");
 	if (hasAquariumReturn) {
 		aquariumReturnX = entityTag->getInt("AqRetX");
@@ -670,6 +733,16 @@ void Player::addAdditonalSaveData(CompoundTag* entityTag) {
 	entityTag->putInt("SpawnX", respawnPosition.x);
 	entityTag->putInt("SpawnY", respawnPosition.y);
 	entityTag->putInt("SpawnZ", respawnPosition.z);
+	if (!activeEffects.empty()) {
+		ListTag* list = new ListTag();
+		for (unsigned int i = 0; i < activeEffects.size(); ++i) {
+			CompoundTag* e = new CompoundTag();
+			e->putByte("Id", (char) activeEffects[i].id);
+			e->putInt("Duration", activeEffects[i].duration);
+			list->add(e);
+		}
+		entityTag->put("ActiveEffects", list);
+	}
 	if (hasAquariumReturn) {
 		entityTag->putInt("AqRetX", aquariumReturnX);
 		entityTag->putInt("AqRetY", aquariumReturnY);

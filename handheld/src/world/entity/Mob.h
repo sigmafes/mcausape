@@ -53,6 +53,8 @@ public:
 
 	virtual bool isSleeping();
 	virtual bool isWaterMob();
+	/// Air does not run out under water (a player's water breathing).
+	virtual bool canBreatheUnderwater() { return false; }
 
     virtual bool isSneaking();
     virtual void setSneaking(bool value);

@@ -24,6 +24,8 @@ public:
 		/// a: 1 locked, 0 free. Not logged in yet (/auth): no moving, looking
 		/// or inventory until /login or /register (Minecraft::inputLocked).
 		AuthLock = 5,
+		/// a, b: effect id, ticks. The host gave this player a potion effect.
+		MobEffect = 6,
 	};
 
 	ExtPacket() : kind(0), a(0), b(0), c(0) {}

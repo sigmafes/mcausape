@@ -49,6 +49,7 @@ public:
 
 	void renderChatMessages( const int screenHeight, unsigned int max, bool isChatting, Font* font );
 	void renderPlayerList( const int screenWidth, Font* font );
+	void renderEffects( const int screenWidth, Font* font, bool isTouchInterface );
 
 	void renderOnSelectItemNameText( const int screenWidth, Font* font, int ySlot );
 

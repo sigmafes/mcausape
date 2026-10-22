@@ -163,7 +163,7 @@ void Mob::baseTick()
 
 	//if (fireImmune || level.isOnline) onFire = 0;
 
-	if (isAlive() && isUnderLiquid(Material::water) && !isWaterMob()) {
+	if (isAlive() && isUnderLiquid(Material::water) && !isWaterMob() && !canBreatheUnderwater()) {
 		airSupply--;
 		if (airSupply == -20) {
 			airSupply = 0;

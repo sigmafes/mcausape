@@ -111,6 +111,7 @@
 #include "data/eat1.pcm"
 #include "data/eat2.pcm"
 #include "data/eat3.pcm"
+#include "data/drink.pcm"
 #include "data/fuse.pcm"
 #include "data/ghastmoan1.pcm"
 #include "data/ghastmoan2.pcm"
@@ -256,6 +257,7 @@ SoundDesc SA_creeper3((char*)PCM_creeper3);
 SoundDesc SA_creeper4((char*)PCM_creeper4);
 SoundDesc SA_creeperdeath((char*)PCM_creeperdeath);
 SoundDesc SA_eat1((char*)PCM_eat1);
+SoundDesc SA_drink((char*)PCM_drink);
 SoundDesc SA_eat2((char*)PCM_eat2);
 SoundDesc SA_eat3((char*)PCM_eat3);
 SoundDesc SA_fuse((char*)PCM_fuse);

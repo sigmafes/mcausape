@@ -183,6 +183,7 @@ extern SoundDesc SA_creeper3;
 extern SoundDesc SA_creeper4;
 extern SoundDesc SA_creeperdeath;
 extern SoundDesc SA_eat1;
+extern SoundDesc SA_drink;
 extern SoundDesc SA_eat2;
 extern SoundDesc SA_eat3;
 extern SoundDesc SA_fuse;

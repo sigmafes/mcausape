@@ -1,3 +1,4 @@
+#include "../network/packet/ExtPacket.h"
 #include "ServerPlayer.h"
 #include "../world/level/Level.h"
 
@@ -103,6 +104,12 @@ void ServerPlayer::openBrewingStand( BrewingStandTileEntity* stand ) {
 	ContainerOpenPacket packet(_containerCounter, ContainerType::BREWING_STAND, stand->getName(), stand->getContainerSize());
 	_mc->raknetInstance->send(owner, packet);
 	setContainerMenu(new FurnaceMenu(stand));
+}
+
+void ServerPlayer::onEffectAdded( int id, int duration ) {
+	// A visitor drank on the host: its own client keeps its HUD and its air.
+	ExtPacket packet(ExtPacket::MobEffect, id, duration);
+	_mc->raknetInstance->send(owner, packet);
 }
 
 void ServerPlayer::closeContainer() {
