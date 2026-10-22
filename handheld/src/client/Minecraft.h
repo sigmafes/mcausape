@@ -320,6 +320,7 @@ protected:
 	int _prepCount;
 	unsigned int _genBackground;
 	void tickBackgroundGeneration(int maxMs);
+	bool prepareLevelLightStep(int maxMs);
 	/// Set while the web is driving prepareLevel a slice at a time.
 	bool _prepInProgress;
 	/// 0 chunk pass, 1 save, 2 prepare -- one frame drawn between each.

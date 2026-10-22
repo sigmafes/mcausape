@@ -450,6 +450,7 @@ void Minecraft::prepareLevel(const std::string& title) {
 	// see prepareLevelChunkStep and the note in Minecraft.h.
 	prepareLevelBegin();
 	prepareLevelChunkStep(-1);
+	if (level->isNew()) prepareLevelLightStep(-1);
 	prepareLevelSave();
 	if (_prepNether) {
 		prepareNetherBegin();
@@ -548,11 +549,19 @@ bool Minecraft::prepareLevelChunkStep(int maxIterations) {
 		++done;
 
 		level->getTile(x, 64, z);
-		if (level->isNew())
-			while (level->updateLights())
-				;
+		// The light is settled once, after the whole pass (prepareLevelLightStep),
+		// not after every column: each column's light flowed into neighbours
+		// not made yet and was worked out again when they came.
 	}
 
+	return true;
+}
+
+/// The light the chunk pass queued, maxMs at a time; true when settled.
+bool Minecraft::prepareLevelLightStep(int maxMs) {
+	const int start = getTimeMs();
+	while (level->updateLights())
+		if (maxMs >= 0 && getTimeMs() - start >= maxMs) return false;
 	return true;
 }
 
@@ -680,6 +689,8 @@ void Minecraft::prepareLevelPrepare() {
 }
 
 static const int PORTAL_COOLDOWN_TICKS = 40;
+/// Work per frame while a loading screen is up (world creation, trips).
+static const int LoadSliceMs = 50;
 
 // The Overworld comes in two kinds (NORMAL, and NORMAL_DAYCYCLE for creative):
 // they are the same place.
@@ -1042,7 +1053,7 @@ void Minecraft::update() {
 		if (_pendingDim != 0 && --_pendingDimFrames <= 0) {
 			const int dst = _pendingDim - 1;
 			Level* warm = (level && player && travelKeepsLevels()) ? levelForDimension(dst, true) : NULL;
-			if (warm && warm != level && !warmTravelLevel(warm, 12)) {
+			if (warm && warm != level && !warmTravelLevel(warm, LoadSliceMs)) {
 				_pendingDimFrames = 1;	// more of it next frame
 			} else {
 				_pendingDim = 0;
@@ -1158,12 +1169,25 @@ void Minecraft::tick(int nTick, int maxTick) {
 			if (_prepPhase == 0) {
 				const int sliceStart = getTimeMs();
 				bool passDone;
+				// 50ms a frame: the loading screen does not need 60fps, and each
+				// frame drawn is time not spent making the world.
 				do {
 					passDone = prepareLevelChunkStep(1);
-				} while (!passDone && (getTimeMs() - sliceStart) < 16);
+				} while (!passDone && (getTimeMs() - sliceStart) < LoadSliceMs);
 
 				if (passDone) {
-					// Painted next frame, before prepareLevelSave blocks.
+					if (level->isNew()) {
+						_prepPhase = 4;
+					} else {
+						// Painted next frame, before prepareLevelSave blocks.
+						progressStageStatusId = 3;
+						_prepPhase = 1;
+					}
+				}
+			} else if (_prepPhase == 4) {
+				// The new chunks' light, all at once now the pass is done.
+				progressStagePercentage = -1;
+				if (prepareLevelLightStep(LoadSliceMs)) {
 					progressStageStatusId = 3;
 					_prepPhase = 1;
 				}
@@ -1184,7 +1208,7 @@ void Minecraft::tick(int nTick, int maxTick) {
 					_prepPhase = 2;
 				}
 			} else if (_prepPhase == 3) {
-				if (prepareNetherStep(16)) {
+				if (prepareNetherStep(LoadSliceMs)) {
 					prepareNetherFinish();
 					progressStagePercentage = -1;
 					progressStageStatusId = 2;
