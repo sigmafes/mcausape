@@ -2,6 +2,8 @@
 #define NET_MINECRAFT_WORLD_LEVEL_LEVELGEN__AquariumLevelSource_H__
 
 #include <map>
+#include <vector>
+#include "../TilePos.h"
 #include "../chunk/ChunkSource.h"
 
 class Level;
@@ -54,6 +56,8 @@ private:
 	/// Coral reefs on the shelf of chunk (cx, cz), Java-style.
 	void decorate(int cx, int cz);
 	void placeCoral(int x, int y, int z, int tile);
+	/// The coral blocks decorate() placed, for the plants on top.
+	std::vector<TilePos> _placed;
 	void coralMushroom(Random& r, int x, int y, int z, int tile);
 	void coralTree(Random& r, int x, int y, int z, int tile);
 	void coralClaw(Random& r, int x, int y, int z, int tile);

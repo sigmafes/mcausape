@@ -1,4 +1,5 @@
 #include "TileInclude.h"
+#include "CoralPlantTile.h"
 #include "../Level.h"
 #include "../LevelConstants.h"
 #include "../../entity/player/Player.h"
@@ -158,6 +159,7 @@ Tile* Tile::oceanCrystalBlock = NULL;
 Tile* Tile::aquariumPortal = NULL;
 Tile* Tile::oceanCrystalHub = NULL;
 Tile* Tile::coral[5] = { NULL, NULL, NULL, NULL, NULL };
+Tile* Tile::coralPlant[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::mossyCobbleWall = NULL;
 Tile* Tile::fence_spruce = NULL;
 Tile* Tile::fence_birch = NULL;
@@ -312,6 +314,10 @@ void Tile::initTiles() {
 		static const char* names[5] = { "coralTube", "coralBrain", "coralBubble", "coralFire", "coralHorn" };
 		for (int i = 0; i < 5; ++i)
 			coral[i] = (new Tile(172 + i, 259 + i, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId(names[i]);
+		// The plants, in the same colours: ids 183-187, terrain cells 272-276.
+		static const char* plants[5] = { "coralTubePlant", "coralBrainPlant", "coralBubblePlant", "coralFirePlant", "coralHornPlant" };
+		for (int i = 0; i < 5; ++i)
+			coralPlant[i] = (new CoralPlantTile(183 + i, 272 + i))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId(plants[i]);
 	}
 	enchantTable = (new EnchantTableTile(116))->init()->setDestroyTime(5.0f)->setExplodeable(2000)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("enchantmentTable");
 	brewingStand = (new BrewingStandTile(117))->init()->setDestroyTime(0.5f)->setLightEmission(2 / 16.0f)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Decorations)->setDescriptionId("brewingStand");

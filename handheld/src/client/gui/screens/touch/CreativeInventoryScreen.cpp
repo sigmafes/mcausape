@@ -60,6 +60,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 			Tile::redStoneOre, Tile::quartzOre, Tile::netherrack, Tile::hellSand, Tile::lightGem,
 			Tile::pumpkin, Tile::melon, Tile::tallgrass, Tile::web, Tile::unbreakable,
 			Tile::prismarine, Tile::coral[0], Tile::coral[1], Tile::coral[2], Tile::coral[3], Tile::coral[4],
+			Tile::coralPlant[0], Tile::coralPlant[1], Tile::coralPlant[2], Tile::coralPlant[3], Tile::coralPlant[4],
 		};
 		if (isOneOf(id, natural, COUNT(natural))) return Natural;
 		Tile* const functional[] = {

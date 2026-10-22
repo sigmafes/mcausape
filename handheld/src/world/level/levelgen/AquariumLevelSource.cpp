@@ -164,6 +164,7 @@ void AquariumLevelSource::decorate(int cx, int cz)
 	const int x0 = cx * 16 + 8, z0 = cz * 16 + 8;
 	const float reef = unit(reefNoise->getValue(x0 / 6.0f, z0 / 6.0f), 3);
 	const int count = reef > 0.2f ? 10 + r.nextInt(8) : r.nextInt(3);
+	_placed.clear();
 	for (int i = 0; i < count; ++i) {
 		const int x = x0 + r.nextInt(16), z = z0 + r.nextInt(16);
 		// The shelf's top: the first block from the top down, if it is shelf.
@@ -178,12 +179,24 @@ void AquariumLevelSource::decorate(int cx, int cz)
 			default: coralClaw(r, x, y + 1, z, tile); break;
 		}
 	}
+	// Coral plants of the block's own colour on the reefs' open tops, as
+	// often as not. Only on blocks just placed: their chunks exist.
+	for (unsigned int i = 0; i < _placed.size(); ++i) {
+		const int x = _placed[i].x, y = _placed[i].y + 1, z = _placed[i].z;
+		const int below = level->getTile(x, y - 1, z);
+		if (y >= CeilingY || level->getTile(x, y, z) != 0 || r.nextInt(2)) continue;
+		for (int c = 0; c < 5; ++c)
+			if (below == Tile::coral[c]->id) level->setTileNoUpdate(x, y, z, Tile::coralPlant[c]->id);
+	}
 }
 
 void AquariumLevelSource::placeCoral(int x, int y, int z, int tile)
 {
 	if (y > 0 && y < CeilingY && level->getTile(x, y, z) == 0)
+	{
 		level->setTileNoUpdate(x, y, z, tile);
+		_placed.push_back(TilePos(x, y, z));
+	}
 }
 
 void AquariumLevelSource::coralMushroom(Random& r, int x, int y, int z, int tile)
