@@ -1692,6 +1692,11 @@ void ServerSideNetworkHandler::broadcastPlayerList()
 		text += all[i]->name;
 	}
 	minecraft->playerNames = names;
+	if (minecraft->level) minecraft->worldTitle = minecraft->level->getLevelData()->getLevelName();
+	minecraft->worldMotd = _access.motd();
+	// A first line marked with \x01 carries the world's name and motd
+	// ("\x01name\x01motd"); a client from before it shows it as a name.
+	text = "\x01" + minecraft->worldTitle + "\x01" + minecraft->worldMotd + "\n" + text;
 	ExtPacket packet(ExtPacket::PlayerList, 0, 0, 0, text);
 	for (unsigned int i = 0; i < all.size(); ++i)
 		if (all[i] != (Player*) minecraft->player)

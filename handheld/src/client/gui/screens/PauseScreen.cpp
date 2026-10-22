@@ -154,6 +154,10 @@ void PauseScreen::render(int xm, int ym, float a) {
 	drawCenteredString(font, "Game menu", width / 2, 24, 0xffffff);
 
 	super::render(xm, ym, a);
+
+	// A phone has no Tab: the player list is here, on the right.
+	if (minecraft->useTouchscreen() && minecraft->level)
+		minecraft->gui.renderPlayerPanel(width - 70, 24, font);
 }
 
 void PauseScreen::buttonClicked(Button* button) {

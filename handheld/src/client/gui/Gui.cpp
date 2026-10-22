@@ -762,31 +762,51 @@ void Gui::renderEffects(const int screenWidth, Font* font, bool isTouchInterface
 void Gui::renderPlayerList(const int screenWidth, Font* font) {
 	if (!Keyboard::isKeyDown(9))
 		return;
+	renderPlayerPanel(screenWidth / 2, 14, font);
+}
 
+void Gui::renderPlayerPanel(int centerX, int y0, Font* font) {
 	std::vector<std::string> names = minecraft->playerNames;
 	if (names.empty() && minecraft->player)
 		names.push_back(minecraft->player->name);
 
+	std::string world = minecraft->worldTitle;
+	if (world.empty() && minecraft->level && !minecraft->level->isClientSide)
+		world = minecraft->level->getLevelData()->getLevelName();
+	const std::string& motd = minecraft->worldMotd;
+	std::ostringstream count;
+	count << "Players (" << names.size() << "/10)";
+
 	int width = 120;
 	for (unsigned int i = 0; i < names.size(); ++i)
 		width = std::max(width, font->width(names[i]) + 24);
+	width = std::max(width, font->width(world) + 16);
+	width = std::max(width, font->widthFormatted(motd) + 16);
 
 	const int rowHeight = 10;
-	const int height = 18 + (int) names.size() * rowHeight;
-	const int x0 = (screenWidth - width) / 2;
-	const int y0 = 14;
+	int headerRows = 1 + (world.empty() ? 0 : 1) + (motd.empty() ? 0 : 1);
+	const int header = 4 + headerRows * rowHeight + 2;
+	const int height = header + (int) names.size() * rowHeight + 2;
+	const int x0 = centerX - width / 2;
 
 	fill(x0, y0, x0 + width, y0 + height, 0x80000000);
-	std::ostringstream title;
-	title << "Players " << names.size() << "/10";
-	font->drawShadow(title.str(), x0 + (width - font->width(title.str())) / 2, y0 + 4, 0xffffffff);
+	int y = y0 + 4;
+	if (!world.empty()) {
+		font->drawShadow(world, (float) (x0 + (width - font->width(world)) / 2), (float) y, 0xffffffff);
+		y += rowHeight;
+	}
+	if (!motd.empty()) {
+		font->drawFormattedShadow(motd, (float) (x0 + (width - font->widthFormatted(motd)) / 2), (float) y, 0xffaaaaaa);
+		y += rowHeight;
+	}
+	font->drawShadow(count.str(), (float) (x0 + (width - font->width(count.str())) / 2), (float) y, 0xffffffff);
 	for (unsigned int i = 0; i < names.size(); ++i) {
-		const int y = y0 + 16 + (int) i * rowHeight;
-		fill(x0 + 4, y - 1, x0 + width - 4, y + rowHeight - 2, 0x30ffffff);
+		const int ry = y0 + header + (int) i * rowHeight;
+		fill(x0 + 4, ry - 1, x0 + width - 4, ry + rowHeight - 2, 0x30ffffff);
 		// The first is the owner of the world.
 		// (Not before the host's list has arrived: then the only name is ours.)
 		const bool owner = (i == 0) && !minecraft->playerNames.empty();
-		font->drawShadow(names[i], x0 + 8, y, owner ? 0xffffff55 : 0xffffffff);
+		font->drawShadow(names[i], (float) (x0 + 8), (float) ry, owner ? 0xffffff55 : 0xffffffff);
 	}
 }
 

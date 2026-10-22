@@ -968,7 +968,16 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, ExtPacke
 		while (pos <= text.size() && !text.empty()) {
 			std::string::size_type end = text.find('\n', pos);
 			if (end == std::string::npos) end = text.size();
-			if (end > pos) minecraft->playerNames.push_back(text.substr(pos, end - pos));
+			if (end > pos) {
+				const std::string line = text.substr(pos, end - pos);
+				if (line[0] == '\x01') {
+					const std::string::size_type mid = line.find('\x01', 1);
+					minecraft->worldTitle = line.substr(1, mid == std::string::npos ? std::string::npos : mid - 1);
+					minecraft->worldMotd = mid == std::string::npos ? "" : line.substr(mid + 1);
+				} else {
+					minecraft->playerNames.push_back(line);
+				}
+			}
 			pos = end + 1;
 		}
 		break;

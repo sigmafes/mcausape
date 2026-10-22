@@ -206,8 +206,11 @@ void JoinGameScreen::tick()
 	} else {
 		for (int i = (int)gamesList->copiedServerList.size()-1; i >= 0 ; --i) {
 			for (int j = 0; j < (int) serverList.size(); ++j)
-				if (serverList[j].address == gamesList->copiedServerList[i].address)
+				if (serverList[j].address == gamesList->copiedServerList[i].address) {
+					// The name and the motd follow the host's changes as they come.
 					gamesList->copiedServerList[i].name = serverList[j].name;
+					gamesList->copiedServerList[i].motd = serverList[j].motd;
+				}
 		}
 	}
 

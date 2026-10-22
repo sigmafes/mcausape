@@ -265,6 +265,9 @@ public:
 	/// Who is in the world, host first. The host keeps it up to date itself; a
 	/// visitor is sent it (ExtPacket::PlayerList). What the Tab list shows.
 	std::vector<std::string> playerNames;
+	/// The world's name and /motd, for the player list (Tab, pause menu on
+	/// touch). The host's own; a visitor's arrive with the player list.
+	std::string worldTitle, worldMotd;
 
 	int lastTime;
 	int lastTickTime;

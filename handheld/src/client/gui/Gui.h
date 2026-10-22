@@ -50,6 +50,10 @@ public:
 
 	void renderChatMessages( const int screenHeight, unsigned int max, bool isChatting, Font* font );
 	void renderPlayerList( const int screenWidth, Font* font );
+public:
+	/// The player list's panel: world, motd, "Players X/10", the names (the
+	/// host's in yellow). Centred on centerX, from y0. Tab, and the touch pause menu.
+	void renderPlayerPanel(int centerX, int y0, Font* font);
 	void renderEffects( const int screenWidth, Font* font, bool isTouchInterface );
 
 	void renderOnSelectItemNameText( const int screenWidth, Font* font, int ySlot );

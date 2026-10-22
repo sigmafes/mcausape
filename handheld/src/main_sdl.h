@@ -656,7 +656,7 @@ int main(int argc, char** argv)
 #endif
 
 	g_window = SDL_CreateWindow(
-		"Minecraft Pocket Edition v0.6.1 alpha",
+		"mcausape",	// the tab's title: SDL sets document.title from it
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		g_state.windowWidth, g_state.windowHeight,
 		windowFlags);

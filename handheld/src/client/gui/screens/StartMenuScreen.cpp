@@ -74,7 +74,7 @@ void StartMenuScreen::init()
 		#ifdef RPI
 			version = "v0.1.1 alpha";//(MCPE " + versionString + " compatible)";
 		#else
-			version = "mcausape 1.0";
+			version = "mcausape v1.1";
 		#endif
 	#endif
 

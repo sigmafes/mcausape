@@ -355,6 +355,7 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 		if (text.size() > 64) text = text.substr(0, 64);
 		net->access().setMotd(text);
 		net->announceLobbyInfo();
+		net->broadcastPlayerList();
 		reply(mc, net, sender, text.empty() ? "MOTD quitado." : "MOTD: " + text);
 		return;
 	}

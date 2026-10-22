@@ -397,9 +397,18 @@ static int formatCode(char c) {
 	return -1;
 }
 
+/// "&zN" (N a colour): a gradient, letter by letter, to the next "&zN".
+/// Returns the colour index, or -1 if str[i] does not start one.
+static int gradientCode(const std::string& str, unsigned int i) {
+	if (str[i] != '&' || i + 2 >= str.size() || tolower(str[i + 1]) != 'z') return -1;
+	const int c = formatCode(str[i + 2]);
+	return c >= 0 && c < 16 ? c : -1;
+}
+
 std::string Font::stripFormatting(const std::string& str) {
 	std::string out;
 	for (unsigned int i = 0; i < str.size(); ++i) {
+		if (gradientCode(str, i) >= 0) { i += 2; continue; }
 		if (str[i] == '&' && i + 1 < str.size() && formatCode(str[i + 1]) >= 0) { ++i; continue; }
 		out += str[i];
 	}
@@ -410,6 +419,7 @@ int Font::widthFormatted(const std::string& str) {
 	int w = 0;
 	bool bold = false;
 	for (unsigned int i = 0; i < str.size(); ++i) {
+		if (gradientCode(str, i) >= 0) { bold = false; i += 2; continue; }
 		if (str[i] == '&' && i + 1 < str.size()) {
 			const int code = formatCode(str[i + 1]);
 			if (code >= 0) {
@@ -444,13 +454,45 @@ void Font::drawFormatted(const std::string& str, float x, float y, int color, bo
 	t.begin();
 	t.addOffset(x, y, 0);
 	float cx = 0;
+	// A running &z gradient: from gradFrom to gradTo over gradCount letters.
+	int gradFrom = 0, gradTo = 0, gradCount = 0, gradIndex = 0;
 	for (unsigned int i = 0; i < str.size(); ++i) {
+		const int grad = gradientCode(str, i);
+		if (grad >= 0) {
+			scrambled = bold = strike = underline = italic = false;
+			if (gradCount > 0) {
+				// The closing code: the text after it keeps the end colour.
+				rgb = FormatColors[grad];
+				gradCount = 0;
+			} else {
+				// Find the closing &z and count the letters up to it.
+				int letters = 0;
+				unsigned int j = i + 3;
+				int end = -1;
+				for (; j < str.size(); ++j) {
+					if ((end = gradientCode(str, j)) >= 0) break;
+					if (str[j] == '&' && j + 1 < str.size() && formatCode(str[j + 1]) >= 0) { ++j; continue; }
+					++letters;
+				}
+				rgb = FormatColors[grad];
+				if (end >= 0 && letters > 0) {
+					// Unclosed, it is just the colour, as "&N" would be.
+					gradFrom = FormatColors[grad];
+					gradTo = FormatColors[end];
+					gradCount = letters;
+					gradIndex = 0;
+				}
+			}
+			i += 2;
+			continue;
+		}
 		if (str[i] == '&' && i + 1 < str.size()) {
 			const int code = formatCode(str[i + 1]);
 			if (code >= 0) {
 				if (code < 16) {
 					// A colour ends the styles, as in Java.
 					rgb = FormatColors[code];
+					gradCount = 0;
 					scrambled = bold = strike = underline = italic = false;
 				} else switch (code - 100) {
 					case 'k': scrambled = true; break;
@@ -458,7 +500,7 @@ void Font::drawFormatted(const std::string& str, float x, float y, int color, bo
 					case 'm': strike = true; break;
 					case 'n': underline = true; break;
 					case 'o': italic = true; break;
-					case 'r': rgb = color & 0xffffff; scrambled = bold = strike = underline = italic = false; break;
+					case 'r': gradCount = 0; rgb = color & 0xffffff; scrambled = bold = strike = underline = italic = false; break;
 				}
 				++i;
 				continue;
@@ -471,6 +513,16 @@ void Font::drawFormatted(const std::string& str, float x, float y, int color, bo
 				unsigned char r = (unsigned char) (33 + Mth::random() * 94);
 				if (charWidths[r] == charWidths[ch]) { ch = r; break; }
 			}
+		}
+		if (gradCount > 0) {
+			const float f = gradCount > 1 ? (float) gradIndex / (gradCount - 1) : 0.0f;
+			int mixed = 0;
+			for (int sh = 0; sh <= 16; sh += 8) {
+				const int a0 = (gradFrom >> sh) & 0xff, a1 = (gradTo >> sh) & 0xff;
+				mixed |= ((int) (a0 + (a1 - a0) * f + 0.5f) & 0xff) << sh;
+			}
+			rgb = mixed;
+			++gradIndex;
 		}
 		int c = rgb;
 		if (darken) c = (c & 0xfcfcfc) >> 2;

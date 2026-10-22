@@ -1351,7 +1351,11 @@
       post({
         id: id,
         name: name,
-        world: world,
+        // The motd and deploy ride inside the world's name as well, after a
+        // \u001f each: the lobby Worker keeps only the fields it knows, and
+        // one deployed before they existed drops them. records() splits them
+        // back out.
+        world: world + '\u001f' + motd + '\u001f' + deployNumber(),
         route: net ? net.route() : 0,
         token: net ? net.token() : '',
         whitelist: info.whitelist,
@@ -1471,9 +1475,11 @@
       // Flat records rather than JSON: the reader is C++03 with no parser in it.
       records: function () {
         return others.map(function (p) {
-          return (p.name || '') + '\t' + (p.world || '') + '\t' + ((p.route || 0) >>> 0) +
+          var parts = String(p.world || '').split('\u001f');
+          var w = parts[0], m = parts.length > 1 ? parts[1] : (p.motd || ''), d = parts.length > 2 ? (parseInt(parts[2], 10) || 0) : (p.deploy || 0);
+          return (p.name || '') + '\t' + w.replace(/[\t\n\r]/g, ' ') + '\t' + ((p.route || 0) >>> 0) +
             '\t' + (p.whitelist ? 1 : 0) + '\t' + (p.players || 1) +
-            '\t' + String(p.motd || '').replace(/[\t\n\r]/g, ' ') + '\t' + (p.deploy || 0);
+            '\t' + String(m).replace(/[\t\n\r]/g, ' ') + '\t' + d;
         }).join('\n');
       }
     };
