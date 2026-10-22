@@ -5,11 +5,15 @@
 #include "../chunk/ChunkSource.h"
 
 class Level;
+class PerlinNoise;
+class Random;
 class LevelChunk;
 
 /** The Aquarium's terrain: bedrock at y=0, sand above it about four deep with
-    a gentle swell, then nothing (which is water there) up to a barrier of
-    invisible bedrock at the top. The fixed portal is built when the middle
+    a gentle swell, a vast open cave of water, then a thick shelf of
+    prismarine hanging in the middle of the world -- rolling hills on top
+    like the Overworld's ground, a ragged underside with drips -- and water
+    again up to a barrier of invisible bedrock at the top. The fixed portal is built when the middle
     chunks are made (AquariumLevelSource::buildHub). */
 class AquariumLevelSource: public ChunkSource
 {
@@ -38,6 +42,14 @@ public:
 private:
 	Level* level;
 	long seed;
+	// The prismarine shelf: its rolling top, its underside, and the drips
+	// hanging off that.
+	Random* random;
+	PerlinNoise* topNoise;
+	PerlinNoise* bottomNoise;
+	PerlinNoise* dripNoise;
+	/// Where the shelf is in a column: [bottom, top], empty if bottom > top.
+	void shelfAt(int x, int z, int* bottom, int* top) const;
 	std::map<int, LevelChunk*> chunks;
 };
 

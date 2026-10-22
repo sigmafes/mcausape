@@ -5,6 +5,8 @@
 #include "../tile/Tile.h"
 #include "../dimension/AquariumDimension.h"
 #include "../../../util/Mth.h"
+#include "../../../util/Random.h"
+#include "synth/PerlinNoise.h"
 #include <math.h>
 #include <string.h>
 
@@ -12,10 +14,44 @@ AquariumLevelSource::AquariumLevelSource(Level* level, long seed)
 :	level(level),
 	seed(seed)
 {
+	random = new Random(seed);
+	topNoise = new PerlinNoise(random, 4);
+	bottomNoise = new PerlinNoise(random, 4);
+	dripNoise = new PerlinNoise(random, 3);
 }
 
 AquariumLevelSource::~AquariumLevelSource()
 {
+	delete topNoise;
+	delete bottomNoise;
+	delete dripNoise;
+	delete random;
+}
+
+static float unit(float v, int levels)
+{
+	// PerlinNoise::getValue halves the frequency and doubles the amplitude
+	// each octave: n of them add up to about 2^n - 1 either way. Scaled back
+	// to -1..1 (a little stretched: the extremes are rare).
+	v = v / (float) ((1 << levels) - 1) * 1.7f;
+	return v < -1 ? -1 : (v > 1 ? 1 : v);
+}
+
+void AquariumLevelSource::shelfAt(int x, int z, int* bottom, int* top) const
+{
+	// Top: hills between ~84 and ~104, like the Overworld's ground (octaves
+	// from 8 to 64 blocks across).
+	const float t = unit(topNoise->getValue(x / 8.0f, z / 8.0f), 4);
+	*top = 94 + (int) (t * 10);
+	// Underside: a slow swell between ~38 and ~62 (6 to 48 blocks)...
+	const float b = unit(bottomNoise->getValue(x / 6.0f, z / 6.0f), 4);
+	int bot = 50 + (int) (b * 12);
+	// ...with drips hanging off it (2 to 10 blocks across), up to ~25 long.
+	const float d = unit(dripNoise->getValue(x / 2.5f, z / 2.5f), 3);
+	if (d > 0.1f) bot -= (int) ((d - 0.1f) * 28);
+	// Never down to the sand: the cave under it stays open.
+	if (bot < 18) bot = 18;
+	*bottom = bot;
 }
 
 int AquariumLevelSource::sandTop(int x, int z) const
@@ -44,6 +80,10 @@ LevelChunk* AquariumLevelSource::getChunk(int cx, int cz)
 			if (top < 2) top = 2;
 			for (int y = 1; y <= top; ++y)
 				blocks[column | y] = (unsigned char) Tile::sand->id;
+			int shelfBottom, shelfTop;
+			shelfAt(cx * 16 + x, cz * 16 + z, &shelfBottom, &shelfTop);
+			for (int y = shelfBottom; y <= shelfTop; ++y)
+				blocks[column | y] = (unsigned char) Tile::prismarine->id;
 			blocks[column | CeilingY] = (unsigned char) Tile::invisible_bedrock->id;
 		}
 	}
