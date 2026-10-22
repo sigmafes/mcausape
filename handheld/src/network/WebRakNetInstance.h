@@ -17,6 +17,8 @@ void mcpeLobbySetWorld(const std::string& worldName);
 /** Extras for the lobby listing: whether the whitelist is on and how many
     players are in the world out of how many it holds. */
 void mcpeLobbySetInfo(int whitelist, int players, int maxPlayers);
+/// The host's /motd, listed under its world.
+void mcpeLobbySetMotd(const std::string& motd);
 
 /** Multiplayer on the web: real RakNet, over a WebSocket instead of UDP.
 

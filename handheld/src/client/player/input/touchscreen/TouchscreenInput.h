@@ -75,6 +75,7 @@ private:
 	RectangleArea* aChat;
 	//RectangleArea* aUpJump;
 	RectangleArea* aJump;
+	RectangleArea* aSneak;
 	RectangleArea* aUpLeft;
 	RectangleArea* aUpRight;
 	bool _pauseIsDown;

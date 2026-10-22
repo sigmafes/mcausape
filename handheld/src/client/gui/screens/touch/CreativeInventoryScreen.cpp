@@ -345,6 +345,12 @@ void CreativeInventoryScreen::render(int xm, int ym, float a)
 	// What is under the mouse, Java-style (not on a touch screen).
 	if (pane && !minecraft->useTouchscreen() && pane->hoverIndex >= 0 && pane->hoverIndex < (int) slots.size())
 		ItemTooltip::render(this, minecraft->font, inventory->getItem(slots[pane->hoverIndex]), xm, ym, width, height);
+	// ...and over the hotbar under it.
+	if (!minecraft->useTouchscreen()) {
+		const int slot = hotbarSlotAt(xm, ym);
+		if (slot >= 0 && slot < n)
+			ItemTooltip::render(this, minecraft->font, inventory->getItem(slot), xm, ym, width, height);
+	}
 	glEnable2(GL_DEPTH_TEST);
 }
 

@@ -49,9 +49,11 @@ void SignRenderer::render( TileEntity* te, float x, float y, float z, float a )
         std::string& msg = sign->messages[i];
         if (i == sign->selectedLine) {
             std::string s = "> " + msg + " <";
+            // Being written: the codes are shown as typed.
             font->draw(s, (float)-font->width(s) / 2, yy, col);
         } else {
-            font->draw(msg, (float)-font->width(msg) / 2, yy, col);
+            // Signs take & codes (Font::drawFormatted).
+            font->drawFormatted(msg, (float)-font->widthFormatted(msg) / 2, yy, col);
         }
 		yy += 10;
     }

@@ -31,6 +31,8 @@ private:
 	int ticks;
 	/// Touch: the page's text dialog is up collecting the line.
 	bool awaitingDialog;
+	/// Typing on a phone's keyboard through the page (MC_WASM).
+	bool touchKeyboard;
 };
 
 #endif /*NET_MINECRAFT_CLIENT_GUI_SCREENS__ChatScreen_H__*/

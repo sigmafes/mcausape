@@ -54,7 +54,13 @@ void AvailableGamesList::renderItem( int i, int x, int y, int h, Tesselator& t )
 	// from the player's id purely so the list has something to key on. Printing
 	// it would be printing a fake IP. The name line carries the world instead.
 	(void)color2;
-	drawString(minecraft->font, s.name.C_String(), xx1, y + 8, color);
+	// "Steve - New World 1/10", and under it the host's /motd, & codes and all.
+	if (s.motd.IsEmpty()) {
+		drawString(minecraft->font, s.name.C_String(), xx1, y + 8, color);
+	} else {
+		drawString(minecraft->font, s.name.C_String(), xx1, y + 3, color);
+		minecraft->font->drawFormattedShadow(s.motd.C_String(), (float) xx1, (float) (y + 15), 0xffaaaaaa);
+	}
 #else
 	drawString(minecraft->font, s.name.C_String(), xx1, y + 4 + 2, color);
 	drawString(minecraft->font, s.address.ToString(false), xx2, y + 18, color2);

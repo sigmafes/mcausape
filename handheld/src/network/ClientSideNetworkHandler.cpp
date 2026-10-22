@@ -123,13 +123,13 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginSta
 	if (packet->status == LoginStatus::Failed_ClientOld) {
 		LOGI("Disconnect! Client is outdated!\n");
 #ifndef STANDALONE_SERVER
-		minecraft->setScreen(new DisconnectionScreen("Could not connect: Outdated client!"));
+		minecraft->setScreen(new DisconnectionScreen("Could not connect: the world is on a newer version. Reload the page."));
 #endif
 	}
 	if (packet->status == LoginStatus::Failed_ServerOld) {
 		LOGI("Disconnect! Server is outdated!\n");
 #ifndef STANDALONE_SERVER
-		minecraft->setScreen(new DisconnectionScreen("Could not connect: Outdated server!"));
+		minecraft->setScreen(new DisconnectionScreen("Could not connect: the world is on an older version."));
 #endif
 	}
 

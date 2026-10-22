@@ -7,6 +7,8 @@
 #include "../renderer/gles.h"
 #include "../../util/Mth.h"
 #include <cstring>
+#include <vector>
+#include <cctype>
 
 Font::Font( Options* options, const std::string& name, Textures* textures )
 :	options(options),
@@ -358,7 +360,7 @@ void Font::drawSlow( const char* str, float x, float y, int color, bool darken /
 	t.addOffset(-(float)x, -(float)y, 0);
 }
 
-void Font::buildChar( unsigned char i, float x /*= 0*/, float y /*=0*/ )
+void Font::buildChar( unsigned char i, float x /*= 0*/, float y /*=0*/, float slant /*=0*/ )
 {
 	Tesselator& t = Tesselator::instance;
 
@@ -374,7 +376,129 @@ void Font::buildChar( unsigned char i, float x /*= 0*/, float y /*=0*/ )
 
 	t.vertexUV(x, y + s, 0, ix / 128.0f + uo, (iy + s) / 128.0f + vo);
 	t.vertexUV(x + s, y + s, 0, (ix + s) / 128.0f + uo, (iy + s) / 128.0f + vo);
-	t.vertexUV(x + s, y, 0, (ix + s) / 128.0f + uo, iy / 128.0f + vo);
-	t.vertexUV(x, y, 0, ix / 128.0f + uo, iy / 128.0f + vo);
+	t.vertexUV(x + s + slant, y, 0, (ix + s) / 128.0f + uo, iy / 128.0f + vo);
+	t.vertexUV(x + slant, y, 0, ix / 128.0f + uo, iy / 128.0f + vo);
 }
+
+// Java's sixteen text colours (ChatFormatting).
+static const int FormatColors[16] = {
+	0x000000, 0x0000aa, 0x00aa00, 0x00aaaa, 0xaa0000, 0xaa00aa, 0xffaa00, 0xaaaaaa,
+	0x555555, 0x5555ff, 0x55ff55, 0x55ffff, 0xff5555, 0xff55ff, 0xffff55, 0xffffff
+};
+
+/// An underline or strike-through to draw under drawFormatted's letters.
+struct FormatLine { float x0, x1, y; int rgb; };
+
+static int formatCode(char c) {
+	c = (char) tolower(c);
+	if (c >= '0' && c <= '9') return c - '0';
+	if (c >= 'a' && c <= 'f') return 10 + c - 'a';
+	if (c == 'k' || c == 'l' || c == 'm' || c == 'n' || c == 'o' || c == 'r') return 100 + c;
+	return -1;
+}
+
+std::string Font::stripFormatting(const std::string& str) {
+	std::string out;
+	for (unsigned int i = 0; i < str.size(); ++i) {
+		if (str[i] == '&' && i + 1 < str.size() && formatCode(str[i + 1]) >= 0) { ++i; continue; }
+		out += str[i];
+	}
+	return out;
+}
+
+int Font::widthFormatted(const std::string& str) {
+	int w = 0;
+	bool bold = false;
+	for (unsigned int i = 0; i < str.size(); ++i) {
+		if (str[i] == '&' && i + 1 < str.size()) {
+			const int code = formatCode(str[i + 1]);
+			if (code >= 0) {
+				if (code < 16 || code == 100 + 'r') bold = false;
+				else if (code == 100 + 'l') bold = true;
+				++i;
+				continue;
+			}
+		}
+		w += charWidths[(unsigned char) str[i]] + (bold ? 1 : 0);
+	}
+	return w;
+}
+
+void Font::drawFormattedShadow(const std::string& str, float x, float y, int color) {
+	drawFormatted(str, x + 1, y + 1, color, true);
+	drawFormatted(str, x, y, color, false);
+}
+
+void Font::drawFormatted(const std::string& str, float x, float y, int color, bool darken)
+{
+	const int alpha = ((color >> 24) & 0xff) ? ((color >> 24) & 0xff) : 0xff;
+	int rgb = color & 0xffffff;
+	bool scrambled = false, bold = false, strike = false, underline = false, italic = false;
+
+	std::vector<FormatLine> lines;
+
+	_textures->loadAndBindTexture(fontName);
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	Tesselator& t = Tesselator::instance;
+	t.begin();
+	t.addOffset(x, y, 0);
+	float cx = 0;
+	for (unsigned int i = 0; i < str.size(); ++i) {
+		if (str[i] == '&' && i + 1 < str.size()) {
+			const int code = formatCode(str[i + 1]);
+			if (code >= 0) {
+				if (code < 16) {
+					// A colour ends the styles, as in Java.
+					rgb = FormatColors[code];
+					scrambled = bold = strike = underline = italic = false;
+				} else switch (code - 100) {
+					case 'k': scrambled = true; break;
+					case 'l': bold = true; break;
+					case 'm': strike = true; break;
+					case 'n': underline = true; break;
+					case 'o': italic = true; break;
+					case 'r': rgb = color & 0xffffff; scrambled = bold = strike = underline = italic = false; break;
+				}
+				++i;
+				continue;
+			}
+		}
+		unsigned char ch = (unsigned char) str[i];
+		// &k: a random letter of the same width, every frame.
+		if (scrambled && ch != ' ') {
+			for (int tries = 0; tries < 16; ++tries) {
+				unsigned char r = (unsigned char) (33 + Mth::random() * 94);
+				if (charWidths[r] == charWidths[ch]) { ch = r; break; }
+			}
+		}
+		int c = rgb;
+		if (darken) c = (c & 0xfcfcfc) >> 2;
+		t.color((c >> 16) & 0xff, (c >> 8) & 0xff, c & 0xff, alpha);
+		const float slant = italic ? 1.0f : 0.0f;
+		buildChar(ch, cx, 0, slant);
+		if (bold) buildChar(ch, cx + 1, 0, slant);
+		const float w = fcharWidths[ch] + (bold ? 1 : 0);
+		if (underline) { FormatLine l = { cx, cx + w, 8, c }; lines.push_back(l); }
+		if (strike)    { FormatLine l = { cx, cx + w, 3.5f, c }; lines.push_back(l); }
+		cx += w;
+	}
+	t.draw();
+	if (!lines.empty()) {
+		glDisable2(GL_TEXTURE_2D);
+		t.begin();
+		for (unsigned int i = 0; i < lines.size(); ++i) {
+			const FormatLine& l = lines[i];
+			t.color((l.rgb >> 16) & 0xff, (l.rgb >> 8) & 0xff, l.rgb & 0xff, alpha);
+			t.vertex(l.x0, l.y + 1, 0);
+			t.vertex(l.x1, l.y + 1, 0);
+			t.vertex(l.x1, l.y, 0);
+			t.vertex(l.x0, l.y, 0);
+		}
+		t.draw();
+		glEnable2(GL_TEXTURE_2D);
+	}
+	t.addOffset(-x, -y, 0);
+}
+
 

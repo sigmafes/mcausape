@@ -190,7 +190,7 @@ export class Lobby {
 			return json({ error: "bad json" }, 400);
 		}
 
-		const { id, name, world, route, token, gone, whitelist, players } = body;
+		const { id, name, world, route, token, gone, whitelist, players, motd, deploy } = body;
 		if (!id)
 			return json({ error: "missing id" }, 400);
 
@@ -227,6 +227,10 @@ export class Lobby {
 			route: vouched ? route >>> 0 : 0,
 			whitelist: whitelist ? 1 : 0,
 			players: Math.max(1, Math.min(MAX_PLAYERS_PER_WORLD, players | 0 || 1)),
+			// The host's /motd (a line under the world) and its build, so a
+			// client can tell a world it cannot join apart.
+			motd: String(motd || "").replace(/[\t\n\r]/g, " ").slice(0, 64),
+			deploy: deploy | 0,
 			ts: Date.now(),
 		});
 
@@ -237,7 +241,7 @@ export class Lobby {
 		const now = Date.now();
 		const players = [...this.players.values()]
 			.filter((p) => now - p.ts < PLAYER_TTL_MS)
-			.map(({ id, name, world, route, whitelist, players }) => ({ id, name, world, route, whitelist, players }));
+			.map(({ id, name, world, route, whitelist, players, motd, deploy }) => ({ id, name, world, route, whitelist, players, motd, deploy }));
 		return json({ players, maxWorlds: MAX_WORLDS, maxPlayers: MAX_PLAYERS_PER_WORLD });
 	}
 

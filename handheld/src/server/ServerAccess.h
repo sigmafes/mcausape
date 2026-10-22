@@ -33,6 +33,9 @@ public:
 
 	/// /pvp: players may hurt each other. /grief: visitors may change the world
 	/// (blocks, containers, animals and enemies). Both are on until turned off.
+	/// /motd: a line under the world in the online list (& codes allowed).
+	const std::string& motd() const { return _motd; }
+	void setMotd(const std::string& motd);
 	bool pvpOn() const { return _pvp; }
 	void setPvp(bool on);
 	bool griefOn() const { return _grief; }
@@ -56,6 +59,7 @@ public:
 	static bool validName(const std::string& name);
 
 private:
+	std::string _motd;
 	struct Account { std::string name, salt, hash; };
 
 	void save();

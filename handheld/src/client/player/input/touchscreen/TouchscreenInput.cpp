@@ -19,6 +19,8 @@ static const int AREA_DPAD_E = 103;
 static const int AREA_DPAD_C = 104;
 static const int AREA_PAUSE = 105;
 static const int AREA_CHAT = 106;
+// Sneak, on the side opposite the d-pad: a tap toggles it.
+static const int AREA_SNEAK = 107;
 
 static int cPressed = 0;
 static int cReleased = 0;
@@ -78,6 +80,7 @@ TouchscreenInput_TestFps::TouchscreenInput_TestFps( Minecraft* mc, Options* opti
 	aPause(0),
 	aChat(0),
 	aJump(0),
+	aSneak(0),
 	aUpLeft(0),
 	aUpRight(0),
 	_allowHeightChange(false)
@@ -171,6 +174,12 @@ void TouchscreenInput_TestFps::onConfigChanged(const Config& c) {
                                                           4 + btnSize));
 #endif /* MC_TOUCH_PAUSE_BUTTON */
 
+	{
+		const float sx = _options->isLeftHanded ? 8 : w - 8 - Bw;
+		const float sy = BaseY + Bh;
+		_model.addArea(AREA_SNEAK, aSneak = new RectangleArea(sx, sy, sx + Bw, sy + Bh));
+	}
+
 	// Drawn by Gui (it has the font), tapped here.
 	aChat = new RectangleArea(_minecraft->gui.getChatButtonArea());
 	_model.addArea(AREA_CHAT, aChat);
@@ -223,7 +232,7 @@ void TouchscreenInput_TestFps::tick( Player* player )
 	bool tmpForward = false;
 	bool tmpNorthJump = false;
 
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 8; ++i)
 		_buttons[i] = false;
 
 	const int* pointerIds;
@@ -274,9 +283,10 @@ void TouchscreenInput_TestFps::tick( Player* player )
 		if	(areaId == AREA_DPAD_N)
 		{
 			setButton = true;
-			if (player->isInWater())
-				jumping = true;
-			else if (!isChangingFlightHeight)
+			// Forward is forward, in water too: it used to swim up as well, which
+			// pulled the player to the surface whatever they were trying to do.
+			// Rising is the middle button's (and looking up while swimming).
+			if (!isChangingFlightHeight)
 				tmpForward = true;
 			ya += 1;
 		}
@@ -307,6 +317,13 @@ void TouchscreenInput_TestFps::tick( Player* player )
 		{
 			setButton = true;
 			xa -= 1;
+		}
+		else if (areaId == AREA_SNEAK) {
+			setButton = true;
+			if (Multitouch::isReleased(p)) {
+				sneaking = !sneaking;
+				player->setSneaking(sneaking);
+			}
 		}
 		else if (areaId == AREA_CHAT) {
 			if (Multitouch::isReleased(p) && !_minecraft->screen) {
@@ -494,6 +511,12 @@ void TouchscreenInput_TestFps::rebuild() {
 	else
 	{
 		drawRectangleArea(t, aDown, imageU + imageSize * 2, imageV, (float)imageSize);
+	}
+
+	// The sneak toggle: lit while sneaking. (The down arrow's picture.)
+	if (aSneak) {
+		t.colorABGR(sneaking ? cPressed : cReleased);
+		drawRectangleArea(t, aSneak, imageU + imageSize * 2, imageV, (float)imageSize);
 	}
 
 	// render jump / flight button

@@ -27,9 +27,25 @@
 
 static const int MaxChatLength = 100;
 
+#if defined(MC_WASM)
+#include <emscripten.h>
+// The page's invisible input (shell.html, #chatBridge): it only brings up the
+// phone's keyboard; the line is drawn here, as on a PC.
+EM_JS(void, mcpe_chat_open, (), { if (window.mcpeChatBridge) window.mcpeChatBridge.open(); });
+EM_JS(void, mcpe_chat_close, (), { if (window.mcpeChatBridge) window.mcpeChatBridge.close(); });
+EM_JS(int, mcpe_chat_state, (), { return window.mcpeChatBridge ? window.mcpeChatBridge.state() : 2; });
+EM_JS(char*, mcpe_chat_value, (), {
+	var s = window.mcpeChatBridge ? window.mcpeChatBridge.value() : '';
+	var n = lengthBytesUTF8(s) + 1, p = _malloc(n);
+	stringToUTF8(s, p, n);
+	return p;
+});
+#endif
+
 ChatScreen::ChatScreen()
 :	ticks(0),
-	awaitingDialog(false)
+	awaitingDialog(false),
+	touchKeyboard(false)
 {
 }
 
@@ -41,8 +57,15 @@ void ChatScreen::init() {
 	// A phone has no keyboard to type into the strip below; the page's text
 	// dialog brings up the phone's own (see OptionsScreen's name box).
 	if (minecraft->useTouchscreen()) {
+#if defined(MC_WASM)
+		// Not the page's dialog box any more: the keyboard, and the line drawn
+		// in the game like on a PC.
+		touchKeyboard = true;
+		mcpe_chat_open();
+#else
 		awaitingDialog = true;
 		minecraft->platform()->createUserInput(DialogDefinitions::DIALOG_NEW_CHAT_MESSAGE, "");
+#endif
 	}
 }
 
@@ -66,6 +89,21 @@ void ChatScreen::render(int xm, int ym, float a)
 		}
 		return;
 	}
+
+#if defined(MC_WASM)
+	if (touchKeyboard) {
+		char* raw = mcpe_chat_value();
+		std::string typed = raw ? raw : "";
+		free(raw);
+		// The game's font is one byte a letter: keep what it can draw.
+		text.clear();
+		for (unsigned int i = 0; i < typed.size() && (int) text.size() < MaxChatLength; ++i)
+			if (typed[i] >= 32 && typed[i] <= 126) text += typed[i];
+		const int state = mcpe_chat_state();
+		if (state == 1) { touchKeyboard = false; send(); return; }
+		if (state == 2) { touchKeyboard = false; minecraft->setScreen(NULL); return; }
+	}
+#endif
 
 	// A strip along the bottom: the typed line, with a blinking cursor.
 	const int bottom = height - 2;

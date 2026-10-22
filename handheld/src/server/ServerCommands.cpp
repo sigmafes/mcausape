@@ -172,6 +172,7 @@ static const HelpEntry HELP[] = {
 	{ "deop",      false, "/deop <jugador>", "Quita los permisos de operador." },
 	{ "whitelist", false, "/whitelist [add|remove|list] [jugador]", "/whitelist sola la activa o desactiva; activa, solo entran los jugadores de la lista y los operadores." },
 	{ "auth",      false, "/auth <enable|disable>", "Obliga a los visitantes a registrarse o iniciar sesion con contrasena, para que nadie use su nombre." },
+	{ "motd",      false, "/motd [mensaje]", "El mensaje bajo tu mundo en la lista de mundos online (admite codigos &). Sin mensaje, lo quita." },
 	{ "pvp",       false, "/pvp <on|off>", "Permite o impide que los jugadores se hagan dano entre si." },
 	{ "grief",     false, "/grief <on|off>", "Con off, los visitantes que no son operadores no pueden romper ni colocar bloques, usar cofres, hornos o mesas, ni danar jugadores o criaturas." },
 	{ "cheats",    false, "/cheats", "Habilita /summon, /give y /gamemode en este mundo. No se puede deshacer." },
@@ -339,6 +340,22 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 		for (unsigned int i = 0; i < mc->otherLevels.size(); ++i) mc->otherLevels[i]->getLevelData()->setCheats(true);
 		mc->level->saveLevelData();
 		reply(mc, net, sender, "Cheats habilitados en este mundo. No se pueden deshabilitar.");
+		return;
+	}
+
+	if (cmd == "motd") {
+		if (!net) { reply(mc, net, sender, "Solo disponible al alojar un mundo."); return; }
+		// Everything after the command, as typed (spaces kept).
+		std::string text;
+		const std::string::size_type at = line.find(words[0]);
+		if (at != std::string::npos) {
+			std::string::size_type start = line.find_first_not_of(' ', at + words[0].size());
+			if (start != std::string::npos) text = line.substr(start);
+		}
+		if (text.size() > 64) text = text.substr(0, 64);
+		net->access().setMotd(text);
+		net->announceLobbyInfo();
+		reply(mc, net, sender, text.empty() ? "MOTD quitado." : "MOTD: " + text);
 		return;
 	}
 

@@ -187,6 +187,11 @@
     <input id="worldFile" type="file" accept=".zip,application/zip" multiple hidden>
     <input id="skinFile" type="file" accept="image/png" hidden>
 
+    <!-- The phone's keyboard for the chat: an input nobody sees. The game draws
+         the chat line itself, as on a PC (ChatScreen), and reads this. -->
+    <input id="chatBridge" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           maxlength="100" aria-hidden="true"
+           style="position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px;">
     <div id="dialog" class="hidden">
       <form id="dialogPanel" autocomplete="off">
         <div id="dialogTitle"></div>
@@ -1213,6 +1218,28 @@
     // returns immediately while frames are flowing, where runFrame has it.
     setInterval(pumpIfFrameLoopStalled, 1000);
 
+    // The chat on a touch screen (ChatScreen): 0 typing, 1 sent, 2 dropped.
+    (function () {
+      var input = document.getElementById('chatBridge');
+      var state = 2;
+      if (!input) return;
+      input.addEventListener('keydown', function (e) {
+        // Kept from the game's key handlers (on the window, bubbling), which
+        // would otherwise cancel the letters before they reached the input.
+        e.stopPropagation();
+        if (e.key === 'Enter') { state = 1; e.preventDefault(); input.blur(); }
+      });
+      input.addEventListener('keyup', function (e) { e.stopPropagation(); });
+      input.addEventListener('keypress', function (e) { e.stopPropagation(); });
+      input.addEventListener('blur', function () { if (state === 0) state = 2; });
+      window.mcpeChatBridge = {
+        open: function () { input.value = ''; state = 0; input.focus(); },
+        value: function () { return input.value; },
+        state: function () { return state; },
+        close: function () { state = 2; input.blur(); }
+      };
+    })();
+
     // A newer deploy: version.txt (written by the deploy) holds its number.
     // Every two minutes, compare it with this build's; once it is ahead, the
     // game says so in the chat (Minecraft::deployNotice), once.
@@ -1286,6 +1313,12 @@
     var name = '', world = '';
     // What the game reports about the world it is hosting; see setInfo.
     var info = { whitelist: 0, players: 1 };
+    // The host's /motd, and this build's deploy number (only the same deploy
+    // can join: the game refuses any other at login).
+    var motd = '';
+    function deployNumber() {
+      return (window.Module && Module._mcpe_deploy_number) ? Module._mcpe_deploy_number() : 0;
+    }
     var limitToldAt = 0;
     var beat = null, poll = null;
     var others = [];
@@ -1322,7 +1355,9 @@
         route: net ? net.route() : 0,
         token: net ? net.token() : '',
         whitelist: info.whitelist,
-        players: info.players
+        players: info.players,
+        motd: motd,
+        deploy: deployNumber()
       });
     }
 
@@ -1352,6 +1387,11 @@
         if (beat) clearInterval(beat);
         beatOnce();
         beat = setInterval(beatOnce, HEARTBEAT_MS);
+      },
+
+      setMotd: function (text) {
+        motd = (text || '').replace(/[\t\n\r]/g, ' ').slice(0, 64);
+        if (beat) beatOnce();
       },
 
       // From the game: whether the world has a whitelist, how many are in it.
@@ -1432,7 +1472,8 @@
       records: function () {
         return others.map(function (p) {
           return (p.name || '') + '\t' + (p.world || '') + '\t' + ((p.route || 0) >>> 0) +
-            '\t' + (p.whitelist ? 1 : 0) + '\t' + (p.players || 1);
+            '\t' + (p.whitelist ? 1 : 0) + '\t' + (p.players || 1) +
+            '\t' + String(p.motd || '').replace(/[\t\n\r]/g, ' ') + '\t' + (p.deploy || 0);
         }).join('\n');
       }
     };

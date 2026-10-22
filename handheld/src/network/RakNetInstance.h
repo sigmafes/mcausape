@@ -17,6 +17,7 @@ class NetEventCallback;
 typedef struct PingedCompatibleServer
 {
 	RakNet::RakString name;
+	RakNet::RakString motd;	///< the host's /motd, a second line (web lobby)
 	RakNet::SystemAddress address;
 	RakNet::TimeMS pingTime;
 	bool isSpecial;

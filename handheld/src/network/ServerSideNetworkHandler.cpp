@@ -1702,6 +1702,7 @@ void ServerSideNetworkHandler::announceLobbyInfo()
 {
 #if defined(MC_WASM)
 	mcpeLobbySetInfo(_access.whitelistOn() ? 1 : 0, (int) allPlayers().size(), MAX_PLAYERS);
+	mcpeLobbySetMotd(_access.motd());
 #endif
 }
 

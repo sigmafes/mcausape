@@ -269,6 +269,19 @@ void ArmorScreen::render(int xm, int ym, float a) {
 	if (inventoryPane && !minecraft->useTouchscreen() && !minecraft->isCreativeMode()
 			&& inventoryPane->hoverIndex >= 0 && inventoryPane->hoverIndex < (int) armorItems.size())
 		ItemTooltip::render(this, minecraft->font, armorItems[inventoryPane->hoverIndex], xm, ym, width, height);
+	// ...and over what is worn and what is in the hotbar.
+	if (!minecraft->useTouchscreen()) {
+		for (int i = 0; i < NUM_ARMORBUTTONS; ++i) {
+			Button* b = armorButtons[i];
+			if (xm >= b->x && xm < b->x + b->width && ym >= b->y && ym < b->y + b->height)
+				ItemTooltip::render(this, minecraft->font, player->getArmor(i), xm, ym, width, height);
+		}
+		for (int i = 0; i < NUM_HOTBARBUTTONS; ++i) {
+			Button* b = hotbarButtons[i];
+			if (xm >= b->x && xm < b->x + b->width && ym >= b->y && ym < b->y + b->height)
+				ItemTooltip::render(this, minecraft->font, player->inventory->getItem(i), xm, ym, width, height);
+		}
+	}
 	glDisable2(GL_ALPHA_TEST);
 }
 

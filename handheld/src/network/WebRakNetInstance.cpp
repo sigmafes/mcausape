@@ -3,6 +3,7 @@
 #if defined(MC_WASM)
 
 #include "Packet.h"
+#include "../SharedConstants.h"
 #include "NetEventCallback.h"
 #include "../raknet/RakPeerInterface.h"
 #include "../raknet/RakPeer.h"
@@ -121,6 +122,13 @@ void mcpeLobbySetInfo(int whitelist, int players, int maxPlayers)
 	EM_ASM({
 		if (window.mcpeLobby && window.mcpeLobby.setInfo) window.mcpeLobby.setInfo($0, $1, $2);
 	}, whitelist, players, maxPlayers);
+}
+
+void mcpeLobbySetMotd(const std::string& motd)
+{
+	EM_ASM({
+		if (window.mcpeLobby && window.mcpeLobby.setMotd) window.mcpeLobby.setMotd(UTF8ToString($0));
+	}, motd.c_str());
 }
 
 namespace {
@@ -704,6 +712,11 @@ void WebRakNetInstance::refresh()
 		const std::string route = line.substr(t2 + 1, t3 == std::string::npos ? std::string::npos : t3 - t2 - 1);
 		const bool whitelist = (t3 != std::string::npos) && line.compare(t3 + 1, 1, "1") == 0;
 		const int players = (t4 == std::string::npos) ? 0 : atoi(line.c_str() + t4 + 1);
+		// Newer still: the host's /motd and its deploy number.
+		const std::string::size_type t5 = (t4 == std::string::npos) ? std::string::npos : line.find('\t', t4 + 1);
+		const std::string::size_type t6 = (t5 == std::string::npos) ? std::string::npos : line.find('\t', t5 + 1);
+		const std::string motd = (t5 == std::string::npos) ? "" : line.substr(t5 + 1, t6 == std::string::npos ? std::string::npos : t6 - t5 - 1);
+		const int deploy = (t6 == std::string::npos) ? 0 : atoi(line.c_str() + t6 + 1);
 
 		// JoinGameScreen::tick drops entries with an empty name, so a player
 		// without one would silently never appear.
@@ -722,8 +735,14 @@ void WebRakNetInstance::refresh()
 			label += count;
 		}
 
+		// Another deploy cannot be joined (SharedConstants: the protocol is the
+		// deploy); say so in the list rather than at the door.
+		if (deploy > 0 && MC_DEPLOY_NUMBER > 0 && deploy != MC_DEPLOY_NUMBER)
+			label += deploy > MC_DEPLOY_NUMBER ? " [newer version]" : " [older version]";
+
 		PingedCompatibleServer server;
 		server.name = label.c_str();
+		server.motd = motd.c_str();
 		server.address = addressFromRoute(routeNumber);
 		server.pingTime = 0;
 		server.isSpecial = false;

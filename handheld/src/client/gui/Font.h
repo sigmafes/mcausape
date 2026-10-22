@@ -29,11 +29,22 @@ public:
 	void drawWordWrap(const std::string& str, float x, float y, float w, int col);
 
 	int width(const std::string& str);
+
+	/** Text with Java's & codes (docs: chat, signs, the motd -- never names):
+	    &0-&f colours, &k scrambled, &l bold, &m struck through, &n
+	    underlined, &o italic, &r back to plain. `color` is the colour before
+	    any code, and its alpha is kept throughout. */
+	void drawFormatted(const std::string& str, float x, float y, int color, bool darken = false);
+	void drawFormattedShadow(const std::string& str, float x, float y, int color);
+	/// How wide drawFormatted draws it (codes take no room, bold one more a letter).
+	int widthFormatted(const std::string& str);
+	/// The text with its & codes taken out.
+	static std::string stripFormatting(const std::string& str);
 	int height(const std::string& str);
 
 	static std::string sanitize(const std::string& str);
 private:
-	void buildChar(unsigned char i, float x = 0, float y = 0);
+	void buildChar(unsigned char i, float x = 0, float y = 0, float slant = 0);
 	void drawSlow(const std::string& str, float x, float y, int color, bool darken = false);
 	void drawSlow(const char* str, float x, float y, int color, bool darken = false);
 public:

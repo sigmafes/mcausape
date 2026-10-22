@@ -829,9 +829,10 @@ void Gui::renderChatMessages( const int screenHeight, unsigned int max, bool isC
 				const std::string tag = "<" + owner + ">";
 				if (!owner.empty() && msg.compare(0, tag.size(), tag) == 0) {
 					font->drawShadow(tag, x, y, 0xffff55 + (alpha << 24));
-					font->drawShadow(msg.substr(tag.size()), x + font->width(tag), y, 0xffffff + (alpha << 24));
+					// What was said takes & codes; the name never does.
+					font->drawFormattedShadow(msg.substr(tag.size()), x + font->width(tag), y, 0xffffff + (alpha << 24));
 				} else {
-					font->drawShadow(msg, x, y, guiMessages.at(i).color + (alpha << 24));
+					font->drawFormattedShadow(msg, x, y, guiMessages.at(i).color + (alpha << 24));
 				}
 			}
 		}
