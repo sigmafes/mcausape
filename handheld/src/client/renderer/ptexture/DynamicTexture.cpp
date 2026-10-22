@@ -126,8 +126,8 @@ void WaterTexture::tick()
 //
 // PortalTexture
 //
-PortalTexture::PortalTexture()
-:	super(Tile::portalTile->tex),
+PortalTexture::PortalTexture(int tex, bool aquarium)
+:	super(tex >= 0 ? tex : Tile::portalTile->tex),
 	_tick(0)
 {
 	for (int i = 0; i < 32; i++) {
@@ -159,6 +159,12 @@ PortalTexture::PortalTexture()
 				int g = (int) (br * br * br * br * 90 + 10);
 				int b = (int) (br * 100 + 155);
 				int a = (int) (br * 100 + 140);
+				if (aquarium) {
+					// Cyan leaning green: green and blue carry it, red stays low.
+					r = (int) (br * br * br * br * 90 + 10);
+					g = (int) (br * 90 + 150);
+					b = (int) (br * br * 80 + br * 40 + 120);
+				}
 
 				unsigned char* p = &frames[i][(x + y * 16) * 4];
 				p[0] = (unsigned char) r;

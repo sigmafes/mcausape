@@ -153,6 +153,10 @@ Tile* Tile::fenceGate   = NULL;
 Tile* Tile::enchantTable = NULL;
 Tile* Tile::brewingStand = NULL;
 Tile* Tile::cobbleWall = NULL;
+Tile* Tile::prismarine = NULL;
+Tile* Tile::oceanCrystalBlock = NULL;
+Tile* Tile::aquariumPortal = NULL;
+Tile* Tile::oceanCrystalHub = NULL;
 Tile* Tile::mossyCobbleWall = NULL;
 Tile* Tile::fence_spruce = NULL;
 Tile* Tile::fence_birch = NULL;
@@ -296,6 +300,11 @@ void Tile::initTiles() {
 	door_birch  = (new DoorTile(167, Material::wood, 7 + 16 * 14, &Item::door_birch))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorBirch");
 	cobbleWall = (new WallTile(139, Tile::stoneBrick->tex))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("cobbleWall");
 	mossyCobbleWall = (new WallTile(143, Tile::mossStone->tex))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("mossyCobbleWall");
+	// The Aquarium: new pictures in the second quadrant of terrain.png (256+).
+	prismarine        = (new Tile(168, 256, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("prismarine");
+	oceanCrystalBlock = (new Tile(169, 257, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Structures)->setDescriptionId("oceanCrystalBlock");
+	aquariumPortal    = (new AquariumPortalTile(170, 258))->init()->setDestroyTime(-1)->setExplodeable(6000000)->setLightEmission(11 / 16.0f)->setDescriptionId("aquariumPortal");
+	oceanCrystalHub   = (new Tile(171, 257, Material::stone))->init()->setDestroyTime(-1)->setExplodeable(6000000)->setSoundType(SOUND_GLASS)->setDescriptionId("oceanCrystalBlock");
 	enchantTable = (new EnchantTableTile(116))->init()->setDestroyTime(5.0f)->setExplodeable(2000)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("enchantmentTable");
 	brewingStand = (new BrewingStandTile(117))->init()->setDestroyTime(0.5f)->setLightEmission(2 / 16.0f)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Decorations)->setDescriptionId("brewingStand");
 	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");

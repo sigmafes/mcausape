@@ -207,6 +207,8 @@ public:
 	static Item* netherStalkSeeds;
 
 	static Item* goldNugget;
+	static Item* oceanShard;
+	static Item* oceanCrystal;
 	static Item* blazeRod;
 	static Item* blazePowder;
 	static Item* magmaCream;

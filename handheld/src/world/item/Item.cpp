@@ -109,6 +109,8 @@ Item* Item::bucket_water = NULL;
 Item* Item::bucket_lava = NULL;
 
 Item* Item::goldNugget = NULL;
+Item* Item::oceanShard = NULL;
+Item* Item::oceanCrystal = NULL;
 Item* Item::blazeRod = NULL;
 Item* Item::blazePowder = NULL;
 Item* Item::magmaCream = NULL;
@@ -305,6 +307,9 @@ void Item::initItems() {
 	// Console Edition items, with the vanilla ids minus 256.
 	Item::blazeRod = (new Item(113))->setIcon(12, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("blazeRod")->handEquipped();
 	Item::goldNugget = (new Item(115))->setIcon(12, 7)->setCategory(ItemCategory::Tools)->setDescriptionId("goldNugget");
+	// The Aquarium: the squid drops shards; four make a crystal, four crystals a block.
+	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
+	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	Item::waterBottle = (new BottleItem(117, true))->setIcon(11, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("emptyPotion");
 	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
 	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");

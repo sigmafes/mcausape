@@ -232,6 +232,10 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::enchantTable));
 		addItem(new ItemInstance(Item::brewingStand));
 		addItem(new ItemInstance(Tile::cobbleWall));
+		addItem(new ItemInstance(Tile::prismarine));
+		addItem(new ItemInstance(Tile::oceanCrystalBlock));
+		addItem(new ItemInstance(Item::oceanCrystal));
+		addItem(new ItemInstance(Item::oceanShard));
 		addItem(new ItemInstance(Tile::mossyCobbleWall));
 		addItem(new ItemInstance(Item::door_spruce));
 		addItem(new ItemInstance(Item::door_birch));

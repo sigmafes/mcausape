@@ -8,6 +8,8 @@
 #include "../level/Level.h"
 #include "../level/material/Material.h"
 #include "../level/tile/Tile.h"
+#include "../level/tile/AquariumPortalTile.h"
+#include "../level/dimension/Dimension.h"
 #include "../entity/player/Player.h"
 #include "../phys/HitResult.h"
 #include "../phys/Vec3.h"
@@ -97,6 +99,20 @@ public:
 
 		if (!level->isEmptyTile(x, y, z) && level->getMaterial(x, y, z)->isSolid())
 			return false;
+
+		// Water poured into an ocean crystal frame lights the Aquarium portal.
+		if (content == Tile::water->id && AquariumPortalTile::tryLight(level, x, y, z)) {
+			if (!player->abilities.instabuild)
+				instance->id = Item::bucket_empty->id;
+			return true;
+		}
+		// In the Aquarium the water is already everywhere: the bucket empties
+		// into it and leaves nothing to flow.
+		if (content == Tile::water->id && level->dimension->isAllWater()) {
+			if (!player->abilities.instabuild)
+				instance->id = Item::bucket_empty->id;
+			return true;
+		}
 
 		level->setTileAndData(x, y, z, content, 0);
 		// Creative has an endless supply: emptying it was what left both the

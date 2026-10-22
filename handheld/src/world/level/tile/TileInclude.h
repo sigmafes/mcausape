@@ -44,6 +44,7 @@
 #include "MobSpawnerTile.h"
 #include "OreTile.h"
 #include "PortalTile.h"
+#include "AquariumPortalTile.h"
 #include "MetalTile.h"
 #include "NetherReactor.h"
 #include "QuartzBlockTile.h"

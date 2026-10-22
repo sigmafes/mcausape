@@ -95,6 +95,18 @@ Recipes::Recipes()
 
 		definition('B', Item::blazeRod, '#', Tile::stoneBrick));
 
+	addShapedRecipe(ItemInstance(Item::oceanCrystal, 1), //
+		"##", //
+		"##", //
+
+		definition('#', Item::oceanShard));
+
+	addShapedRecipe(ItemInstance(Tile::oceanCrystalBlock, 1), //
+		"##", //
+		"##", //
+
+		definition('#', Item::oceanCrystal));
+
 	addShapedRecipe(ItemInstance(Tile::cobbleWall, 6), //
 		"###", //
 		"###", //

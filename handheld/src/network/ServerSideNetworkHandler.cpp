@@ -1,4 +1,5 @@
 
+#include "../world/level/tile/AquariumPortalTile.h"
 #include "ServerSideNetworkHandler.h"
 #include "../world/level/Level.h"
 #include "../world/entity/player/Player.h"
@@ -643,11 +644,29 @@ void ServerSideNetworkHandler::checkVisitorPortal(Player* player, float x, float
 	// The packet's y is the feet (LocalPlayer sends y - heightOffset).
 	const int feet = Mth::floor(y + 0.1f);
 	const int portal = Tile::portalTile->id;
-	const bool inPortal = level->getTile(tx, feet, tz) == portal || level->getTile(tx, feet + 1, tz) == portal;
+	const int aquarium = Tile::aquariumPortal->id;
+	const bool inAquarium = level->getTile(tx, feet, tz) == aquarium;
+	const bool inPortal = inAquarium || level->getTile(tx, feet, tz) == portal || level->getTile(tx, feet + 1, tz) == portal;
 
 	if (inPortal) {
 		if (s->portalCooldown == 0) {
-			travelVisitor(player, level->dimension->id == Dimension::NETHER ? Dimension::NORMAL : Dimension::NETHER, false);
+			int target = level->dimension->id == Dimension::NETHER ? Dimension::NORMAL : Dimension::NETHER;
+			if (inAquarium) {
+				// As the host's (AquariumPortalTile::entityInside): in from the
+				// Overworld remembers this portal; out of the Aquarium goes back to it.
+				if (level->dimension->id == Dimension::AQUARIUM) {
+					target = Dimension::NORMAL;
+				} else {
+					int cx, cz;
+					AquariumPortalTile::cornerOf(level, tx, feet, tz, &cx, &cz);
+					player->hasAquariumReturn = true;
+					player->aquariumReturnX = cx - 1;
+					player->aquariumReturnY = feet + 1;
+					player->aquariumReturnZ = cz;
+					target = Dimension::AQUARIUM;
+				}
+			}
+			travelVisitor(player, target, false);
 		} else {
 			s->portalCooldown = 40;
 		}

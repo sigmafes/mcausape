@@ -65,7 +65,9 @@ class PortalTexture: public DynamicTexture
 	unsigned char frames[32][16*16*4];
 
 public:
-	PortalTexture();
+	/// The Nether portal's swirl, or with `aquarium` the Aquarium portal's,
+	/// the same spirals in cyan, for the tile `tex`.
+	PortalTexture(int tex = -1, bool aquarium = false);
 
 	void tick();
 };

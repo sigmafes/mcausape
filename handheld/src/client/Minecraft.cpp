@@ -1873,6 +1873,7 @@ void Minecraft::init()
 	textures->addDynamicTexture(new WaterTexture());
 	textures->addDynamicTexture(new WaterSideTexture());
 	textures->addDynamicTexture(new PortalTexture());
+	textures->addDynamicTexture(new PortalTexture(Tile::aquariumPortal->tex, true));
 	textures->addDynamicTexture(new FireTexture(Tile::fire->tex, 0));
 	textures->addDynamicTexture(new FireTexture(Tile::fire->tex + 16, 11));
 	gui.texturesLoaded(textures);

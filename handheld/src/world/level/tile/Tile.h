@@ -216,6 +216,12 @@ public:
 	static Tile* enchantTable;
 	static Tile* brewingStand;
 	static Tile* cobbleWall;
+	// The Aquarium (docs/aquarium-plan.md).
+	static Tile* prismarine;
+	static Tile* oceanCrystalBlock;
+	static Tile* aquariumPortal;
+	/// The fixed portal's frame: an ocean crystal block nobody can break.
+	static Tile* oceanCrystalHub;
 	static Tile* mossyCobbleWall;
 	static Tile* fence_spruce;
 	static Tile* fence_birch;
