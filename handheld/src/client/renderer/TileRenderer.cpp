@@ -2867,7 +2867,7 @@ void TileRenderer::tesselateRowTexture( Tile* tt, int data, float x, float y, fl
 	int xt = TerrainAtlas::px(tex);
 	int yt = TerrainAtlas::py(tex);
 	float u0 = (xt) / TerrainAtlas::SizeF;
-	float u1 = (xt + 15.99f) / 256.f;
+	float u1 = (xt + 15.99f) / TerrainAtlas::SizeF;
 	float v0 = (yt) / TerrainAtlas::SizeF;
 	float v1 = (yt + 15.99f) / TerrainAtlas::SizeF;
 
