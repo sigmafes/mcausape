@@ -195,6 +195,8 @@ Minecraft::Minecraft()
 	isGeneratingLevel(false),
 	_hasSignaledGeneratingLevelFinished(true),
 	_prepChunkIndex(0),
+	_prepCount(0),
+	_genBackground(0),
 	_prepInProgress(false),
 	_prepPhase(0),
 	generateLevelThread(NULL),
@@ -472,10 +474,52 @@ void Minecraft::prepareLevelBegin() {
 	_prepChunkIndex = 0;
 	_prepPhase = 0;
 
-	// Only a world that is being created, not one being loaded or joined.
-	_prepNether = level->isNew() && !level->isClientSide && level->dimension->id != Dimension::NETHER;
+	// A new world used to build its whole Nether here as well, which made
+	// creating one take twice as long. The Nether is made when somebody first
+	// goes through a portal now (levelForDimension, or a trip on its own with
+	// its loading screen), so it is not built in advance any more.
+	_prepNether = false;
 	_netherPrep = NULL;
 	_netherPrepIndex = 0;
+
+	// The chunk pass goes nearest the arrival first. A world being created, or
+	// a trip to another dimension, stops after the chunks within a few of it
+	// and lets the player in; the rest are made in the background while
+	// playing. Loading a saved world still reads it all first.
+	const int W = CHUNK_CACHE_WIDTH;
+	int fx = W / 2, fz = W / 2;
+	if (_travelPlayer) {
+		fx = Mth::floor(_travelPlayer->x) >> 4;
+		fz = Mth::floor(_travelPlayer->z) >> 4;
+	}
+	std::vector<std::pair<int, int> > byDistance;
+	for (int i = 0; i < W * W; ++i) {
+		const int dx = i / W - fx, dz = i % W - fz;
+		byDistance.push_back(std::make_pair(dx * dx + dz * dz, i));
+	}
+	std::sort(byDistance.begin(), byDistance.end());
+	_genOrder.clear();
+	_prepCount = 0;
+	const bool quick = !level->isClientSide && (level->isNew() || _travelPlayer != NULL);
+	const int Radius = 5;
+	for (int i = 0; i < W * W; ++i) {
+		_genOrder.push_back(byDistance[i].second);
+		if (!quick || byDistance[i].first <= Radius * Radius) ++_prepCount;
+	}
+	_genBackground = (unsigned int) _genOrder.size();	// none until in the world
+}
+
+void Minecraft::tickBackgroundGeneration(int maxMs)
+{
+	if (_genBackground >= _genOrder.size() || !level || level->isClientSide) return;
+	const int W = CHUNK_CACHE_WIDTH;
+	const int start = getTimeMs();
+	while (_genBackground < _genOrder.size() && getTimeMs() - start < maxMs) {
+		const int i = _genOrder[_genBackground++];
+		level->getChunk(i / W, i % W);
+	}
+	if (_genBackground >= _genOrder.size())
+		LOGI("Background generation done\n");
 }
 
 /** The expensive pass: one getTile per chunk column, which is what actually
@@ -488,15 +532,16 @@ void Minecraft::prepareLevelBegin() {
     which is CHUNK_CACHE_WIDTH steps each, so the index divides and remainders
     straight back into them. */
 bool Minecraft::prepareLevelChunkStep(int maxIterations) {
-	const int Max = CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH;
+	const int Max = _prepCount;
 	int done = 0;
 
 	while (_prepChunkIndex < Max) {
 		if (maxIterations > 0 && done >= maxIterations)
 			return false;
 
-		const int x = 8 + (_prepChunkIndex / CHUNK_CACHE_WIDTH) * CHUNK_WIDTH;
-		const int z = 8 + (_prepChunkIndex % CHUNK_CACHE_WIDTH) * CHUNK_WIDTH;
+		const int index = _genOrder[_prepChunkIndex];
+		const int x = 8 + (index / CHUNK_CACHE_WIDTH) * CHUNK_WIDTH;
+		const int z = 8 + (index % CHUNK_CACHE_WIDTH) * CHUNK_WIDTH;
 
 		progressStagePercentage = 100 * _prepChunkIndex / Max;
 		++_prepChunkIndex;
@@ -523,6 +568,9 @@ void Minecraft::prepareLevelSave() {
 	{
 		for (int z = 0; z < CHUNK_CACHE_WIDTH; z++)
 		{
+			// Only what the chunk pass made: asking for the rest would make it
+			// all here, on one frame, and undo the quick start.
+			if (!level->hasChunk(x, z)) continue;
 			LevelChunk* chunk = level->getChunk(x, z);
 			if (chunk && !chunk->createdFromSave)
 			{
@@ -1200,6 +1248,7 @@ void Minecraft::tick(int nTick, int maxTick) {
 			// through a portal at once does not pay for loading it again.
 			if (ticks % 200 == 0 && !otherLevels.empty())
 				unloadEmptyLevels();
+			tickBackgroundGeneration(4);
 #ifndef STANDALONE_SERVER
 			TIMER_POP_PUSH("animateTick");
 			if (player) {
@@ -2172,6 +2221,8 @@ void Minecraft::_levelGenerated()
 	// instead, since adding yourself always generates a entityAdded)
 	//EntityRenderDispatcher::getInstance()->onGraphicsReset();
 	_hasSignaledGeneratingLevelFinished = true;
+	// The chunks the quick start left out come now, a little a tick.
+	_genBackground = (unsigned int) _prepCount;
 }
 
 Player* Minecraft::respawnPlayer(int playerId) {

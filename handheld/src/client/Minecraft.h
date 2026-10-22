@@ -313,6 +313,13 @@ protected:
 
 	/// How far the chunk pass has got, so it can be resumed next frame.
 	int _prepChunkIndex;
+	/// The chunk pass's order, nearest the arrival first, and how much of it
+	/// is done before the player is let in (_prepCount); the rest is made in
+	/// the background once playing (tickBackgroundGeneration).
+	std::vector<int> _genOrder;
+	int _prepCount;
+	unsigned int _genBackground;
+	void tickBackgroundGeneration(int maxMs);
 	/// Set while the web is driving prepareLevel a slice at a time.
 	bool _prepInProgress;
 	/// 0 chunk pass, 1 save, 2 prepare -- one frame drawn between each.
