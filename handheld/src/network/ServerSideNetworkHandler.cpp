@@ -450,7 +450,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	session.streamPos = 0;
 	session.streamLevel = NULL;
 	session.dataSent = false;
-	session.creative = minecraft->isCreativeMode();
+	// The world's own mode if it has one (/gamemode world), else the host's.
+	session.creative = (_access.worldMode() >= 0) ? (_access.worldMode() == 1) : minecraft->isCreativeMode();
 	_sessions.push_back(session);
 	applyGameMode(newPlayer, session.creative);
 
@@ -467,7 +468,7 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
         RakNet::BitStream bitStream;
 
         // @todo: Read from LevelData?
-		int gameType = minecraft->isCreativeMode()
+		int gameType = session.creative
 			? GameType::Creative
 			: GameType::Survival;
 

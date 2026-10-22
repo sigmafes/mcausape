@@ -173,7 +173,7 @@ static const HelpEntry HELP[] = {
 	{ "pvp",       false, "/pvp <on|off>", "Permite o impide que los jugadores se hagan dano entre si." },
 	{ "grief",     false, "/grief <on|off>", "Con off, los visitantes que no son operadores no pueden romper ni colocar bloques, usar cofres, hornos o mesas, ni danar jugadores o criaturas." },
 	{ "cheats",    false, "/cheats", "Habilita /summon, /give y /gamemode en este mundo. No se puede deshacer." },
-	{ "gamemode",  false, "/gamemode <s|c> [jugador]", "Cambia a supervivencia (s) o creativo (c), a ti o a otro jugador. Necesita /cheats." },
+	{ "gamemode",  false, "/gamemode <s|c> [jugador] | /gamemode world <s|c>", "Cambia a supervivencia (s) o creativo (c), a ti o a otro jugador. Con world, fija el modo con el que entran los jugadores de ahora en adelante, sin tocar el del anfitrion. Necesita /cheats." },
 	{ "give",      false, "/give <id o nombre> [cantidad] [dato]", "Te da un objeto. Necesita /cheats." },
 	{ "summon",    false, "/summon <mob>", "Invoca una criatura delante de ti. Necesita /cheats." },
 };
@@ -444,7 +444,21 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 
 	if (cmd == "gamemode") {
 		if (words.size() < 2) {
-			reply(mc, net, sender, "Uso: /gamemode <s|c> [jugador]");
+			reply(mc, net, sender, "Uso: /gamemode <s|c> [jugador] o /gamemode world <s|c>");
+			return;
+		}
+		// The world's mode, for whoever joins from now on: the host's own
+		// mode (the one above) is the host's alone.
+		if (lower(words[1]) == "world") {
+			if (!net) { reply(mc, net, sender, "Solo disponible al alojar un mundo."); return; }
+			const std::string m = words.size() >= 3 ? lower(words[2]) : "";
+			int wm = -1;
+			if (m == "0" || m == "s" || m == "survival") wm = 0;
+			else if (m == "1" || m == "c" || m == "creative") wm = 1;
+			if (wm < 0) { reply(mc, net, sender, "Uso: /gamemode world <s|c>"); return; }
+			net->access().setWorldMode(wm);
+			reply(mc, net, sender, std::string("Modo del mundo: ") + (wm ? "creativo" : "supervivencia")
+				+ ". Los jugadores que entren desde ahora empiezan asi.");
 			return;
 		}
 		std::string mode = lower(words[1]);

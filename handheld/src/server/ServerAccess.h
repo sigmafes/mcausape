@@ -38,6 +38,11 @@ public:
 	bool griefOn() const { return _grief; }
 	void setGrief(bool on);
 
+	/// /gamemode world: what visitors start in, 0 survival or 1 creative; -1
+	/// (never set) means whatever the host is playing in, as before.
+	int worldMode() const { return _worldMode; }
+	void setWorldMode(int mode);
+
 	bool authOn() const { return _authOn; }
 	void setAuth(bool on);
 	bool hasAccount(const std::string& name) const;
@@ -61,6 +66,7 @@ private:
 	bool _whitelistOn;
 	bool _authOn;
 	bool _pvp;
+	int _worldMode;
 	bool _grief;
 	std::vector<std::string> _whitelist;
 	std::vector<std::string> _ops;

@@ -56,6 +56,7 @@ void ServerAccess::load(const std::string& folder)
 	_folder = folder;
 	_whitelistOn = _authOn = false;
 	_pvp = _grief = true;
+	_worldMode = -1;
 	_whitelist.clear();
 	_ops.clear();
 	_accounts.clear();
@@ -73,6 +74,7 @@ void ServerAccess::load(const std::string& folder)
 			else if (k == "auth") _authOn = (v == "1");
 			else if (k == "pvp") _pvp = (v != "0");
 			else if (k == "grief") _grief = (v != "0");
+			else if (k == "gamemode") _worldMode = (v == "1") ? 1 : (v == "0") ? 0 : -1;
 			else if (k == "wl" && validName(v)) _whitelist.push_back(v);
 			else if (k == "op" && validName(v)) _ops.push_back(v);
 		}
@@ -104,6 +106,7 @@ void ServerAccess::save()
 		out << "auth=" << (_authOn ? 1 : 0) << "\n";
 		out << "pvp=" << (_pvp ? 1 : 0) << "\n";
 		out << "grief=" << (_grief ? 1 : 0) << "\n";
+		if (_worldMode >= 0) out << "gamemode=" << _worldMode << "\n";
 		for (unsigned int i = 0; i < _whitelist.size(); ++i) out << "wl=" << _whitelist[i] << "\n";
 		for (unsigned int i = 0; i < _ops.size(); ++i) out << "op=" << _ops[i] << "\n";
 	}
@@ -121,6 +124,7 @@ void ServerAccess::setWhitelist(bool on) { _whitelistOn = on; save(); }
 void ServerAccess::setAuth(bool on) { _authOn = on; save(); }
 void ServerAccess::setPvp(bool on) { _pvp = on; save(); }
 void ServerAccess::setGrief(bool on) { _grief = on; save(); }
+void ServerAccess::setWorldMode(int mode) { _worldMode = mode; save(); }
 
 bool ServerAccess::isWhitelisted(const std::string& name) const { return contains(_whitelist, name); }
 bool ServerAccess::addWhitelisted(const std::string& name)
