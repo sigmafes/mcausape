@@ -178,6 +178,10 @@ public:
 	// from PlayerSkinPacket -- the local player's comes from its profile.
 	int skinId;
     int dimension;
+	/// The Overworld portal last taken into the Aquarium: where coming back
+	/// out of it lands (Minecraft::findArrival). Saved with the player.
+	bool hasAquariumReturn;
+	int aquariumReturnX, aquariumReturnY, aquariumReturnZ;
 
 	Abilities abilities;
 	SimpleFoodData foodData;

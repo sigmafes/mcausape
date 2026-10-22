@@ -82,20 +82,26 @@ public:
 	void setIsCreativeMode(bool isCreative);
 	void setScreen(Screen*);
 
-	/** A hosted world can have two Levels running: the host's (`level`) and the
-	    other dimension's (`otherLevel`), while a visitor is there. The other is
-	    made when the first player goes through a portal, ticks beside the host's,
-	    and is saved and dropped when nobody is left in it. Hosts only. */
-	Level* otherLevel;
+	/** A hosted world runs the host's Level (`level`) and, beside it, any
+	    other dimension somebody is in (`otherLevels`: the Overworld, the
+	    Nether, the Aquarium). One is made when the first player goes through
+	    a portal to it, ticks beside the host's, and is saved and dropped when
+	    nobody is left in it (unloadEmptyLevels). Hosts only. */
+	std::vector<Level*> otherLevels;
 	/** A visitor that has not logged in yet (/auth): it may chat, to type
 	    /login, and nothing else -- no walking, no turning, no inventory. Set
 	    by the host (ExtPacket::AuthLock). */
 	bool inputLocked;
 	/// The running Level of `dimension`; with `create`, the other one is made if it is not running.
 	Level* levelForDimension(int dimension, bool create);
-	void destroyOtherLevel();
-	/// Where somebody going to `dst` lands (a portal found or built there).
-	void findArrival(Level* dst, bool toNether, float fromX, float fromZ, bool respawn, Player* who, int* outX, int* outY, int* outZ);
+	void destroyOtherLevel(Level* other);
+	void destroyOtherLevels();
+	/// Saves and drops every other Level nobody is in or on the way to.
+	void unloadEmptyLevels();
+	/// Where somebody coming from `fromDim` to `dst` lands: the Aquarium's
+	/// fixed portal, the Overworld portal they last took to it, or a Nether
+	/// portal found or built there.
+	void findArrival(Level* dst, int fromDim, float fromX, float fromZ, bool respawn, Player* who, int* outX, int* outY, int* outZ);
 
 	virtual void selectLevel(const std::string& levelId, const std::string& levelName, const LevelSettings& settings);
 	virtual void setLevel(Level* level, const std::string& message = "", LocalPlayer* forceInsertPlayer = NULL);
@@ -162,8 +168,12 @@ public:
 	// tick(), never mid-entity-update. Single-player only: see the guard in it.
 	// respawn: the player died in the Nether and comes back at the Overworld's
 	// spawn (or his bed), with no arrival portal.
-	void changeDimensionShared(bool toNether, bool respawn);
-	void changeDimension(bool toNether, bool respawn = false);
+	void changeDimensionShared(int dstDim, bool respawn);
+	void changeDimension(int dstDim, bool respawn = false);
+	/// Would a trip now keep the old Level (others in it, or another running)?
+	bool travelKeepsLevels();
+	/// Loads `dst`'s chunks nearest the arrival first, for maxMs; true when done.
+	bool warmTravelLevel(Level* dst, int maxMs);
 
 	int getProgressStatusId();
 	const char* getProgressMessage();
@@ -208,9 +218,15 @@ private:
 	// A portal trip is started one step before it is carried out: the loading
 	// screen goes up first, and changeDimension runs two frames later, so the
 	// work that blocks the page happens behind a screen that is already drawn.
-	// 1 = to the Nether, 2 = back; 0 = none pending.
+	// The target dimension + 1; 0 = none pending.
 	int _pendingDim;
 	int _pendingDimFrames;
+	// A trip into a Level made just for it loads that Level's chunks over
+	// several frames behind the loading screen first, nearest the arrival
+	// first, rather than all on the frame the host steps through.
+	Level* _warmLevel;
+	std::vector<int> _warmOrder;
+	unsigned int _warmIndex;
 
 	void handleMouseClick(int button);
 	void handleMouseDown(int button, bool down);

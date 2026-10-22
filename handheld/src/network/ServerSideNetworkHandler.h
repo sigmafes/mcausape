@@ -2,6 +2,7 @@
 #define _MINECRAFT_NETWORK_SERVERSIDENETWORKHANDLER_H_
 
 
+#include <map>
 #include "NetEventCallback.h"
 #include "../raknet/RakNetTypes.h"
 #include <vector>
@@ -124,6 +125,8 @@ public:
 	std::vector<Player*>* pendingList() { return &_pendingPlayers; }
 	/// Somebody is still loading a level (a login or a trip through a portal).
 	bool hasPending() { return !_pendingPlayers.empty(); }
+	/// A player is on the way into `level` (logging in, or mid-trip).
+	bool levelInUse(Level* level);
 
 	/// The Level this connection's player is in, or is about to be in; NULL if
 	/// the connection has no player.
@@ -182,7 +185,9 @@ private:
 
 	std::vector<Player*> _pendingPlayers;
 	/// Next chunk index of the other dimension to load (see warmOtherLevel).
-	int _warmPos;
+	int _unusedWarm;
+	/// Next chunk index of each running other dimension to load (see warmOtherLevel).
+	std::map<Level*, int> _warm;
 	/// Kicked visitors whose connection closes once their Kick has gone out.
 	struct Closing { RakNet::RakNetGUID guid; int ticks; };
 	std::vector<Closing> _closing;

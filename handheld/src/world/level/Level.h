@@ -266,8 +266,10 @@ public:
 	// tile mid-tick, and the change happens later, from Minecraft::tick, once
 	// no entity is being iterated.
 	void detachEntityForTransfer(Entity* e);
-	void requestPortalTravel(Entity* e);
-	Entity* takePortalTravelRequest();
+	/// `target` is the dimension the portal leads to; -1 for a Nether portal,
+	/// which leads to whichever side it is not on.
+	void requestPortalTravel(Entity* e, int target = -1);
+	Entity* takePortalTravelRequest(int* target = NULL);
 	//void savePlayerData();
 	void saveGame();
 	void loadEntities();
@@ -356,6 +358,7 @@ private:
 	bool _isNew;
 	bool _nightMode;
 	Entity* _portalRequester;
+	int _portalTarget;
 	PathFinder* _pathFinder;
 
 	float _lastSavedPlayerTime;

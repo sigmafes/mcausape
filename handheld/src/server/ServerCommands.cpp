@@ -313,7 +313,7 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 			return;
 		}
 		data->setCheats(true);
-		if (mc->otherLevel) mc->otherLevel->getLevelData()->setCheats(true);
+		for (unsigned int i = 0; i < mc->otherLevels.size(); ++i) mc->otherLevels[i]->getLevelData()->setCheats(true);
 		mc->level->saveLevelData();
 		reply(mc, net, sender, "Cheats habilitados en este mundo. No se pueden deshabilitar.");
 		return;

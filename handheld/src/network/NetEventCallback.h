@@ -67,7 +67,7 @@ class NetEventCallback
 {
 public:
 	virtual void levelGenerated(Level* level) {}
-	/// A second Level starts or stops running in a hosted world (see Minecraft::otherLevel).
+	/// A second Level starts or stops running in a hosted world (see Minecraft::otherLevels).
 	virtual void levelAdded(Level* level) {}
 	virtual void levelRemoved(Level* level) {}
 	virtual ~NetEventCallback() {}

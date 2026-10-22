@@ -54,6 +54,7 @@ Level::Level(LevelStorage* levelStorage, const std::string& levelName, const Lev
 	_nightMode(false)
 {
 	_portalRequester = NULL;
+	_portalTarget = -1;
     _init(levelName, settings, generatorVersion, fixedDimension);
 }
 
@@ -543,13 +544,15 @@ void Level::detachEntityForTransfer(Entity* e) {
 		getChunk(xc, zc)->removeEntity(e);
 }
 
-void Level::requestPortalTravel(Entity* e) {
+void Level::requestPortalTravel(Entity* e, int target) {
 	_portalRequester = e;
+	_portalTarget = target;
 }
 
-Entity* Level::takePortalTravelRequest() {
+Entity* Level::takePortalTravelRequest(int* target) {
 	Entity* e = _portalRequester;
 	_portalRequester = NULL;
+	if (target) *target = _portalTarget;
 	return e;
 }
 

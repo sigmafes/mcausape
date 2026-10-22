@@ -201,7 +201,7 @@ static Level* testLevelFor(int dim, bool create)
 	Minecraft* mc = g_state.app;
 	if (!mc || !mc->level) return NULL;
 	if (mc->level->isClientSide)
-		return ((mc->level->dimension->id == Dimension::NETHER) == (dim == Dimension::NETHER)) ? mc->level : NULL;
+		return (Dimension::isOverworld(mc->level->dimension->id) ? Dimension::NORMAL : mc->level->dimension->id) == (Dimension::isOverworld(dim) ? Dimension::NORMAL : dim) ? mc->level : NULL;
 	return mc->levelForDimension(dim, create);
 }
 

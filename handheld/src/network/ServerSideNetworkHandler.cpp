@@ -61,7 +61,7 @@ ServerSideNetworkHandler::ServerSideNetworkHandler(Minecraft* minecraft, IRakNet
 :	minecraft(minecraft),
 	raknetInstance(raknetInstance),
 	_lastPlayerCount(0),
-	_warmPos(0)
+	_unusedWarm(0)
 {
 	allowIncomingConnections(false);
 	rakPeer = raknetInstance->getPeer();
@@ -181,6 +181,7 @@ void ServerSideNetworkHandler::levelAdded(Level* level)
 
 void ServerSideNetworkHandler::levelRemoved(Level* level)
 {
+	_warm.erase(level);
 	for (unsigned int i = 0; i < _hooks.size(); ++i) {
 		if (_hooks[i].level == level) {
 			Hook h = _hooks[i];
@@ -198,7 +199,7 @@ std::vector<Level*> ServerSideNetworkHandler::levels()
 {
 	std::vector<Level*> all;
 	if (minecraft->level) all.push_back(minecraft->level);
-	if (minecraft->otherLevel) all.push_back(minecraft->otherLevel);
+	all.insert(all.end(), minecraft->otherLevels.begin(), minecraft->otherLevels.end());
 	return all;
 }
 
@@ -422,8 +423,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	// A newcomer starts in the Overworld, at its spawn, wherever the host is;
 	// a name this world has seen before starts where it left, as it was.
 	CompoundTag* saved = PlayerDataPacket::fromBytes(readPlayerData(loginName));
-	const bool savedNether = saved && saved->getInt("Dimension") == Dimension::NETHER;
-	Level* level = minecraft->levelForDimension(savedNether ? Dimension::NETHER : Dimension::NORMAL, true);
+	const int savedDim = saved ? saved->getInt("Dimension") : Dimension::NORMAL;
+	Level* level = minecraft->levelForDimension(Dimension::isOverworld(savedDim) ? Dimension::NORMAL : savedDim, true);
 	if (!level) level = minecraft->level;
 	Player* newPlayer = new ServerPlayer(minecraft, level);
 	if (saved) {
@@ -666,7 +667,7 @@ void ServerSideNetworkHandler::travelVisitor(Player* player, int dimension, bool
 	if (!dst || dst == src) return;
 
 	int tx, ty, tz;
-	minecraft->findArrival(dst, dimension == Dimension::NETHER, player->x, player->z, respawn, player, &tx, &ty, &tz);
+	minecraft->findArrival(dst, src->dimension->id, player->x, player->z, respawn, player, &tx, &ty, &tz);
 
 	// Out of the old level: everyone there loses it.
 	RemovePlayerPacket gone(player);
@@ -863,36 +864,40 @@ void ServerSideNetworkHandler::pumpStreams()
 	}
 }
 
-/** Both dimensions stay loaded for as long as the world is hosted. Making the
-    other one on demand -- a Level, its chunks off disk or out of the
-    generator, their light -- all landed on the host's frame the moment a
-    visitor stepped through a portal, and the host's fps fell through the
-    floor. The world is finite (32x32 chunks a side, ~80MB for both), so it is
-    built once, in the background, a few milliseconds a tick, and kept. */
+/** The other dimensions are made when somebody goes to them and dropped when
+    they empty (Minecraft::unloadEmptyLevels): three always loaded would be
+    ~260MB of chunks. One that is running is filled in here, a few
+    milliseconds a tick, so a player walking about in it does not wait on
+    chunks loading on the host's frame one at a time. */
 void ServerSideNetworkHandler::warmOtherLevel()
 {
 	Level* main = minecraft->level;
 	if (!main || main->isClientSide || !minecraft->isLevelGenerated()) return;
 
-	if (!minecraft->otherLevel) {
-		const int other = (main->dimension->id == Dimension::NETHER) ? Dimension::NORMAL : Dimension::NETHER;
-		if (!minecraft->levelForDimension(other, true)) return;
-		_warmPos = 0;
-	}
-	Level* level = minecraft->otherLevel;
 	const int total = CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH;
-	if (_warmPos >= total) return;
-
 	const RakNet::TimeMS start = RakNet::GetTimeMS();
-	while (_warmPos < total && RakNet::GetTimeMS() - start < 4) {
-		level->getChunk(_warmPos % CHUNK_CACHE_WIDTH, _warmPos / CHUNK_CACHE_WIDTH);
-		++_warmPos;
+	for (unsigned int l = 0; l < minecraft->otherLevels.size(); ++l) {
+		Level* level = minecraft->otherLevels[l];
+		int& pos = _warm[level];
+		if (pos >= total) continue;
+		while (pos < total && RakNet::GetTimeMS() - start < 4) {
+			level->getChunk(pos % CHUNK_CACHE_WIDTH, pos / CHUNK_CACHE_WIDTH);
+			++pos;
+		}
+		// The light those chunks queued, under the same budget.
+		while (RakNet::GetTimeMS() - start < 4 && level->updateLights())
+			;
+		if (pos >= total)
+			LOGI("Dimension loaded: %d\n", level->dimension->id);
+		return;
 	}
-	// The light those chunks queued, under the same budget.
-	while (RakNet::GetTimeMS() - start < 4 && level->updateLights())
-		;
-	if (_warmPos >= total)
-		LOGI("Other dimension loaded: %d\n", level->dimension->id);
+}
+
+bool ServerSideNetworkHandler::levelInUse(Level* level)
+{
+	for (unsigned int i = 0; i < _pendingPlayers.size(); ++i)
+		if (_pendingPlayers[i]->level == level) return true;
+	return false;
 }
 
 void ServerSideNetworkHandler::levelGenerated( Level* level )
@@ -1077,7 +1082,7 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, Respawn
 
 	// Dying in the Nether sends a visitor home, as it does the host: it is
 	// taken to the Overworld's spawn, not set down where the Nether says.
-	if (level->dimension->id == Dimension::NETHER) {
+	if (!Dimension::isOverworld(level->dimension->id)) {
 		if (Player* p = getPlayer(source)) {
 			p->reset();
 			travelVisitor(p, Dimension::NORMAL, true);

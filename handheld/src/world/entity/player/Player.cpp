@@ -37,6 +37,8 @@ Player::Player(Level* level, bool isCreative)
 	bedOffsetY(0),
 	bedOffsetZ(0),
 	respawnPosition(0, -1, 0),
+	hasAquariumReturn(false),
+	aquariumReturnX(0), aquariumReturnY(0), aquariumReturnZ(0),
 	allPlayersSleeping(false)
 {
 	canRemove = false;
@@ -636,6 +638,12 @@ void Player::readAdditionalSaveData(CompoundTag* entityTag) {
 		respawnPosition.set(entityTag->getInt("SpawnX"), entityTag->getInt("SpawnY"), entityTag->getInt("SpawnZ"));
     }
 	playerHasRespawnPosition = respawnPosition.y >= 0;
+	hasAquariumReturn = entityTag->contains("AqRetY");
+	if (hasAquariumReturn) {
+		aquariumReturnX = entityTag->getInt("AqRetX");
+		aquariumReturnY = entityTag->getInt("AqRetY");
+		aquariumReturnZ = entityTag->getInt("AqRetZ");
+	}
 }
 
 void Player::addAdditonalSaveData(CompoundTag* entityTag) {
@@ -662,6 +670,11 @@ void Player::addAdditonalSaveData(CompoundTag* entityTag) {
 	entityTag->putInt("SpawnX", respawnPosition.x);
 	entityTag->putInt("SpawnY", respawnPosition.y);
 	entityTag->putInt("SpawnZ", respawnPosition.z);
+	if (hasAquariumReturn) {
+		entityTag->putInt("AqRetX", aquariumReturnX);
+		entityTag->putInt("AqRetY", aquariumReturnY);
+		entityTag->putInt("AqRetZ", aquariumReturnZ);
+	}
 }
 
 //static Pos getRespawnPosition(Level level, CompoundTag entityTag) {

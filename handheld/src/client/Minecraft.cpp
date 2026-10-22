@@ -23,6 +23,9 @@
 #include "../world/level/tile/PortalTile.h"
 #include "gui/screens/ProgressScreen.h"
 #include "../world/level/dimension/Dimension.h"
+#include "../world/level/dimension/AquariumDimension.h"
+#include "../world/level/levelgen/AquariumLevelSource.h"
+#include <algorithm>
 #include "../world/level/LevelConstants.h"
 #include "../world/level/storage/LevelStorageSource.h"
 #include "../world/level/storage/LevelStorage.h"
@@ -217,8 +220,9 @@ Minecraft::Minecraft()
 _portalCooldown = 0;
 inputLocked = false;
 _travelPlayer = NULL;
-otherLevel = NULL;
 _pendingDim = 0;
+_warmLevel = NULL;
+_warmIndex = 0;
 _pendingDimFrames = 0;
 _prepNether = false;
 _netherPrep = NULL;
@@ -249,7 +253,7 @@ Minecraft::~Minecraft()
 {
 	delete netCallback;
 	netCallback = NULL;
-	destroyOtherLevel();
+	destroyOtherLevels();
 	delete raknetInstance;
 #ifndef STANDALONE_SERVER
 	delete levelRenderer;
@@ -413,7 +417,7 @@ void Minecraft::leaveGame(bool renameLevel /*=false*/)
 	levelRenderer->setLevel(NULL);
 	particleEngine->setLevel(NULL);
 #endif
-	destroyOtherLevel();
+	destroyOtherLevels();
 	LOGI("Erasing callback\n");
 	delete netCallback;
 	netCallback = NULL;
@@ -629,22 +633,25 @@ void Minecraft::prepareLevelPrepare() {
 
 static const int PORTAL_COOLDOWN_TICKS = 40;
 
+// The Overworld comes in two kinds (NORMAL, and NORMAL_DAYCYCLE for creative):
+// they are the same place.
+static int kindOf(int id) { return Dimension::isOverworld(id) ? Dimension::NORMAL : id; }
+
 Level* Minecraft::levelForDimension(int dimension, bool create)
 {
-	// "The Overworld" is whatever is not the Nether: creative worlds have the
-	// day-cycle kind (Dimension::NORMAL_DAYCYCLE), whose id is not NORMAL's.
-	const bool wantNether = (dimension == Dimension::NETHER);
-	if (level && level->dimension && (level->dimension->id == Dimension::NETHER) == wantNether) return level;
-	if (otherLevel && (otherLevel->dimension->id == Dimension::NETHER) == wantNether) return otherLevel;
+	const int want = kindOf(dimension);
+	if (level && level->dimension && kindOf(level->dimension->id) == want) return level;
+	for (unsigned int i = 0; i < otherLevels.size(); ++i)
+		if (kindOf(otherLevels[i]->dimension->id) == want) return otherLevels[i];
 	if (!create || !level || level->isClientSide || isGeneratingLevel || !netCallback) return NULL;
 
 	// Its own storage: a storage serves one Level (see LevelStorage::openSibling).
 	LevelStorage* storage = level->getLevelStorage() ? level->getLevelStorage()->openSibling() : NULL;
 	if (!storage) return NULL;
 
-	Dimension* newDimension = (dimension == Dimension::NETHER)
-		? Dimension::getNew(Dimension::NETHER)
-		: DimensionFactory::createDefaultDimension(level->getLevelData());
+	Dimension* newDimension = Dimension::isOverworld(want)
+		? DimensionFactory::createDefaultDimension(level->getLevelData())
+		: Dimension::getNew(want);
 #if defined(CREATORMODE)
 	Level* other = new CreatorLevel(
 #else
@@ -665,29 +672,50 @@ Level* Minecraft::levelForDimension(int dimension, bool create)
 	other->setUpdateLights(true);
 	other->loadEntities();
 
-	otherLevel = other;
+	otherLevels.push_back(other);
 	netCallback->levelAdded(other);
-	LOGI("Second level running: dimension %d\n", dimension);
+	LOGI("Level running: dimension %d\n", want);
 	return other;
 }
 
-void Minecraft::destroyOtherLevel()
+void Minecraft::destroyOtherLevel(Level* other)
 {
-	if (!otherLevel) return;
-	LOGI("Second level done: dimension %d\n", otherLevel->dimension->id);
-	if (netCallback) netCallback->levelRemoved(otherLevel);
-	otherLevel->saveGame();
-	if (otherLevel->getChunkSource())
-		otherLevel->getChunkSource()->saveAll(true);
-	LevelStorage* storage = otherLevel->getLevelStorage();
-	delete otherLevel;
+	std::vector<Level*>::iterator it = std::find(otherLevels.begin(), otherLevels.end(), other);
+	if (it == otherLevels.end()) return;
+	otherLevels.erase(it);
+	LOGI("Level done: dimension %d\n", other->dimension->id);
+	if (_warmLevel == other) _warmLevel = NULL;
+	if (netCallback) netCallback->levelRemoved(other);
+	other->saveGame();
+	if (other->getChunkSource())
+		other->getChunkSource()->saveAll(true);
+	LevelStorage* storage = other->getLevelStorage();
+	delete other;
 	delete storage;
-	otherLevel = NULL;
 }
 
-void Minecraft::findArrival(Level* dst, bool toNether, float fromX, float fromZ, bool respawn, Player* who, int* outX, int* outY, int* outZ)
+void Minecraft::destroyOtherLevels()
 {
-	// Same coordinates on both sides, as in changeDimension.
+	while (!otherLevels.empty())
+		destroyOtherLevel(otherLevels.back());
+}
+
+void Minecraft::unloadEmptyLevels()
+{
+	ServerSideNetworkHandler* net = static_cast<ServerSideNetworkHandler*>(netCallback);
+	for (int i = (int) otherLevels.size() - 1; i >= 0; --i) {
+		Level* other = otherLevels[i];
+		if (other == _warmLevel) continue;
+		if (!other->players.empty()) continue;
+		if (net && net->levelInUse(other)) continue;
+		destroyOtherLevel(other);
+	}
+}
+
+void Minecraft::findArrival(Level* dst, int fromDim, float fromX, float fromZ, bool respawn, Player* who, int* outX, int* outY, int* outZ)
+{
+	// Same coordinates on both sides of a Nether portal: no 1:8 scale, the
+	// world is finite and small. Clamped so the arrival room is inside it.
 	int tx = (int) fromX;
 	int tz = (int) fromZ;
 	if (tx < 4) tx = 4;
@@ -695,20 +723,42 @@ void Minecraft::findArrival(Level* dst, bool toNether, float fromX, float fromZ,
 	if (tz < 4) tz = 4;
 	if (tz >= LEVEL_DEPTH - 4) tz = LEVEL_DEPTH - 5;
 
+	const int dstDim = dst->dimension->id;
 	PortalTile* portal = (PortalTile*) Tile::portalTile;
 	int ty = 0;
 	int foundX = 0, foundY = 0, foundZ = 0;
 	if (respawn) {
+		// Back from a death: the bed if he slept in one, else the world spawn.
 		Pos p = (who && who->hasRespawnPosition()) ? who->getRespawnPosition() : dst->getSharedSpawnPos();
 		tx = p.x;
 		tz = p.z;
 		ty = dst->getTopTileY(tx, tz) + 1;
+	} else if (dstDim == Dimension::AQUARIUM) {
+		// Every way in comes out at the fixed portal, beside it on its platform.
+		AquariumLevelSource::buildHub(dst);
+		tx = AquariumDimension::HubX + 3;
+		tz = AquariumDimension::HubZ;
+		ty = AquariumDimension::HubY;
+	} else if (fromDim == Dimension::AQUARIUM) {
+		// Back to the Overworld portal he went in by, or the spawn if he never
+		// did (a command, or a save from before he had one).
+		if (who && who->hasAquariumReturn) {
+			tx = who->aquariumReturnX;
+			ty = who->aquariumReturnY;
+			tz = who->aquariumReturnZ;
+		} else {
+			Pos p = dst->getSharedSpawnPos();
+			tx = p.x;
+			tz = p.z;
+			ty = dst->getTopTileY(tx, tz) + 1;
+		}
 	} else if (portal->findNearbyPortal(dst, tx, tz, 16, &foundX, &foundY, &foundZ)) {
+		// A portal is already there (the one he came through the first time).
 		tx = foundX;
 		ty = foundY;
 		tz = foundZ;
 	} else {
-		ty = toNether ? 64 : dst->getTopTileY(tx, tz) + 1;
+		ty = (dstDim == Dimension::NETHER) ? 64 : dst->getTopTileY(tx, tz) + 1;
 		portal->buildArrivalPortal(dst, tx, ty, tz);
 	}
 	*outX = tx;
@@ -716,22 +766,62 @@ void Minecraft::findArrival(Level* dst, bool toNether, float fromX, float fromZ,
 	*outZ = tz;
 }
 
-/** The host goes through a portal while others are in the world: both Levels
+bool Minecraft::travelKeepsLevels()
+{
+	return netCallback && (level->players.size() > 1 || !otherLevels.empty()
+		|| static_cast<ServerSideNetworkHandler*>(netCallback)->hasPending());
+}
+
+bool Minecraft::warmTravelLevel(Level* dst, int maxMs)
+{
+	const int total = CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH;
+	if (dst != _warmLevel) {
+		// Nearest the arrival first: the Aquarium's fixed portal, or the same
+		// spot on the other side of a Nether portal.
+		int fx = Mth::floor(player->x) >> 4, fz = Mth::floor(player->z) >> 4;
+		if (dst->dimension->id == Dimension::AQUARIUM) {
+			fx = AquariumDimension::HubX >> 4;
+			fz = AquariumDimension::HubZ >> 4;
+		}
+		std::vector<std::pair<int, int> > byDistance;
+		for (int i = 0; i < total; ++i) {
+			const int dx = i % CHUNK_CACHE_WIDTH - fx, dz = i / CHUNK_CACHE_WIDTH - fz;
+			byDistance.push_back(std::make_pair(dx * dx + dz * dz, i));
+		}
+		std::sort(byDistance.begin(), byDistance.end());
+		_warmOrder.clear();
+		for (int i = 0; i < total; ++i) _warmOrder.push_back(byDistance[i].second);
+		_warmLevel = dst;
+		_warmIndex = 0;
+	}
+	const int start = getTimeMs();
+	while (_warmIndex < _warmOrder.size()) {
+		const int i = _warmOrder[_warmIndex++];
+		progressStagePercentage = 100 * _warmIndex / total;
+		dst->getChunk(i % CHUNK_CACHE_WIDTH, i / CHUNK_CACHE_WIDTH);
+		if (getTimeMs() - start >= maxMs) return false;
+	}
+	while (dst->updateLights())
+		if (getTimeMs() - start >= maxMs) return false;
+	_warmLevel = NULL;
+	return true;
+}
+
+/** The host goes through a portal while others are in the world: the Levels
     stay, and the host's moves from one to the other. The Level it arrives in is
     the one that writes level.dat from now on. */
-void Minecraft::changeDimensionShared(bool toNether, bool respawn)
+void Minecraft::changeDimensionShared(int dstDim, bool respawn)
 {
 	ServerSideNetworkHandler* net = static_cast<ServerSideNetworkHandler*>(netCallback);
 	Level* src = level;
-	const int dstId = toNether ? Dimension::NETHER : Dimension::NORMAL;
-	Level* dst = levelForDimension(dstId, true);
+	Level* dst = levelForDimension(dstDim, true);
 	if (!dst || dst == src) {
-		LOGI("changeDimensionShared refused: no level for dimension %d\n", dstId);
+		LOGI("changeDimensionShared refused: no level for dimension %d\n", dstDim);
 		return;
 	}
 
 	int tx, ty, tz;
-	findArrival(dst, toNether, player->x, player->z, respawn, player, &tx, &ty, &tz);
+	findArrival(dst, src->dimension->id, player->x, player->z, respawn, player, &tx, &ty, &tz);
 
 	net->hostLeaving(src);
 #ifndef STANDALONE_SERVER
@@ -751,7 +841,8 @@ void Minecraft::changeDimensionShared(bool toNether, bool respawn)
 	player->moveTo(tx + 0.5f, (float) ty, tz + 0.5f, player->yRot, player->xRot);
 
 	level = dst;
-	otherLevel = src;
+	otherLevels.erase(std::find(otherLevels.begin(), otherLevels.end(), dst));
+	otherLevels.push_back(src);
 	dst->addEntity(player);
 	gameMode->initLevel(dst);
 #ifndef STANDALONE_SERVER
@@ -766,39 +857,31 @@ void Minecraft::changeDimensionShared(bool toNether, bool respawn)
 	_portalCooldown = PORTAL_COOLDOWN_TICKS;
 }
 
-void Minecraft::changeDimension(bool toNether, bool respawn)
+void Minecraft::changeDimension(int dstDim, bool respawn)
 {
 	// Alone in the world: the old level is written out and replaced by the
 	// other side's. With visitors about, the old one has to stay (it is theirs
-	// still), so the host moves between two Levels instead.
-	LOGI("changeDimension: toNether=%d\n", (int) toNether);
+	// still), so the host moves between Levels instead.
+	LOGI("changeDimension: to %d\n", dstDim);
 	if (!level || !player || isGeneratingLevel || level->isClientSide) {
 		LOGI("changeDimension refused: level=%p player=%p generating=%d\n", level, player, (int) isGeneratingLevel);
 		return;
 	}
-	if (netCallback && (level->players.size() > 1 || otherLevel || static_cast<ServerSideNetworkHandler*>(netCallback)->hasPending())) {
-		changeDimensionShared(toNether, respawn);
+	if (kindOf(dstDim) == kindOf(level->dimension->id)) return;
+	if (travelKeepsLevels()) {
+		changeDimensionShared(dstDim, respawn);
 		return;
 	}
 
 	std::string levelName = level->getLevelData()->getLevelName();
 	LevelStorage* storage = level->getLevelStorage();
+	const int fromDim = level->dimension->id;
 
 	// The other side's dimension object is made from the old level's data
 	// before that level is gone (the Overworld's kind depends on game mode).
-	Dimension* newDimension = toNether
-		? Dimension::getNew(Dimension::NETHER)
-		: DimensionFactory::createDefaultDimension(level->getLevelData());
-
-	// Same coordinates on both sides, no 1:8 scale: the world is finite and small, so
-	// dividing it by 8 only packed the whole Overworld into a corner of the Nether.
-	// Clamped so the arrival room is inside the world.
-	int tx = (int) player->x;
-	int tz = (int) player->z;
-	if (tx < 4) tx = 4;
-	if (tx >= LEVEL_WIDTH - 4) tx = LEVEL_WIDTH - 5;
-	if (tz < 4) tz = 4;
-	if (tz >= LEVEL_DEPTH - 4) tz = LEVEL_DEPTH - 5;
+	Dimension* newDimension = Dimension::isOverworld(dstDim)
+		? DimensionFactory::createDefaultDimension(level->getLevelData())
+		: Dimension::getNew(dstDim);
 
 	// Write the old world out: chunks, entities, and level.dat with the
 	// dimension it is leaving.
@@ -827,26 +910,10 @@ void Minecraft::changeDimension(bool toNether, bool respawn)
 		SharedConstants::GeneratorVersion,
 		newDimension);
 
-	// Arrival: build a portal and a safe room there, and put the player in it.
+	// Arrival: a portal and a safe room there, or the Aquarium's fixed portal.
 	// He is added to the level by _levelGenerated, after the terrain exists.
-	PortalTile* portal = (PortalTile*) Tile::portalTile;
-	int ty = 0;
-	int foundX = 0, foundY = 0, foundZ = 0;
-	if (respawn) {
-		// Back from a death: the bed if he slept in one, else the world spawn.
-		Pos p = player->hasRespawnPosition()? player->getRespawnPosition() : newLevel->getSharedSpawnPos();
-		tx = p.x;
-		tz = p.z;
-		ty = newLevel->getTopTileY(tx, tz) + 1;
-	} else if (portal->findNearbyPortal(newLevel, tx, tz, 16, &foundX, &foundY, &foundZ)) {
-		// A portal is already there (the one he came through the first time).
-		tx = foundX;
-		ty = foundY;
-		tz = foundZ;
-	} else {
-		ty = toNether ? 64 : newLevel->getTopTileY(tx, tz) + 1;
-		portal->buildArrivalPortal(newLevel, tx, ty, tz);
-	}
+	int tx, ty, tz;
+	findArrival(newLevel, fromDim, player->x, player->z, respawn, player, &tx, &ty, &tz);
 
 	player->setLevel(newLevel);
 	player->dimension = newDimension->id;
@@ -860,8 +927,6 @@ void Minecraft::changeDimension(bool toNether, bool respawn)
 	_travelPlayer = player;
 	player = NULL;
 
-	// The player arrives standing in the portal, so the cooldown stops the
-	// contact from sending him straight back.
 	// The renderer still holds chunks built for the level that was just deleted,
 	// and a jump this far marks them dirty, so the next frame would rebuild them
 	// through a dangling Level*. Point it at the new level now instead of waiting
@@ -871,6 +936,8 @@ void Minecraft::changeDimension(bool toNether, bool respawn)
 	particleEngine->setLevel(newLevel);
 #endif
 
+	// The player arrives standing in the portal, so the cooldown stops the
+	// contact from sending him straight back.
 	_portalCooldown = PORTAL_COOLDOWN_TICKS;
 	setLevel(newLevel, "Generating level");
 }
@@ -913,7 +980,7 @@ void Minecraft::update() {
 	TIMER_POP_PUSH("updatelights");
 	if (level && !isGeneratingLevel) {
 		level->updateLights();
-		if (otherLevel) otherLevel->updateLights();
+		for (unsigned int i = 0; i < otherLevels.size(); ++i) otherLevels[i]->updateLights();
 	}
 	TIMER_POP();
 
@@ -927,9 +994,14 @@ void Minecraft::update() {
 
 		// The frame with the loading screen has been drawn; now do the trip.
 		if (_pendingDim != 0 && --_pendingDimFrames <= 0) {
-			bool toNether = (_pendingDim == 1);
-			_pendingDim = 0;
-			changeDimension(toNether);
+			const int dst = _pendingDim - 1;
+			Level* warm = (level && player && travelKeepsLevels()) ? levelForDimension(dst, true) : NULL;
+			if (warm && warm != level && !warmTravelLevel(warm, 12)) {
+				_pendingDimFrames = 1;	// more of it next frame
+			} else {
+				_pendingDim = 0;
+				changeDimension(dst);
+			}
 		}
 	#else
 	CThread::sleep(1);
@@ -966,14 +1038,19 @@ void Minecraft::tick(int nTick, int maxTick) {
 	// start of a tick, when no entity is mid-update, and not again until the
 	// cooldown set by the last arrival has run out.
 	if (level && player && !isGeneratingLevel) {
-		Entity* requester = level->takePortalTravelRequest();
+		int target = -1;
+		Entity* requester = level->takePortalTravelRequest(&target);
 		if (requester == player) {
 			// Still standing in a portal: a trip only starts from a cold start, and
 			// being inside keeps the cooldown full, so arriving in one cannot bounce
 			// him back. It starts running down once he steps out.
 			if (_portalCooldown == 0) {
 				if (_pendingDim == 0) {
-					_pendingDim = (level->dimension->id != Dimension::NETHER) ? 1 : 2;
+					// A Nether portal goes to the other side of it; the Aquarium's
+					// say where they go.
+					if (target < 0)
+						target = (level->dimension->id == Dimension::NETHER) ? Dimension::NORMAL : Dimension::NETHER;
+					_pendingDim = target + 1;
 					_pendingDimFrames = 2;
 					setScreen(new ProgressScreen());
 				}
@@ -1105,20 +1182,26 @@ void Minecraft::tick(int nTick, int maxTick) {
 			TIMER_POP_PUSH("level");
 			level->tickEntities();
 			level->tick();
-			if (otherLevel) {
-				otherLevel->difficulty = options.difficulty;
-				otherLevel->tickEntities();
-				otherLevel->tick();
+			for (unsigned int i = 0; i < otherLevels.size(); ++i) {
+				Level* other = otherLevels[i];
+				other->difficulty = options.difficulty;
+				other->tickEntities();
+				other->tick();
 				// Visitors travel by their own packets (see ServerSideNetworkHandler);
 				// a request their portal left here is for nobody to answer.
-				otherLevel->takePortalTravelRequest();
+				other->takePortalTravelRequest();
 				// Its chunks are saved by its storage's tick, but its entities
 				// only when it closes: a host whose tab died with visitors in
 				// the Nether lost every mob, item and dropped thing there. Once
 				// a minute, like a world's own save on pause.
-				if (otherLevel->getTime() % 1200 == 0)
-					otherLevel->saveGame();
+				if (other->getTime() % 1200 == 0)
+					other->saveGame();
 			}
+			// A dimension nobody is left in is saved and let go, every few
+			// seconds rather than the tick it empties: a visitor stepping back
+			// through a portal at once does not pay for loading it again.
+			if (ticks % 200 == 0 && !otherLevels.empty())
+				unloadEmptyLevels();
 #ifndef STANDALONE_SERVER
 			TIMER_POP_PUSH("animateTick");
 			if (player) {
@@ -2116,14 +2199,14 @@ void Minecraft::respawnPlayer() {
 	//
 	//LOGI("Has entity? %d, %d\n", level->getEntity(player->entityId), slowCheck);
 
-	// Dying in the Nether sends the player home, as in the other editions: he comes
-	// back in the Overworld, not at the Nether's spawn.
+	// Dying in the Nether or the Aquarium sends the player home, as in the other
+	// editions: he comes back in the Overworld, not at that dimension's spawn.
 	if (level && player && !level->isClientSide && level->dimension
-		&& level->dimension->id == Dimension::NETHER) {
+		&& !Dimension::isOverworld(level->dimension->id)) {
 		player->reset();
 		if (isCreativeMode())
 			player->inventory->clearInventoryWithDefault();
-		changeDimension(false, true);
+		changeDimension(Dimension::NORMAL, true);
 		return;
 	}
 
