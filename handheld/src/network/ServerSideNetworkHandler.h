@@ -162,6 +162,7 @@ private:
 	/// Starts sending a visitor every chunk of its level, nearest first.
 	void startStream(const RakNet::RakNetGUID& to, Level* level, Player* player);
 	void pumpStreams();
+	bool makeNeighbours(Level* level, int x, int z, RakNet::TimeMS start, int maxMs);
 	void warmOtherLevel();
 	double sendBufferBytes(const RakNet::RakNetGUID& to);
 	void sendHostTo(const RakNet::RakNetGUID& target, bool broadcastInLevel, Level* level);

@@ -51,6 +51,7 @@ public:
 	const RectangleArea& getRectangleArea();
     const RectangleArea& getPauseRectangleArea();
     const RectangleArea& getChatRectangleArea();
+    const RectangleArea& getSneakRectangleArea();
 
 private:
 	void clear();

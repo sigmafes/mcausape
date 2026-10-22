@@ -397,17 +397,33 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
         FlowerFeature feature(Tile::mushroom2->id);
 		feature.place(level, &random, x, y, z);
     }
-	/*int grassCount = 1;
-	for (int i = 0; i < grassCount; i++) {
+	// Grass, as Java's: a couple of patches of the short kind a chunk (each
+	// up to 128 tries around a point), now and then one of the tall kind.
+	for (int i = 0; i < 2; i++) {
 		int x = xo + random.nextInt(16) + 8;
-		int y = random.nextInt(Level::genDepth);
+		int y = random.nextInt(128);
 		int z = zo + random.nextInt(16) + 8;
 		Feature* grassFeature = biome->getGrassFeature(&random);
 		if (grassFeature) {
 			grassFeature->place(level, &random, x, y, z);
 			delete grassFeature;
 		}
-	}*/
+	}
+	if (random.nextInt(2) == 0) {
+		int x = xo + random.nextInt(16) + 8;
+		int z = zo + random.nextInt(16) + 8;
+		int y = level->getHeightmap(x, z);
+		for (int i = 0; i < 48; i++) {
+			const int x2 = x + random.nextInt(8) - random.nextInt(8);
+			const int y2 = y + random.nextInt(4) - random.nextInt(4);
+			const int z2 = z + random.nextInt(8) - random.nextInt(8);
+			if (y2 > 0 && y2 < 126 && level->isEmptyTile(x2, y2, z2) && level->isEmptyTile(x2, y2 + 1, z2)
+					&& level->getTile(x2, y2 - 1, z2) == ((Tile*) Tile::grass)->id) {
+				level->setTileAndDataNoUpdate(x2, y2, z2, Tile::doubleGrass->id, 0);
+				level->setTileAndDataNoUpdate(x2, y2 + 1, z2, Tile::doubleGrass->id, 8);
+			}
+		}
+	}
     for (int i = 0; i < 10; i++) {
         int x = xo + random.nextInt(16) + 8;
         int y = random.nextInt(128);

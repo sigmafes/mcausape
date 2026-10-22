@@ -225,6 +225,8 @@ public:
 	/// Coral blocks: tube (blue), brain (pink), bubble (violet), fire (red), horn (yellow).
 	static Tile* coral[5];
 	static Tile* coralPlant[5];
+	static Tile* doubleGrass;
+	static Tile* kelp;
 	static Tile* mossyCobbleWall;
 	static Tile* fence_spruce;
 	static Tile* fence_birch;

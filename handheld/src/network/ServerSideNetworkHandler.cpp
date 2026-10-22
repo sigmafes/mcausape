@@ -857,6 +857,23 @@ double ServerSideNetworkHandler::sendBufferBytes(const RakNet::RakNetGUID& to)
     already queued for it is small: RakNet sends as fast as the relay takes it,
     and a queue kept short is what lets a block change or a chat line go ahead
     of the rest of the world. */
+/// The 3x3 around a chunk, made while under maxMs since start; true when all are.
+bool ServerSideNetworkHandler::makeNeighbours(Level* level, int x, int z, RakNet::TimeMS start, int maxMs)
+{
+	for (int dx = -1; dx <= 1; ++dx)
+		for (int dz = -1; dz <= 1; ++dz) {
+			const int cx = x + dx, cz = z + dz;
+			if (cx < 0 || cz < 0 || cx >= CHUNK_CACHE_WIDTH || cz >= CHUNK_CACHE_WIDTH || level->hasChunk(cx, cz)) continue;
+			if ((int) (RakNet::GetTimeMS() - start) > maxMs) return false;
+			level->getChunk(cx, cz);
+			// Lit now, a little: the light they queued would otherwise all
+			// settle at once in sendChunkTo.
+			for (int i = 0; i < 16 && level->updateLights(); ++i)
+				;
+		}
+	return true;
+}
+
 void ServerSideNetworkHandler::pumpStreams()
 {
 	// Small: a chunk is ~5-15KB compressed, and whatever is queued is what
@@ -877,7 +894,12 @@ void ServerSideNetworkHandler::pumpStreams()
 		for (int n = 0; n < 6 && s.streamPos < s.stream.size(); ++n) {
 			if (sendBufferBytes(s.guid) > MaxQueued) break;
 			if (n > 0 && RakNet::GetTimeMS() - start > 8) return;
-			const int index = s.stream[s.streamPos++];
+			const int index = s.stream[s.streamPos];
+			// Its neighbours made first, a few at a time and within the
+			// budget: made all at once inside sendChunkTo, a new dimension's
+			// first chunks cost the host's frame tens of milliseconds each.
+			if (!makeNeighbours(s.streamLevel, index % CHUNK_CACHE_WIDTH, index / CHUNK_CACHE_WIDTH, start, 6)) return;
+			++s.streamPos;
 			sendChunkTo(s.guid, s.streamLevel, index % CHUNK_CACHE_WIDTH, index / CHUNK_CACHE_WIDTH);
 		}
 	}

@@ -87,4 +87,18 @@ public:
 	void tick();
 };
 
+// Kelp, the stalk or the tip: a strip of frames played in a loop, a frame
+// every few ticks as Java's .mcmeta does.
+class KelpTexture: public DynamicTexture
+{
+	typedef DynamicTexture super;
+	int _tick;
+	bool _tip;
+
+public:
+	KelpTexture(int tex, bool tip);
+
+	void tick();
+};
+
 #endif /*NET_MINECRAFT_CLIENT_RENDERER_PTEXTURE__DynamicTexture_H__*/

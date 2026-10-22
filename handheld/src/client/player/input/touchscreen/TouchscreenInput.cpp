@@ -443,6 +443,10 @@ const RectangleArea& TouchscreenInput_TestFps::getRectangleArea()
 {
 	return _boundingRectangle;
 }
+const RectangleArea& TouchscreenInput_TestFps::getSneakRectangleArea()
+{
+	return *aSneak;
+}
 const RectangleArea& TouchscreenInput_TestFps::getChatRectangleArea()
 {
 	return *aChat;

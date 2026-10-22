@@ -2016,6 +2016,8 @@ void Minecraft::init()
 	textures->addDynamicTexture(new PortalTexture(Tile::aquariumPortal->tex, true));
 	textures->addDynamicTexture(new FireTexture(Tile::fire->tex, 0));
 	textures->addDynamicTexture(new FireTexture(Tile::fire->tex + 16, 11));
+	textures->addDynamicTexture(new KelpTexture(Tile::kelp->tex, false));
+	textures->addDynamicTexture(new KelpTexture(Tile::kelp->tex + 1, true));
 	gui.texturesLoaded(textures);
 
 	levelRenderer = new LevelRenderer(this);

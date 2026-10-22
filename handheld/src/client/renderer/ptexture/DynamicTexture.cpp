@@ -1,5 +1,6 @@
 #include "DynamicTexture.h"
 #include "FireFrames.h"
+#include "KelpFrames.h"
 
 #include <cstring>
 #include "../Textures.h"
@@ -281,4 +282,17 @@ FireTexture::FireTexture(int tex, int frameOffset)
 void FireTexture::tick() {
 	_tick++;
 	memcpy(pixels, FIRE_FRAMES[(_tick + _offset) % FIRE_FRAME_COUNT], 16 * 16 * 4);
+}
+
+KelpTexture::KelpTexture(int tex, bool tip)
+:	super(tex),
+	_tick(0),
+	_tip(tip)
+{
+}
+
+void KelpTexture::tick() {
+	_tick++;
+	const int frame = (_tick / 3) % KELP_FRAME_COUNT;
+	memcpy(pixels, _tip ? KELP_TIP_FRAMES[frame] : KELP_STALK_FRAMES[frame], 16 * 16 * 4);
 }

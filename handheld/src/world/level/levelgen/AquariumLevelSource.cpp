@@ -179,6 +179,7 @@ void AquariumLevelSource::decorate(int cx, int cz)
 			default: coralClaw(r, x, y + 1, z, tile); break;
 		}
 	}
+	kelp(r, x0, z0);
 	// Coral plants of the block's own colour on the reefs' open tops, as
 	// often as not. Only on blocks just placed: their chunks exist.
 	for (unsigned int i = 0; i < _placed.size(); ++i) {
@@ -257,6 +258,38 @@ void AquariumLevelSource::coralClaw(Random& r, int x, int y, int z, int tile)
 		for (int j = 0; j < up; ++j) {
 			++ay;
 			placeCoral(ax, ay, az, tile);
+		}
+	}
+}
+
+/** Kelp, after Java's KelpFeature: columns up from the ground, the last block
+    the tip. In beds -- many to a chunk where reefNoise is low, so reefs and
+    kelp forests take turns -- on the shelf's top and on
+    the sand of the cave under it. */
+void AquariumLevelSource::kelp(Random& r, int x0, int z0)
+{
+	const float reef = unit(reefNoise->getValue(x0 / 6.0f, z0 / 6.0f), 3);
+	const int count = reef < -0.1f ? 24 + r.nextInt(16) : 4 + r.nextInt(4);
+	const int id = Tile::kelp->id;
+	for (int i = 0; i < count; ++i) {
+		const int x = x0 + r.nextInt(16), z = z0 + r.nextInt(16);
+		// Half on the shelf, half on the sea floor below it.
+		int y;
+		if (r.nextInt(2) == 0) {
+			y = 110;
+			while (y > 60 && level->getTile(x, y, z) == 0) --y;
+		} else {
+			y = 1;
+			while (y < 40 && level->getTile(x, y + 1, z) != 0) ++y;
+		}
+		const int ground = level->getTile(x, y, z);
+		if (ground != Tile::prismarine->id && ground != Tile::sand->id) continue;
+		if (level->getTile(x, y + 1, z) != 0) continue;
+		// Java: up to ~25 tall, most a good deal less.
+		const int height = 1 + r.nextInt(r.nextInt(18) + 3);
+		for (int j = 1; j <= height; ++j) {
+			if (y + j >= CeilingY - 1 || level->getTile(x, y + j, z) != 0) break;
+			level->setTileNoUpdate(x, y + j, z, id);
 		}
 	}
 }

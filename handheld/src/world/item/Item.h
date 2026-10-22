@@ -208,6 +208,7 @@ public:
 
 	static Item* goldNugget;
 	static Item* oceanShard;
+	static Item* kelp;
 	static Item* oceanCrystal;
 	// Potions (docs/brewing-plan.md): drunk, they give their effect (PotionItem).
 	static Item* awkwardPotion;

@@ -1,5 +1,7 @@
 #include "TileInclude.h"
 #include "CoralPlantTile.h"
+#include "DoublePlantTile.h"
+#include "KelpTile.h"
 #include "../Level.h"
 #include "../LevelConstants.h"
 #include "../../entity/player/Player.h"
@@ -160,6 +162,8 @@ Tile* Tile::aquariumPortal = NULL;
 Tile* Tile::oceanCrystalHub = NULL;
 Tile* Tile::coral[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::coralPlant[5] = { NULL, NULL, NULL, NULL, NULL };
+Tile* Tile::doubleGrass = NULL;
+Tile* Tile::kelp = NULL;
 Tile* Tile::mossyCobbleWall = NULL;
 Tile* Tile::fence_spruce = NULL;
 Tile* Tile::fence_birch = NULL;
@@ -319,6 +323,10 @@ void Tile::initTiles() {
 		for (int i = 0; i < 5; ++i)
 			coralPlant[i] = (new CoralPlantTile(183 + i, 272 + i))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId(plants[i]);
 	}
+	// Tall grass, bottom and top in terrain cells 277/278.
+	doubleGrass = (new DoublePlantTile(188, 277))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("doubleGrass");
+	// Kelp, stalk and tip in 279/280 (animated by KelpTexture).
+	kelp = (new KelpTile(189, 279))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("kelp");
 	enchantTable = (new EnchantTableTile(116))->init()->setDestroyTime(5.0f)->setExplodeable(2000)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("enchantmentTable");
 	brewingStand = (new BrewingStandTile(117))->init()->setDestroyTime(0.5f)->setLightEmission(2 / 16.0f)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Decorations)->setDescriptionId("brewingStand");
 	carrots = (new RootCropTile(141, 7 + 12 * 16, 10 + 12 * 16, &Item::carrot))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("carrots");

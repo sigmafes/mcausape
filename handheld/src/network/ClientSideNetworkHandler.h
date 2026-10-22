@@ -100,7 +100,9 @@ private:
 	/// The host sent us away and said why; its closing the connection is not news.
 	bool _kicked;
 	/// Until the chunks around the player have come, it is kept where it was put.
-	static const int RingRadius = 4;
+	// 5x5 chunks: enough to stand and look about; the rest stream in nearest
+	// first while it moves. 9x9 (121 made on the host) held it for seconds.
+	static const int RingRadius = 2;
 	bool _holding;
 	/// The host has sent the player it keeps for this name (PlayerDataPacket):
 	/// from then on ours is sent back to it, every SyncTicks and on leaving.

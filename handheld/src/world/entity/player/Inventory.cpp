@@ -236,6 +236,8 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::oceanCrystalBlock));
 		for (int i = 0; i < 5; ++i) addItem(new ItemInstance(Tile::coral[i]));
 		for (int i = 0; i < 5; ++i) addItem(new ItemInstance(Tile::coralPlant[i]));
+		addItem(new ItemInstance(Item::kelp));
+		addItem(new ItemInstance(Tile::doubleGrass));
 		addItem(new ItemInstance(Item::oceanCrystal));
 		addItem(new ItemInstance(Item::oceanShard));
 		addItem(new ItemInstance(Item::awkwardPotion));
