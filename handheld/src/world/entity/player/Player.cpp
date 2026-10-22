@@ -568,6 +568,8 @@ void Player::tickEffects() {
 
 void Player::_init() {
 	oBob = bob = 0;
+	pressure = 0;
+	pressureTicks = 0;
 	swinging = 0;
 	swingTime = 0;
 	score = 0;

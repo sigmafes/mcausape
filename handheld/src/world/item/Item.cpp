@@ -112,6 +112,8 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::cookedCod = NULL;
+Item* Item::cookedSalmon = NULL;
 Item* Item::rawCod = NULL;
 Item* Item::rawSalmon = NULL;
 Item* Item::prismarineCrystals = NULL;
@@ -319,6 +321,8 @@ void Item::initItems() {
 	Item::prismarineCrystals = (new Item(158))->setIcon(0, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("prismarineCrystals");
 	Item::rawCod    = (new FoodItem(159, 2, false))->setIcon(1, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("rawCod");
 	Item::rawSalmon = (new FoodItem(160, 2, false))->setIcon(2, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("rawSalmon");
+	Item::cookedCod    = (new FoodItem(161, 5, false))->setIcon(3, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("cookedCod");
+	Item::cookedSalmon = (new FoodItem(162, 6, false))->setIcon(4, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("cookedSalmon");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.

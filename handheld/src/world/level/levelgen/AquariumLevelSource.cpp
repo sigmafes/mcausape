@@ -106,11 +106,11 @@ LevelChunk* AquariumLevelSource::getChunk(int cx, int cz)
 	// here reaches a neighbour.
 	{
 		Random r(seed ^ ((long) cx * 987234871L) ^ ((long) cz * 214537L) ^ 0x5ea1L);
-		const int veins = 10 + r.nextInt(8);
+		const int veins = 5 + r.nextInt(5);
 		const int prismarine = Tile::prismarine->id, lantern = Tile::seaLantern->id;
 		for (int v = 0; v < veins; ++v) {
 			int x = r.nextInt(16), z = r.nextInt(16), y = 18 + r.nextInt(90);
-			const int size = 2 + r.nextInt(5);
+			const int size = 2 + r.nextInt(4);
 			for (int n = 0; n < size; ++n) {
 				if (x >= 0 && x < 16 && z >= 0 && z < 16 && y > 0 && y < CeilingY) {
 					unsigned char& b = blocks[x << 11 | z << 7 | y];
@@ -310,7 +310,7 @@ void AquariumLevelSource::coralClaw(Random& r, int x, int y, int z, int tile)
 void AquariumLevelSource::kelp(Random& r, int x0, int z0)
 {
 	const float reef = unit(reefNoise->getValue(x0 / 6.0f, z0 / 6.0f), 3);
-	const int count = reef < -0.1f ? 24 + r.nextInt(16) : 4 + r.nextInt(4);
+	const int count = reef < -0.1f ? 12 + r.nextInt(8) : 2 + r.nextInt(3);
 	const int id = Tile::kelp->id;
 	for (int i = 0; i < count; ++i) {
 		const int x = x0 + r.nextInt(16), z = z0 + r.nextInt(16);
@@ -327,7 +327,7 @@ void AquariumLevelSource::kelp(Random& r, int x0, int z0)
 		if (ground != Tile::prismarine->id && ground != Tile::sand->id) continue;
 		if (level->getTile(x, y + 1, z) != 0) continue;
 		// Java: up to ~25 tall, most a good deal less.
-		const int height = 1 + r.nextInt(r.nextInt(18) + 3);
+		const int height = 1 + r.nextInt(r.nextInt(12) + 3);
 		for (int j = 1; j <= height; ++j) {
 			if (y + j >= CeilingY - 1 || level->getTile(x, y + j, z) != 0) break;
 			level->setTileNoUpdate(x, y + j, z, id);

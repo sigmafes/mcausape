@@ -242,6 +242,8 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::prismarineCrystals));
 		addItem(new ItemInstance(Item::rawCod));
 		addItem(new ItemInstance(Item::rawSalmon));
+		addItem(new ItemInstance(Item::cookedCod));
+		addItem(new ItemInstance(Item::cookedSalmon));
 		addItem(new ItemInstance(Tile::doubleGrass));
 		addItem(new ItemInstance(Item::oceanCrystal));
 		addItem(new ItemInstance(Item::oceanShard));

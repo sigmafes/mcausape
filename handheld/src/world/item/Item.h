@@ -209,6 +209,8 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* kelp;
+	static Item* cookedCod;
+	static Item* cookedSalmon;
 	static Item* rawCod;
 	static Item* rawSalmon;
 	static Item* prismarineCrystals;

@@ -185,6 +185,10 @@ public:
 	/// Potion effects on this player (world/effect/MobEffect.h), saved with
 	/// it as Java's ActiveEffects. Ticked down in tick(); lost on death.
 	std::vector<MobEffectInstance> activeEffects;
+	/// The Aquarium's pressure, 0 to MAX_PRESSURE (LocalPlayer::tickPressure).
+	static const int MAX_PRESSURE = 10;
+	int pressure;
+	int pressureTicks;
 	/// Gives an effect, or lengthens one already running.
 	void addEffect(int id, int duration);
 	bool hasEffect(int id) const;

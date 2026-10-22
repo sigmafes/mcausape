@@ -24,6 +24,7 @@ public:
 	virtual void reset();
 
 	void tick();
+	void tickPressure();
     void move(float xa, float ya, float za);
 
     void aiStep();

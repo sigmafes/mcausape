@@ -8,6 +8,9 @@
 #include "../../world/inventory/BaseContainerMenu.h"
 #include "../../world/item/BowItem.h"
 #include "../../world/level/Level.h"
+#include "../../world/level/dimension/Dimension.h"
+#include "../../SharedConstants.h"
+#include "../../util/Mth.h"
 #include "../../world/level/tile/Tile.h"
 #include "../../world/level/tile/entity/TileEntity.h"
 #include "../../world/level/material/Material.h"
@@ -102,9 +105,39 @@ bool LocalPlayer::isSolidTile(int x, int y, int z) {
 	return tileId > 0 && Tile::tiles[tileId]->material->isSolid();
 }
 
+/** The Aquarium's pressure. Its height is five bands, the top one 1: every
+    ten seconds the band's number is added, up to 10. Full, it hurts 2 every
+    1.25s (as poison does) until death. Anywhere outside the Aquarium it is
+    gone -- the Overworld is where a way out or a death leads. Here, on the
+    player's own machine, as drowning is. */
+void LocalPlayer::tickPressure() {
+	if (!level || !level->dimension || level->dimension->id != Dimension::AQUARIUM) {
+		pressure = 0;
+		pressureTicks = 0;
+		return;
+	}
+	if (!isAlive()) return;
+	const int feet = Mth::floor(y - heightOffset);
+	int band = 1 + (127 - feet) * 5 / 128;
+	if (band < 1) band = 1;
+	if (band > 5) band = 5;
+	++pressureTicks;
+	if (pressure < MAX_PRESSURE) {
+		if (pressureTicks >= SharedConstants::TicksPerSecond * 10) {
+			pressureTicks = 0;
+			pressure += band;
+			if (pressure > MAX_PRESSURE) pressure = MAX_PRESSURE;
+		}
+	} else if (pressureTicks >= 25) {
+		pressureTicks = 0;
+		hurt(NULL, 2);
+	}
+}
+
 void LocalPlayer::tick() {
 
 	super::tick();
+	tickPressure();
 	if(!useItem.isNull()) {
 		ItemInstance* item = inventory->getSelected();
 		if(item != NULL && *item == useItem) {

@@ -20,6 +20,8 @@ class SeaLanternTile: public Tile
 {
 public:
 	SeaLanternTile(int id, int tex) : Tile(id, tex, Material::glass) {}
+	/// Lit by itself, as glowstone looks, even deep in the dark.
+	float getBrightness(LevelSource* level, int x, int y, int z) { return 1.0f; }
 	int getResource(int data, Random* random) { return Item::oceanShard->id; }
 	int getResourceCount(Random* random) { return 4; }
 };

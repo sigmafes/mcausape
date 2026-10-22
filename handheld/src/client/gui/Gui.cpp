@@ -657,6 +657,20 @@ void Gui::renderHearts() {
 }
 
 void Gui::renderBubbles() {
+	// The Aquarium's pressure: a row like the air's, over it, that fills up.
+	if (minecraft->player->pressure > 0) {
+		int slotX, slotY;
+		getSlotPos(0, slotX, slotY);
+		const int screenWidth = (int)(minecraft->width * InvGuiScale);
+		int yo = slotY - 11 - (minecraft->player->getArmorValue() > 0 ? 20 : 10)
+			- (minecraft->player->isUnderLiquid(Material::water) ? 10 : 0);
+		const int bx = screenWidth / 2 - (Player::MAX_HEALTH / 2 * 8 + 1) / 2;
+		const bool full = minecraft->player->pressure >= Player::MAX_PRESSURE;
+		for (int i = 0; i < minecraft->player->pressure; i++) {
+			int jitter = full ? random.nextInt(2) - 1 : 0;
+			blit(bx + i * 8, yo + jitter, 72, 18, 9, 9);
+		}
+	}
 	if (minecraft->player->isUnderLiquid(Material::water)) {
 		// Above the hearts (and the armour row over them), on the hotbar's centre.
 		int slotX, slotY;
