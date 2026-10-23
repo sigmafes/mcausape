@@ -53,10 +53,7 @@ jobs:
           # The deploy number, same as the build's MC_DEPLOY_NUMBER: open pages
           # poll it to tell their players a newer build is out.
           git rev-list --count HEAD > site/version.txt
-          # Menu music, only present once a track has been dropped into
-          # handheld/project/web/. Without it the page simply plays nothing.
-          cp handheld/project/web/build/menu.mp3 site/ 2>/dev/null || true
-          # The Nether's biome music (shell.html's TRACKS), streamed like the menu's.
+          # The music (shell.html's TRACKS), streamed rather than preloaded.
           cp -r handheld/project/web/music site/
           ls -lh site
 

@@ -931,7 +931,7 @@
 
   <script>
   // ---------------------------------------------------------------------------
-  // Menu music.
+  // Music.
   //
   // Driven by Minecraft::updateMusic: on whenever no world is loaded, off on the
   // way into one, at whatever the Options music slider says. That slider has
@@ -951,12 +951,13 @@
     // every browser plays it, and re-encoding one lossy format into another
     // costs quality to save nothing.
     // Index = the track number Minecraft::updateMusic asks for (0 = none).
-    // The menu's loops. The Nether's is a playlist: a random song (never the
+    // Every place has a playlist. The menu's: one of four, the next a few
+    // seconds after. The Nether's: a random song (never the
     // same one twice running), then two minutes of silence, then another,
     // for as long as the player stays in the Nether.
     var N = 'music/';
     var TRACKS = [null,
-      { list: ['menu.mp3'], loop: true },
+      { list: [N + 'menu1.mp3', N + 'menu2.mp3', N + 'menu3.mp3', N + 'menu4.mp3'], gap: 5000 },
       { list: [N + 'nether1.mp3', N + 'nether2.mp3', N + 'nether3.mp3', N + 'nether4.mp3',
                N + 'rubedo.mp3', N + 'so_below.mp3', N + 'chrysopoeia.mp3'], gap: 120000 },
       // The Aquarium's: the same way, its own three songs.
