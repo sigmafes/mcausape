@@ -100,7 +100,8 @@ std::string I18n::getDescriptionString( const ItemInstance& item )
 		"emerald",
 		"lapis",
 		"cloth",
-		"coral"
+		"coral",
+		"netherite"
 	};
 
 	Util::removeAll(s, materials, sizeof(materials) / sizeof(const char*));

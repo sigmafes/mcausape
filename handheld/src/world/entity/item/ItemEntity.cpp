@@ -73,7 +73,12 @@ void ItemEntity::tick()
 	} else {
 		yd -= 0.04f;
 	}
-	if (level->getMaterial(Mth::floor(x), Mth::floor(y), Mth::floor(z)) == Material::lava) {
+	if (level->getMaterial(Mth::floor(x), Mth::floor(y), Mth::floor(z)) == Material::lava && Item::isNetherite(item.id)) {
+		// Netherite floats up through lava, untouched (Java).
+		yd = 0.06f;
+		xd *= 0.8f;
+		zd *= 0.8f;
+	} else if (level->getMaterial(Mth::floor(x), Mth::floor(y), Mth::floor(z)) == Material::lava) {
 		yd = 0.2f;
 		xd = (sharedRandom.nextFloat() - sharedRandom.nextFloat()) * 0.2f;
 		zd = (sharedRandom.nextFloat() - sharedRandom.nextFloat()) * 0.2f;
@@ -136,6 +141,7 @@ void ItemEntity::playerTouch( Player* player )
 
 void ItemEntity::burn( int dmg )
 {
+	if (Item::isNetherite(item.id)) return;	// fire-proof
 	hurt(NULL, dmg);
 }
 

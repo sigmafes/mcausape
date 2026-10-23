@@ -41,6 +41,7 @@ FurnaceRecipes::FurnaceRecipes()
 	addFurnaceRecipe(Tile::sand->id,        ItemInstance(Tile::glass));
 	addFurnaceRecipe(Item::porkChop_raw->id,ItemInstance(Item::porkChop_cooked));
 	addFurnaceRecipe(Item::rawCod->id, ItemInstance(Item::cookedCod));
+	addFurnaceRecipe(Tile::ancientDebris->id, ItemInstance(Item::netheriteScrap));
 	for (int i = 0; i < 5; ++i)
 		addFurnaceRecipe(Tile::coral[i]->id, ItemInstance(Item::crystalizedCoral));
 	addFurnaceRecipe(Tile::prismarineBricks->id, ItemInstance(Tile::darkPrismarine));

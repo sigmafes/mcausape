@@ -78,7 +78,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 	if (self->isArmor()) return WeaponsArmor;
 	Item* const weapons[] = {
 		Item::sword_wood, Item::sword_stone, Item::sword_iron, Item::sword_gold, Item::sword_emerald,
-		Item::bow, Item::arrow, Item::trident,
+		Item::bow, Item::arrow, Item::trident, Item::sword_netherite,
 	};
 	if (isOneOf(id, weapons, COUNT(weapons))) return WeaponsArmor;
 	Item* const tools[] = {
@@ -89,6 +89,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 		Item::flintAndSteel, Item::shears, Item::bucket_empty, Item::bucket_water, Item::bucket_lava,
 		Item::clock, Item::compass, Item::camera,
 		Item::pickAxe_coral, Item::shovel_coral, Item::hatchet_coral, Item::axolotlBucket,
+		Item::pickAxe_netherite, Item::shovel_netherite, Item::hatchet_netherite, Item::hoe_netherite,
 	};
 	if (isOneOf(id, tools, COUNT(tools))) return Tools;
 	Item* const drinks[] = { Item::waterBottle, Item::awkwardPotion, Item::waterBreathingPotion, Item::unpoisonPotion, Item::mushroomStew };

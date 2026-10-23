@@ -8,13 +8,14 @@
 #include "../../skin/PlayerSkins.h"
 #include "../Textures.h"
 
-static const std::string armorFilenames[12] = {
+static const std::string armorFilenames[14] = {
 	"armor/cloth_1.png",	"armor/cloth_2.png",
 	"armor/chain_1.png",	"armor/chain_2.png",
 	"armor/iron_1.png",		"armor/iron_2.png",
 	"armor/diamond_1.png",	"armor/diamond_2.png",
 	"armor/gold_1.png",		"armor/gold_2.png",
 	"armor/coral_1.png",	"armor/coral_2.png",
+	"armor/netherite_1.png",	"armor/netherite_2.png",
 };
 
 PlayerRenderer::PlayerRenderer( HumanoidModel* humanoidModel, float shadow )

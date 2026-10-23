@@ -29,16 +29,16 @@ namespace ItemTooltip
 		char buf[64] = "";
 		const int id = item.id;
 		if (Item::sword_wood && (id == Item::sword_wood->id || id == Item::sword_stone->id || id == Item::sword_iron->id
-				|| id == Item::sword_gold->id || id == Item::sword_emerald->id)) {
+				|| id == Item::sword_gold->id || id == Item::sword_emerald->id || id == Item::sword_netherite->id)) {
 			snprintf(buf, sizeof buf, "+%d Attack Damage", ((WeaponItem*) it)->getAttackDamage(NULL));
 		} else if (Item::pickAxe_wood && (id == Item::pickAxe_wood->id || id == Item::pickAxe_stone->id || id == Item::pickAxe_iron->id
-				|| id == Item::pickAxe_gold->id || id == Item::pickAxe_emerald->id)) {
+				|| id == Item::pickAxe_gold->id || id == Item::pickAxe_emerald->id || id == Item::pickAxe_netherite->id)) {
 			snprintf(buf, sizeof buf, "+%d Mining Efficiency", (int) ((DiggerItem*) it)->getSpeed());
 		} else if (Item::hatchet_wood && (id == Item::hatchet_wood->id || id == Item::hatchet_stone->id || id == Item::hatchet_iron->id
-				|| id == Item::hatchet_gold->id || id == Item::hatchet_emerald->id)) {
+				|| id == Item::hatchet_gold->id || id == Item::hatchet_emerald->id || id == Item::hatchet_netherite->id)) {
 			snprintf(buf, sizeof buf, "+%d Chop Efficiency", (int) ((DiggerItem*) it)->getSpeed());
 		} else if (Item::shovel_wood && (id == Item::shovel_wood->id || id == Item::shovel_stone->id || id == Item::shovel_iron->id
-				|| id == Item::shovel_gold->id || id == Item::shovel_emerald->id)) {
+				|| id == Item::shovel_gold->id || id == Item::shovel_emerald->id || id == Item::shovel_netherite->id)) {
 			snprintf(buf, sizeof buf, "+%d Dig Efficiency", (int) ((DiggerItem*) it)->getSpeed());
 		} else if (Item::trident && id == Item::trident->id) {
 			snprintf(buf, sizeof buf, "+6 Attack Damage");

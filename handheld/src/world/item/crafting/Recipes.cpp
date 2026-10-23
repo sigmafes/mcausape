@@ -128,6 +128,23 @@ Recipes::Recipes()
 
 		definition('#', Item::bone));
 
+	// Netherite: 4 scrap and 4 gold make an ingot; 9 ingots a block and back.
+	// (definition() takes too few pairs for an 8-item shapeless recipe, so
+	// this one is shaped.)
+	addShapedRecipe(ItemInstance(Item::netheriteIngot, 1), "SSG", "SSG", "GG ", definition('S', Item::netheriteScrap, 'G', Item::goldIngot));
+	addShapedRecipe(ItemInstance(Tile::netheriteBlock, 1), "###", "###", "###", definition('#', Item::netheriteIngot));
+	addShapelessRecipe(ItemInstance(Item::netheriteIngot, 9), definition(0, Tile::netheriteBlock));
+	// The upgrade, at the crafting table instead of Java's smithing table:
+	// a diamond piece and an ingot make the netherite one.
+	{
+		Item* from[9] = { Item::sword_emerald, Item::shovel_emerald, Item::pickAxe_emerald, Item::hatchet_emerald, Item::hoe_emerald,
+			Item::helmet_diamond, Item::chestplate_diamond, Item::leggings_diamond, Item::boots_diamond };
+		Item* to[9] = { Item::sword_netherite, Item::shovel_netherite, Item::pickAxe_netherite, Item::hatchet_netherite, Item::hoe_netherite,
+			Item::helmet_netherite, Item::chestplate_netherite, Item::leggings_netherite, Item::boots_netherite };
+		for (int i = 0; i < 9; ++i)
+			addShapelessRecipe(ItemInstance(to[i], 1), definition(0, from[i], 0, Item::netheriteIngot));
+	}
+
 	addShapelessRecipe(ItemInstance(Item::dye_powder, 9, DyePowderItem::WHITE), //
 		definition(0, Tile::boneBlock));
 

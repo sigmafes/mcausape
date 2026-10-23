@@ -39,6 +39,7 @@ public:
 	static const ArmorMaterial IRON;
 	static const ArmorMaterial GOLD;
 	static const ArmorMaterial DIAMOND;
+	static const ArmorMaterial NETHERITE;
 
     const int slot;
     const int defense;

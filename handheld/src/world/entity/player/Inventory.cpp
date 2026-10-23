@@ -258,6 +258,18 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::soulSoil));
 		addItem(new ItemInstance(Tile::basalt));
 		addItem(new ItemInstance(Tile::blackstone));
+		addItem(new ItemInstance(Tile::netheriteBlock));
+		addItem(new ItemInstance(Item::netheriteScrap));
+		addItem(new ItemInstance(Item::netheriteIngot));
+		addItem(new ItemInstance(Item::sword_netherite));
+		addItem(new ItemInstance(Item::pickAxe_netherite));
+		addItem(new ItemInstance(Item::hatchet_netherite));
+		addItem(new ItemInstance(Item::shovel_netherite));
+		addItem(new ItemInstance(Item::hoe_netherite));
+		addItem(new ItemInstance(Item::helmet_netherite));
+		addItem(new ItemInstance(Item::chestplate_netherite));
+		addItem(new ItemInstance(Item::leggings_netherite));
+		addItem(new ItemInstance(Item::boots_netherite));
 		addItem(new ItemInstance(Tile::crimsonStem));
 		addItem(new ItemInstance(Tile::warpedStem));
 		addItem(new ItemInstance(Tile::netherWartBlock));

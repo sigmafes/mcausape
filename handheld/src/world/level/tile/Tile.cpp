@@ -189,6 +189,7 @@ Tile* Tile::magmaBlock = NULL;
 Tile* Tile::soulFire = NULL;
 Tile* Tile::netherGoldOre = NULL;
 Tile* Tile::ancientDebris = NULL;
+Tile* Tile::netheriteBlock = NULL;
 Tile* Tile::stairs_crimson = NULL;
 Tile* Tile::stairs_warped = NULL;
 Tile* Tile::fence_crimson = NULL;
@@ -409,6 +410,7 @@ void Tile::initTiles() {
 	trapdoor_warped   = (new TrapDoorTile(225, Material::wood, 319))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorWarped");
 	door_crimson      = (new DoorTile(226, Material::wood, 336, &Item::door_crimson))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorCrimson");
 	door_warped       = (new DoorTile(227, Material::wood, 337, &Item::door_warped))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorWarped");
+	netheriteBlock = (new Tile(228, 322, Material::metal))->init()->setDestroyTime(50.0f)->setExplodeable(1200)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Structures)->setDescriptionId("netheriteBlock");
 	// Bone block: sides 281, top and bottom 282. Sea lantern: 283.
 	boneBlock = (new BoneBlockTile(190, 281))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("boneBlock");
 	seaLantern = (new SeaLanternTile(191, 283))->init()->setDestroyTime(0.3f)->setLightEmission(1.0f)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("seaLantern");

@@ -80,6 +80,13 @@ const ArmorItem::ArmorMaterial ArmorItem::DIAMOND(
 	//10
 );
 
+// Java's netherite: diamond's protection, more durable (and fire-proof as
+// an item, ItemEntity::burn).
+const ArmorItem::ArmorMaterial ArmorItem::NETHERITE(
+	37,
+	3, 8, 6, 3
+);
+
 // Worn from the hand, as in Minecraft. In survival the piece leaves the hand and
 // the one it replaces goes to the inventory (or the floor if that is full); in
 // creative the hand keeps its piece, the supply being endless.

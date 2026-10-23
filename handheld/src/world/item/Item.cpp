@@ -18,6 +18,8 @@ Item::Tier const Item::Tier::STONE(1, 131, 4, 1);
 Item::Tier const Item::Tier::IRON(2, 250, 6, 2);
 Item::Tier const Item::Tier::EMERALD(3, 1561, 8, 3);
 Item::Tier const Item::Tier::GOLD(0, 32, 12, 0);
+// Java's netherite: above diamond in uses, speed and damage.
+Item::Tier const Item::Tier::NETHERITE(4, 2031, 9, 4);
 
 // Static Item Definitions
 Item* Item::shovel_iron = NULL;
@@ -118,6 +120,17 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::netheriteScrap = NULL;
+Item* Item::netheriteIngot = NULL;
+Item* Item::sword_netherite = NULL;
+Item* Item::shovel_netherite = NULL;
+Item* Item::pickAxe_netherite = NULL;
+Item* Item::hatchet_netherite = NULL;
+Item* Item::hoe_netherite = NULL;
+Item* Item::helmet_netherite = NULL;
+Item* Item::chestplate_netherite = NULL;
+Item* Item::leggings_netherite = NULL;
+Item* Item::boots_netherite = NULL;
 Item* Item::trident = NULL;
 Item* Item::shovel_coral = NULL;
 Item* Item::pickAxe_coral = NULL;
@@ -365,6 +378,18 @@ void Item::initItems() {
 	Item::leggings_coral   = (new ArmorItem(175, ArmorItem::IRON, 5, ArmorItem::SLOT_LEGS))->setIcon(10, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("leggingsCoral");
 	Item::boots_coral      = (new ArmorItem(176, ArmorItem::IRON, 5, ArmorItem::SLOT_FEET))->setIcon(0, 12)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("bootsCoral");
 	Item::trident = (new TridentItem(177))->setIcon(1, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("trident");
+	// Netherite (phase 6): icons (6..11, 12) and (1..5, 13).
+	Item::netheriteScrap    = (new Item(180))->setIcon(6, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("netheriteScrap");
+	Item::netheriteIngot    = (new Item(181))->setIcon(7, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("netheriteIngot");
+	Item::sword_netherite   = (new WeaponItem(182, Tier::NETHERITE))->setIcon(8, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("swordNetherite");
+	Item::shovel_netherite  = (new ShovelItem(183, Tier::NETHERITE))->setIcon(9, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("shovelNetherite");
+	Item::pickAxe_netherite = (new PickaxeItem(184, Tier::NETHERITE))->setIcon(10, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("pickaxeNetherite");
+	Item::hatchet_netherite = (new HatchetItem(185, Tier::NETHERITE))->setIcon(11, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("hatchetNetherite");
+	Item::hoe_netherite     = (new HoeItem(186, Tier::NETHERITE))->setIcon(1, 13)->setCategory(ItemCategory::Tools)->setDescriptionId("hoeNetherite");
+	Item::helmet_netherite     = (new ArmorItem(187, ArmorItem::NETHERITE, 6, ArmorItem::SLOT_HEAD))->setIcon(2, 13)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("helmetNetherite");
+	Item::chestplate_netherite = (new ArmorItem(188, ArmorItem::NETHERITE, 6, ArmorItem::SLOT_TORSO))->setIcon(3, 13)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("chestplateNetherite");
+	Item::leggings_netherite   = (new ArmorItem(189, ArmorItem::NETHERITE, 6, ArmorItem::SLOT_LEGS))->setIcon(4, 13)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("leggingsNetherite");
+	Item::boots_netherite      = (new ArmorItem(190, ArmorItem::NETHERITE, 6, ArmorItem::SLOT_FEET))->setIcon(5, 13)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("bootsNetherite");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.
@@ -410,4 +435,10 @@ bool Item::isCoralTool(int id)
 {
 	return (shovel_coral && id == shovel_coral->id) || (pickAxe_coral && id == pickAxe_coral->id)
 		|| (hatchet_coral && id == hatchet_coral->id);
+}
+
+bool Item::isNetherite(int id)
+{
+	return (netheriteScrap && id >= netheriteScrap->id && id <= boots_netherite->id)
+		|| (Tile::netheriteBlock && id == Tile::netheriteBlock->id);
 }

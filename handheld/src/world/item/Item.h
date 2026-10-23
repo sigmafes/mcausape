@@ -34,6 +34,7 @@ public:
 		static const Tier IRON;
 		static const Tier EMERALD;
 		static const Tier GOLD;
+		static const Tier NETHERITE;
 
 		Tier(int level, int uses, float speed, int damage)
 		:	level(level),
@@ -211,6 +212,19 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* kelp;
+	static Item* netheriteScrap;
+	static Item* netheriteIngot;
+	static Item* sword_netherite;
+	static Item* shovel_netherite;
+	static Item* pickAxe_netherite;
+	static Item* hatchet_netherite;
+	static Item* hoe_netherite;
+	static Item* helmet_netherite;
+	static Item* chestplate_netherite;
+	static Item* leggings_netherite;
+	static Item* boots_netherite;
+	/// Netherite and what is made of it: floats in lava, never burns.
+	static bool isNetherite(int id);
 	static Item* trident;
 	static Item* shovel_coral;
 	static Item* pickAxe_coral;
