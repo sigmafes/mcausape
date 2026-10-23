@@ -314,6 +314,9 @@ bool TileRenderer::tesselateCrossInWorld( Tile* tt, int x, int y, int z )
 	}
 	// Kelp: the stalk under more kelp, the tip on top (KelpTile::getTexture).
 	if (tt == Tile::kelp) data = level->getTile(x, y + 1, z) == tt->id ? 1 : 0;
+	// Nether vines: the plant where the column goes on, the tip at its end.
+	if (tt == Tile::weepingVines) data = level->getTile(x, y - 1, z) == tt->id ? 1 : 0;
+	if (tt == Tile::twistingVines) data = level->getTile(x, y + 1, z) == tt->id ? 1 : 0;
 	tesselateCrossTexture(tt, data, xt, yt, zt);
 	return true;
 	//return true;

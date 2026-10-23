@@ -114,6 +114,7 @@
 
 #ifndef STANDALONE_SERVER
 #include "renderer/ptexture/DynamicTexture.h"
+#include "renderer/ptexture/NetherFrames.h"
 #include "renderer/GameRenderer.h"
 #include "renderer/ItemInHandRenderer.h"
 #include "renderer/LevelRenderer.h"
@@ -2024,6 +2025,11 @@ void Minecraft::init()
 	textures->addDynamicTexture(new FireTexture(Tile::fire->tex + 16, 11));
 	textures->addDynamicTexture(new KelpTexture(Tile::kelp->tex, false));
 	textures->addDynamicTexture(new KelpTexture(Tile::kelp->tex + 1, true));
+	textures->addDynamicTexture(new StripTexture(Tile::crimsonStem->tex, CRIMSON_STEM_FRAMES, 5, 10));
+	textures->addDynamicTexture(new StripTexture(Tile::warpedStem->tex, WARPED_STEM_FRAMES, 5, 10));
+	textures->addDynamicTexture(new StripTexture(Tile::magmaBlock->tex, MAGMA_FRAMES, 3, 8));
+	textures->addDynamicTexture(new StripTexture(Tile::soulFire->tex, SOUL_FIRE0_FRAMES, 32, 1));
+	textures->addDynamicTexture(new StripTexture(Tile::soulFire->tex + 16, SOUL_FIRE1_FRAMES, 32, 1, 11));
 	gui.texturesLoaded(textures);
 
 	levelRenderer = new LevelRenderer(this);

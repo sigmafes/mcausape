@@ -11,6 +11,7 @@
 #include "../biome/Biome.h"
 #include "../biome/BiomeSource.h"
 #include "../biome/NetherBiomes.h"
+#include "NetherBiomeDecorator.h"
 #include "../chunk/LevelChunk.h"
 #include "../material/Material.h"
 #include "../tile/Tile.h"
@@ -287,6 +288,10 @@ void HellRandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
         FlowerFeature feature(Tile::mushroom2->id);
         feature.place(level, &random, x, y, z);
     }
+
+    // Java 1.16's biomes' own features (new worlds).
+    if (version >= LGV_NETHER_BIOMES)
+        NetherBiomeDecorator::decorate(level, &random, xo, zo, seed);
 
     HeavyTile::instaFall = false;
 

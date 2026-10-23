@@ -296,3 +296,17 @@ void KelpTexture::tick() {
 	const int frame = (_tick / 3) % KELP_FRAME_COUNT;
 	memcpy(pixels, _tip ? KELP_TIP_FRAMES[frame] : KELP_STALK_FRAMES[frame], 16 * 16 * 4);
 }
+
+StripTexture::StripTexture(int tex, const unsigned char (*frames)[16 * 16 * 4], int count, int ticksPerFrame, int offset)
+:	super(tex),
+	_frames(frames),
+	_count(count),
+	_ticksPerFrame(ticksPerFrame),
+	_tick(offset)
+{
+}
+
+void StripTexture::tick() {
+	_tick++;
+	memcpy(pixels, _frames[(_tick / _ticksPerFrame) % _count], 16 * 16 * 4);
+}

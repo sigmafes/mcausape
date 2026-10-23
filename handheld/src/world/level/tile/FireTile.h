@@ -173,6 +173,14 @@ public:
             level->setTile(x, y, z, 0);
             return;
         }
+        // On soul sand or soul soil fire burns blue (Java 1.16).
+        if (id == Tile::fire->id && Tile::soulFire) {
+            const int below = level->getTile(x, y - 1, z);
+            if (below == Tile::hellSand->id || below == Tile::soulSoil->id) {
+                level->setTile(x, y, z, Tile::soulFire->id);
+                return;
+            }
+        }
         if (level->getTile(x, y - 1, z) != Tile::netherrack->id &&
             !level->isSolidBlockingTile(x, y - 1, z) && !isValidFireLocation(level, x, y, z)) {
             level->setTile(x, y, z, 0);

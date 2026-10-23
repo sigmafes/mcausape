@@ -4,6 +4,7 @@
 #include "KelpTile.h"
 #include "SimpleBlocks.h"
 #include "NetherSurfaceTiles.h"
+#include "NetherTiles.h"
 #include "../Level.h"
 #include "../LevelConstants.h"
 #include "../../entity/player/Player.h"
@@ -172,6 +173,22 @@ Tile* Tile::warpedNylium = NULL;
 Tile* Tile::soulSoil = NULL;
 Tile* Tile::basalt = NULL;
 Tile* Tile::blackstone = NULL;
+Tile* Tile::crimsonStem = NULL;
+Tile* Tile::warpedStem = NULL;
+Tile* Tile::netherWartBlock = NULL;
+Tile* Tile::warpedWartBlock = NULL;
+Tile* Tile::shroomlight = NULL;
+Tile* Tile::crimsonFungus = NULL;
+Tile* Tile::warpedFungus = NULL;
+Tile* Tile::crimsonRoots = NULL;
+Tile* Tile::warpedRoots = NULL;
+Tile* Tile::netherSprouts = NULL;
+Tile* Tile::weepingVines = NULL;
+Tile* Tile::twistingVines = NULL;
+Tile* Tile::magmaBlock = NULL;
+Tile* Tile::soulFire = NULL;
+Tile* Tile::netherGoldOre = NULL;
+Tile* Tile::ancientDebris = NULL;
 Tile* Tile::prismarineBricks = NULL;
 Tile* Tile::darkPrismarine = NULL;
 Tile* Tile::stairs_prismarineBricks = NULL;
@@ -353,6 +370,23 @@ void Tile::initTiles() {
 	soulSoil      = (new Tile(199, 290, Material::sand))->init()->setDestroyTime(0.5f)->setSoundType(SOUND_SAND)->setCategory(ItemCategory::Structures)->setDescriptionId("soulSoil");
 	basalt        = (new TopSideTile(200, 291, Material::stone))->init()->setDestroyTime(1.25f)->setExplodeable(4.2f)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("basalt");
 	blackstone    = (new TopSideTile(201, 293, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("blackstone");
+	// The Nether forests and deltas (phase 2): cells 295-315 (+331).
+	crimsonStem     = (new TopSideTile(202, 295, Material::wood))->init()->setDestroyTime(2.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("crimsonStem");
+	warpedStem      = (new TopSideTile(203, 297, Material::wood))->init()->setDestroyTime(2.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("warpedStem");
+	netherWartBlock = (new Tile(204, 299, Material::wood))->init()->setDestroyTime(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("netherWartBlock");
+	warpedWartBlock = (new Tile(205, 300, Material::wood))->init()->setDestroyTime(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("warpedWartBlock");
+	shroomlight     = (new Tile(206, 301, Material::wood))->init()->setDestroyTime(1.0f)->setLightEmission(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Decorations)->setDescriptionId("shroomlight");
+	crimsonFungus   = (new NetherPlantTile(207, 302))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("crimsonFungus");
+	warpedFungus    = (new NetherPlantTile(208, 303))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("warpedFungus");
+	crimsonRoots    = (new NetherPlantTile(209, 304))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("crimsonRoots");
+	warpedRoots     = (new NetherPlantTile(210, 305))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("warpedRoots");
+	netherSprouts   = (new NetherPlantTile(211, 306))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("netherSprouts");
+	weepingVines    = (new NetherVineTile(212, 307, true))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("weepingVines");
+	twistingVines   = (new NetherVineTile(213, 309, false))->init()->setDestroyTime(0)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("twistingVines");
+	magmaBlock      = (new MagmaTile(214, 311))->init()->setDestroyTime(0.5f)->setLightEmission(3 / 16.0f)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("magmaBlock");
+	soulFire        = (new SoulFireTile(215, 315))->init()->setDestroyTime(0)->setLightEmission(10 / 16.0f)->setSoundType(SOUND_WOOD)->setDescriptionId("soulFire");
+	netherGoldOre   = (new NetherGoldOreTile(216, 312))->init()->setDestroyTime(3.0f)->setExplodeable(5)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("netherGoldOre");
+	ancientDebris   = (new TopSideTile(217, 313, Material::stone))->init()->setDestroyTime(30.0f)->setExplodeable(1200)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("ancientDebris");
 	// Bone block: sides 281, top and bottom 282. Sea lantern: 283.
 	boneBlock = (new BoneBlockTile(190, 281))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("boneBlock");
 	seaLantern = (new SeaLanternTile(191, 283))->init()->setDestroyTime(0.3f)->setLightEmission(1.0f)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("seaLantern");

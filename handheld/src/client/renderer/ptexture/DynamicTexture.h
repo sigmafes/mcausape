@@ -101,4 +101,18 @@ public:
 	void tick();
 };
 
+// A strip of frames played in a loop, ticksPerFrame each: the Nether's
+// stems, magma and soul fire (NetherFrames.h).
+class StripTexture: public DynamicTexture
+{
+	typedef DynamicTexture super;
+	const unsigned char (*_frames)[16 * 16 * 4];
+	int _count, _ticksPerFrame, _tick;
+
+public:
+	StripTexture(int tex, const unsigned char (*frames)[16 * 16 * 4], int count, int ticksPerFrame, int offset = 0);
+
+	void tick();
+};
+
 #endif /*NET_MINECRAFT_CLIENT_RENDERER_PTEXTURE__DynamicTexture_H__*/
