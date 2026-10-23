@@ -29,6 +29,7 @@ Player::Player(Level* level, bool isCreative)
 :	super(level),
 	userType(0),
 	playerHasRespawnPosition(false),
+	burnCount(0),
 	hasFakeInventory(false),
 	containerMenu(NULL),
 	useItemDuration(0),
@@ -515,6 +516,27 @@ void Player::reset() {
 	// What is worn is lost with the life; the rest of the inventory is kept.
 	for (int i = 0; i < NUM_ARMOR; i++)
 		armor[i].setNull();
+}
+
+/** Fire, lava and burning go straight past armour: only netherite stands up
+    to them, and only partly - each piece worn turns away one burn in turn,
+    so with n pieces only one burn in n+1 lands (four pieces: one in five). */
+bool Player::fireHurt(int dmg) {
+	if (invulnerableTime > invulnerableDuration / 2.0f) return false;	// would not land anyway
+	int pieces = 0;
+	for (int i = 0; i < 4; ++i) {
+		ItemInstance* a = getArmor(i);
+		if (a && !a->isNull() && Item::isNetherite(a->id)) ++pieces;
+	}
+	if (pieces > 0 && (burnCount++ % (pieces + 1)) != 0) {
+		invulnerableTime = invulnerableDuration;	// the turned-away burn still counts as one
+		return false;
+	}
+	const bool was = bypassArmor;
+	bypassArmor = true;
+	const bool hit = hurt(NULL, dmg);
+	bypassArmor = was;
+	return hit;
 }
 
 void Player::addEffect(int id, int duration) {

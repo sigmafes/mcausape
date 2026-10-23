@@ -204,6 +204,8 @@ public:
 
     bool containsAnyLiquid(const AABB& box);
     bool containsFireTile(const AABB& box);
+    /// Burn damage standing in `box` takes: soul fire 2, fire or lava 1, else 0.
+    int fireDamageIn(const AABB& box);
 	bool containsMaterial(const AABB& box, const Material* material);
     bool containsLiquid(const AABB& box, const Material* material);
 

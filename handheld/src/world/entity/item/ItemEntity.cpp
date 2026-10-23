@@ -118,6 +118,8 @@ bool ItemEntity::isInWater()
 
 bool ItemEntity::hurt( Entity* source, int damage )
 {
+	// Netherite shrugs off fire, lava and explosions alike (a ghast's too).
+	if (Item::isNetherite(item.id)) return false;
 	markHurt();
 	health -= damage;
 	if (health <= 0) {

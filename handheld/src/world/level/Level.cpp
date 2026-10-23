@@ -1,4 +1,5 @@
 #include "Level.h"
+#include "tile/FireTile.h"
 #include "dimension/AquariumDimension.h"
 #include "levelgen/AquariumLevelSource.h"
 #include "LevelListener.h"
@@ -1701,6 +1702,22 @@ bool Level::containsAnyLiquid(const AABB& box) {
                 }
             }
     return false;
+}
+
+int Level::fireDamageIn(const AABB& box) {
+    const int x0 = Mth::floor(box.x0), x1 = Mth::floor(box.x1 + 1);
+    const int y0 = Mth::floor(box.y0), y1 = Mth::floor(box.y1 + 1);
+    const int z0 = Mth::floor(box.z0), z1 = Mth::floor(box.z1 + 1);
+    if (!hasChunksAt(x0, y0, z0, x1, y1, z1)) return 0;
+    int dmg = 0;
+    for (int x = x0; x < x1; x++)
+        for (int y = y0; y < y1; y++)
+            for (int z = z0; z < z1; z++) {
+                const int t = getTile(x, y, z);
+                if (Tile::soulFire && t == Tile::soulFire->id) return 2;
+                if (t == Tile::fire->id || t == Tile::lava->id || t == Tile::calmLava->id) dmg = 1;
+            }
+    return dmg;
 }
 
 bool Level::containsFireTile(const AABB& box) {

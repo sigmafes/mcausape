@@ -199,6 +199,10 @@ public:
 	std::string getHurtSound();
 	bool hasEffect(int id) const;
 	bool resistsFire() { return fireImmune || hasEffect(MobEffects::FireResistance); }
+	bool fireHurt(int dmg);
+private:
+	int burnCount;	///< fireHurt's tally, for netherite's skipped burns
+public:
 	/// Told when an effect is given: a visitor's copy on the host passes it on.
 	virtual void onEffectAdded(int id, int duration) {}
 	bool canBreatheUnderwater();

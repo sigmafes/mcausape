@@ -666,7 +666,12 @@ bool Mob::onLadder()
 	int xt = Mth::floor(x);
 	int yt = Mth::floor(bb.y0);
 	int zt = Mth::floor(z);
-	return level->getTile(xt, yt, zt) == Tile::ladder->id || level->getTile(xt, yt + 1, zt) == Tile::ladder->id;
+	// Weeping and twisting vines climb like a ladder (Java 1.16).
+	for (int dy = 0; dy <= 1; ++dy) {
+		const int t = level->getTile(xt, yt + dy, zt);
+		if (t == Tile::ladder->id || t == Tile::weepingVines->id || t == Tile::twistingVines->id) return true;
+	}
+	return false;
 }
 
 bool Mob::isShootable()

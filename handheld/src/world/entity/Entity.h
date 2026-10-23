@@ -218,6 +218,8 @@ protected:
 public:
 	/// Fire, lava and burning pass it by: fireImmune, or (Player) a potion.
 	virtual bool resistsFire() { return fireImmune; }
+	/// Damage from burning, lava or fire. Player: past armour, less netherite.
+	virtual bool fireHurt(int dmg) { return hurt(NULL, dmg); }
 protected:
 
 protected:

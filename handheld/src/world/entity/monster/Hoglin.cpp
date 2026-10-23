@@ -1,4 +1,5 @@
 #include "Hoglin.h"
+#include "../../level/tile/PortalTile.h"
 #include "../EntityTypes.h"
 #include "../MobFactory.h"
 #include "../player/Player.h"
@@ -53,7 +54,11 @@ bool Hoglin::nearWarpedFungus()
 	for (int dx = -7; dx <= 7; ++dx)
 		for (int dy = -3; dy <= 3; ++dy)
 			for (int dz = -7; dz <= 7; ++dz)
-				if (level->getTile(cx + dx, cy + dy, cz + dz) == Tile::warpedFungus->id) return true;
+				{
+					// Java's hoglins shun warped fungi and nether portals alike.
+					const int t = level->getTile(cx + dx, cy + dy, cz + dz);
+					if (t == Tile::warpedFungus->id || t == Tile::portalTile->id) return true;
+				}
 	return false;
 }
 
@@ -66,8 +71,14 @@ Entity* Hoglin::findAttackTarget()
 bool Hoglin::doHurtTarget(Entity* target)
 {
 	const bool hit = super::doHurtTarget(target);
-	// The charge tosses its target into the air.
-	if (hit && !isBaby()) target->yd += 0.45f;
+	// The charge throws its target up and away (Java's hoglin knockback is
+	// the strongest of any mob's): a real launch, not a nudge.
+	if (hit && !isBaby()) {
+		const float dx = target->x - x, dz = target->z - z;
+		const float d = Mth::sqrt(dx * dx + dz * dz);
+		target->yd = 0.9f + random.nextFloat() * 0.25f;
+		if (d > 0.01f) { target->xd += dx / d * 1.1f; target->zd += dz / d * 1.1f; }
+	}
 	return hit;
 }
 
@@ -140,8 +151,9 @@ int Hoglin::getDeathLoot() { return zoglin ? 0 : Item::porkChop_raw->id; }
 void Hoglin::dropDeathLoot()
 {
 	if (zoglin || isBaby()) return;
-	const int pork = 2 + random.nextInt(3);
-	for (int i = 0; i < pork; ++i) spawnAtLocation(Item::porkChop_raw->id, 1);
+	// Cooked if it died burning, as Java's hoglins drop.
+	const int pork = 2 + random.nextInt(3), id = isOnFire() ? Item::porkChop_cooked->id : Item::porkChop_raw->id;
+	for (int i = 0; i < pork; ++i) spawnAtLocation(id, 1);
 	if (random.nextInt(2) == 0) spawnAtLocation(Item::leather->id, 1);
 }
 

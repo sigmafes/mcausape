@@ -340,8 +340,10 @@ void Entity::move(float xa, float ya, float za) {
     ySlideOffset *= 0.4f;
 
     bool water = this->isInWater();
-    if (level->containsFireTile(bb)) {
-        burn(1);
+    // Fire and lava burn (1 a hit); soul fire twice as hard (Java's 2).
+    const int fireDmg = level->fireDamageIn(bb);
+    if (fireDmg > 0) {
+        burn(fireDmg);
         if (!water) {
             onFire++;
             if (onFire == 0) onFire = 20 * 15;
@@ -519,7 +521,7 @@ void Entity::baseTick()
 	            if (onFire < 0) onFire = 0;
 	        } else {
 	            if (onFire % 20 == 0) {
-	                hurt(NULL, 1);
+	                fireHurt(1);
 	            }
 	            onFire--;
 	        }
@@ -810,7 +812,7 @@ bool Entity::isPlayer()
 void Entity::lavaHurt() {
     if (resistsFire()) {
     } else {
-        hurt(NULL, 4);
+        fireHurt(4);
         onFire = 30 * SharedConstants::TicksPerSecond;
     }
 }
@@ -821,7 +823,7 @@ void Entity::lavaHurt() {
 
 void Entity::burn(int dmg) {
     if (!resistsFire()) {
-        hurt(NULL, dmg);
+        fireHurt(dmg);
     }
 }
 
