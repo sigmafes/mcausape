@@ -52,7 +52,7 @@ int fogColor(int biome)
 		case SoulSandValley: return 0x1B4745;
 		case CrimsonForest:  return 0x330303;
 		case WarpedForest:   return 0x1A051A;
-		case BasaltDeltas:   return 0x685F70;
+		case BasaltDeltas:   return 0x6B5F63;	// Java's
 		default:             return 0x330808;
 	}
 }

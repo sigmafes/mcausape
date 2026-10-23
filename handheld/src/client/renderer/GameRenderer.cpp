@@ -705,9 +705,14 @@ void GameRenderer::setupFog(int i) {
             glFogf(GL_FOG_END, renderDistance * 1.0f);
         }
 
-        // The Nether used to override this with a much shorter range (0 to half the
-        // render distance). It now uses the Overworld's, so only the red colour
-        // (HellDimension::getFogColor) tells the two apart.
+        // The Nether's fog is Java's: thick from just past the camera, closed
+        // at half the render distance (Java 1.16, isFoggyAt), so the biomes'
+        // colours fill the caverns. Kept from closing in nearer than 48.
+        if (i >= 0 && mc->level && mc->level->dimension->id == Dimension::NETHER) {
+            const float end = renderDistance * 0.5f < 48.0f ? 48.0f : renderDistance * 0.5f;
+            glFogf(GL_FOG_START, renderDistance * 0.05f);
+            glFogf(GL_FOG_END, end);
+        }
     }
 
     glEnable2(GL_COLOR_MATERIAL);

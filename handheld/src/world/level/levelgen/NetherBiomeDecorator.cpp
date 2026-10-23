@@ -153,7 +153,7 @@ static void delta(Level* level, Random* r, int cx, int cy, int cz)
 	const int y0 = floorBelow(level, cx, cy, cz, 30);
 	if (y0 < 0) return;
 	const int y = y0 - 1;	// the floor block itself
-	const int rx = 3 + r->nextInt(5), rz = 3 + r->nextInt(5), rim = r->nextInt(3);
+	const int rx = 3 + r->nextInt(7), rz = 3 + r->nextInt(7), rim = r->nextInt(3);
 	const int rr = (rx > rz ? rx : rz) + rim;
 	for (int dx = -rr; dx <= rr; ++dx)
 		for (int dz = -rr; dz <= rr; ++dz) {
@@ -175,6 +175,53 @@ static void delta(Level* level, Random* r, int cx, int cy, int cz)
 				if (walled) { level->setTileNoUpdate(x, y, z, Tile::calmLava->id); continue; }
 			}
 			level->setTileNoUpdate(x, y, z, Tile::magmaBlock->id);
+		}
+}
+
+/// Smooth 0..1 value noise on a grid of `cell` blocks, from the seed.
+static float valueNoise(long seed, int x, int z, int cell, int salt)
+{
+	const int gx = (x >= 0 ? x : x - cell + 1) / cell, gz = (z >= 0 ? z : z - cell + 1) / cell;
+	const float fx = (x - gx * cell) / (float)cell, fz = (z - gz * cell) / (float)cell;
+	float c[4];
+	for (int i = 0; i < 4; ++i) {
+		unsigned int h = (unsigned int)((gx + (i & 1)) * 73856093) ^ (unsigned int)((gz + (i >> 1)) * 19349663)
+			^ (unsigned int)(seed * 83492791) ^ (unsigned int)(salt * 2654435761u);
+		h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+		c[i] = (h & 0xffff) / 65535.0f;
+	}
+	const float sx = fx * fx * (3 - 2 * fx), sz = fz * fz * (3 - 2 * fz);
+	return (c[0] * (1 - sx) + c[1] * sx) * (1 - sz) + (c[2] * (1 - sx) + c[3] * sx) * sz;
+}
+
+/** The deltas' forest of columns - the biome's look in Java, where its
+    column features pile up until nearly every floor bristles with basalt
+    pillars a block wide, ragged in height block to block, rising in tall
+    clusters and dropping into gaps, with the flat lava lakes left open
+    between them. Here: every floor of the chunk, one column per block, its
+    height from two noises (clusters, and wide swells) plus a per-block
+    jitter; a few hang from the ceilings too. Columns stop at what they meet. */
+static void columnField(Level* level, Random* r, int xo, int zo, long seed)
+{
+	const int ba = Tile::basalt->id;
+	for (int dx = 0; dx < 16; ++dx)
+		for (int dz = 0; dz < 16; ++dz) {
+			const int x = xo + 8 + dx, z = zo + 8 + dz;
+			const float cluster = valueNoise(seed, x, z, 4, 1), swell = valueNoise(seed, x, z, 14, 2);
+			for (int y = 122; y > 6; --y) {
+				const int here = level->getTile(x, y, z);
+				if (here != 0) continue;
+				const int under = level->getTile(x, y - 1, z), over = level->getTile(x, y + 1, z);
+				if (under > 0 && Tile::solid[under] && under != Tile::magmaBlock->id) {
+					int h = (int)(cluster * 9 + swell * 10) - 5 + r->nextInt(4) - (r->nextInt(6) == 0 ? 4 : 0);
+					for (int j = 0; j < h && level->getTile(x, y + j, z) == 0 && y + j < 126; ++j)
+						level->setTileNoUpdate(x, y + j, z, ba);
+				} else if (over > 0 && Tile::solid[over] && r->nextInt(3) == 0) {
+					const int h = (int)(cluster * 6 + swell * 4) - 3 + r->nextInt(3);
+					for (int j = 0; j < h && level->getTile(x, y - j, z) == 0 && y - j > 6; ++j)
+						level->setTileNoUpdate(x, y - j, z, ba);
+				}
+			}
 		}
 }
 
@@ -374,10 +421,9 @@ void decorate(Level* level, Random* r, int xo, int zo, long seed)
 		// column clusters, 16 springs - sampled down at several heights.
 		for (int i = 0; i < 24; ++i)
 			delta(level, r, xo + 8 + r->nextInt(16), 10 + r->nextInt(110), zo + 8 + r->nextInt(16));
-		for (int i = 0; i < 6; ++i)
-			basaltColumns(level, r, xo + 8 + r->nextInt(16), 10 + r->nextInt(110), zo + 8 + r->nextInt(16), false);
-		for (int i = 0; i < 3; ++i)
+		for (int i = 0; i < 4; ++i)
 			basaltColumns(level, r, xo + 8 + r->nextInt(16), 10 + r->nextInt(110), zo + 8 + r->nextInt(16), true);
+		columnField(level, r, xo, zo, seed);
 		for (int i = 0; i < 16; ++i)
 			lavaSpring(level, r, xo + 8 + r->nextInt(16), 10 + r->nextInt(108), zo + 8 + r->nextInt(16));
 		for (int i = 0; i < 4; ++i) {
