@@ -1967,13 +1967,15 @@ void Minecraft::updateMusic()
 {
 #if defined(__EMSCRIPTEN__) && !defined(STANDALONE_SERVER)
 	// Which track the moment calls for (shell.html's TRACKS): the menu's with
-	// no world loaded, the Nether playlist while in the Nether, and nothing
-	// anywhere else - leaving the Nether stops its music.
+	// no world loaded, the Nether playlist in the Nether, the Aquarium's in
+	// the Aquarium, and nothing anywhere else - leaving either stops its music.
 	int track = 0;
 	if (level == NULL)
 		track = 1;
 	else if (level->dimension && level->dimension->id == Dimension::NETHER)
 		track = 2;
+	else if (level->dimension && level->dimension->isAllWater())
+		track = 3;
 	if (options.music <= 0.0f) track = 0;
 	const float volume = options.music;
 
