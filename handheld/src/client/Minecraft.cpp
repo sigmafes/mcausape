@@ -1967,8 +1967,9 @@ void Minecraft::updateMusic()
 {
 #if defined(__EMSCRIPTEN__) && !defined(STANDALONE_SERVER)
 	// Which track the moment calls for (shell.html's TRACKS): the menu's with
-	// no world loaded, the Nether playlist in the Nether, the Aquarium's in
-	// the Aquarium, and nothing anywhere else - leaving either stops its music.
+	// no world loaded; in a world, the playlist of where the player is: the
+	// Nether, the Aquarium, or the overworld (one for creative, one for
+	// survival). Changing place changes the playlist; leaving stops a song.
 	int track = 0;
 	if (level == NULL)
 		track = 1;
@@ -1978,6 +1979,8 @@ void Minecraft::updateMusic()
 		track = 3;
 	else if (isCreativeMode())	// anything else is the overworld (NORMAL or NORMAL_DAYCYCLE)
 		track = 4;
+	else
+		track = 5;	// the overworld, in survival
 	if (options.music <= 0.0f) track = 0;
 	const float volume = options.music;
 
