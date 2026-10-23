@@ -39,6 +39,8 @@
 #include "player/LocalPlayer.h"
 #ifndef STANDALONE_SERVER
 #include "particle/ParticleEngine.h"
+#include "particle/NetherAmbientParticle.h"
+#include "../world/level/biome/NetherBiomes.h"
 #include "gui/Screen.h"
 #include "gui/Font.h"
 #include "gui/screens/RenameMPLevelScreen.h"
@@ -1344,6 +1346,26 @@ void Minecraft::tick(int nTick, int maxTick) {
 						const float pz = player->z + (specks.nextFloat() * 2 - 1) * 16;
 						if (level->getTile(Mth::floor(px), Mth::floor(py), Mth::floor(pz)) == 0)
 							level->addParticle("suspended", px, py, pz, 0, 0, 0);
+					}
+				}
+				// A new world's Nether: each biome's own ambience (Java 1.16).
+				if (level->dimension->id == Dimension::NETHER && level->getLevelData()->getGeneratorVersion() >= LGV_NETHER_BIOMES) {
+					static Random amb;
+					const int biome = NetherBiomes::at(level->getSeed(), Mth::floor(player->x), Mth::floor(player->z));
+					int kind = -1, n = 0;
+					switch (biome) {
+					case NetherBiomes::CrimsonForest:  kind = NetherAmbientParticle::CrimsonSpore; n = 10; break;
+					case NetherBiomes::WarpedForest:   kind = NetherAmbientParticle::WarpedSpore;  n = 10; break;
+					case NetherBiomes::SoulSandValley: kind = NetherAmbientParticle::Ash;          n = 8;  break;
+					case NetherBiomes::BasaltDeltas:   kind = NetherAmbientParticle::WhiteAsh;     n = 14; break;
+					default: break;
+					}
+					for (int i = 0; i < n; ++i) {
+						const float px = player->x + (amb.nextFloat() * 2 - 1) * 16;
+						const float py = player->y + (amb.nextFloat() * 2 - 1) * 10;
+						const float pz = player->z + (amb.nextFloat() * 2 - 1) * 16;
+						if (level->getTile(Mth::floor(px), Mth::floor(py), Mth::floor(pz)) == 0)
+							particleEngine->add(new NetherAmbientParticle(level, px, py, pz, kind));
 					}
 				}
 			}
