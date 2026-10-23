@@ -999,6 +999,12 @@ void Minecraft::changeDimension(int dstDim, bool respawn)
 	if (netCallback) netCallback->levelRemoved(level);
 	delete level;
 	level = NULL;
+	// Nothing may point into the level just deleted: what was under the
+	// crosshair (a mob that killed us, say), and the spawner's test mobs,
+	// which only notice a new level by its address -- and the next one can
+	// be allocated at the same address.
+	hitResult = HitResult();
+	MobFactory::clearStaticTestMobs();
 
 #if defined(CREATORMODE)
 	Level* newLevel = new CreatorLevel(
