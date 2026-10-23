@@ -30,7 +30,8 @@ public:
 	static bool isTamingFood(int itemId);
 
 protected:
-	bool removeWhenFarAway() { return false; }
+	/// The wild ones come and go; a tamed one never despawns.
+	bool removeWhenFarAway() { return owner.empty(); }
 	int getDeathLoot() { return 0; }
 	void dropDeathLoot() {}
 	void dryStep();

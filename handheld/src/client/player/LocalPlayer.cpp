@@ -125,7 +125,14 @@ void LocalPlayer::tickPressure() {
 	if (band > 5) band = 5;
 	++pressureTicks;
 	if (pressure < MAX_PRESSURE) {
-		if (pressureTicks >= SharedConstants::TicksPerSecond * 30) {
+		// Each piece of coral armour adds 15s between rises (90s in a set).
+		int coral = 0;
+		for (int i = 0; i < NUM_ARMOR; ++i) {
+			ItemInstance* a = getArmor(i);
+			if (a && !a->isNull() && (a->id == Item::helmet_coral->id || a->id == Item::chestplate_coral->id
+					|| a->id == Item::leggings_coral->id || a->id == Item::boots_coral->id)) ++coral;
+		}
+		if (pressureTicks >= SharedConstants::TicksPerSecond * (30 + 15 * coral)) {
 			pressureTicks = 0;
 			pressure += band;
 			if (pressure > MAX_PRESSURE) pressure = MAX_PRESSURE;

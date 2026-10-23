@@ -256,6 +256,13 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::crystalizedCoral));
 		addItem(new ItemInstance(Item::coralIngot));
 		addItem(new ItemInstance(Item::axolotlBucket));
+		addItem(new ItemInstance(Item::pickAxe_coral));
+		addItem(new ItemInstance(Item::hatchet_coral));
+		addItem(new ItemInstance(Item::shovel_coral));
+		addItem(new ItemInstance(Item::helmet_coral));
+		addItem(new ItemInstance(Item::chestplate_coral));
+		addItem(new ItemInstance(Item::leggings_coral));
+		addItem(new ItemInstance(Item::boots_coral));
 		addItem(new ItemInstance(Item::spiderEye));
 		addItem(new ItemInstance(Item::unpoisonPotion));
 		addItem(new ItemInstance(Tile::doubleGrass));

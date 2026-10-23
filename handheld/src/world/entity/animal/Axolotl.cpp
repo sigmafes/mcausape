@@ -39,6 +39,9 @@ bool Axolotl::interact(Player* player)
 
 	// A water bucket takes it up, owner and all (aux 1 = tamed: whoever
 	// lets it out again owns it).
+	// Bound to its owner: nobody else takes it up.
+	if (item->id == Item::bucket_water->id && !owner.empty() && player->name != owner)
+		return true;
 	if (item->id == Item::bucket_water->id) {
 		ItemInstance bucket(Item::axolotlBucket, 1, owner.empty() ? 0 : 1);
 		if (item->count == 1) *item = bucket;
@@ -69,8 +72,8 @@ bool Axolotl::interact(Player* player)
 
 bool Axolotl::hurt(Entity* source, int dmg)
 {
-	// Its owner's swings do not land on it.
-	if (source && source->isPlayer() && !owner.empty() && ((Player*) source)->name == owner)
+	// Tamed, no player's swing lands on it -- its owner's or anyone's.
+	if (source && source->isPlayer() && !owner.empty())
 		return false;
 	return super::hurt(source, dmg);
 }

@@ -115,6 +115,13 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::shovel_coral = NULL;
+Item* Item::pickAxe_coral = NULL;
+Item* Item::hatchet_coral = NULL;
+Item* Item::helmet_coral = NULL;
+Item* Item::chestplate_coral = NULL;
+Item* Item::leggings_coral = NULL;
+Item* Item::boots_coral = NULL;
 Item* Item::axolotlBucket = NULL;
 Item* Item::turtleScute = NULL;
 Item* Item::crystalizedCoral = NULL;
@@ -342,6 +349,15 @@ void Item::initItems() {
 	Item::crystalizedCoral = (new Item(167))->setIcon(0, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("crystalizedCoral");
 	Item::coralIngot       = (new Item(168))->setIcon(1, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("coralIngot");
 	Item::axolotlBucket = (new AxolotlBucketItem(169))->setIcon(2, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("axolotlBucket");
+	// Coral tools: iron's tier, and no slowdown under water (Player::getDestroySpeed).
+	Item::shovel_coral  = (new ShovelItem(170, Tier::IRON))->setIcon(3, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("shovelCoral");
+	Item::pickAxe_coral = (new PickaxeItem(171, Tier::IRON))->setIcon(4, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("pickaxeCoral");
+	Item::hatchet_coral = (new HatchetItem(172, Tier::IRON))->setIcon(6, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("hatchetCoral");
+	// Coral armour: iron's, plus 15s more between pressure rises a piece.
+	Item::helmet_coral     = (new ArmorItem(173, ArmorItem::IRON, 5, ArmorItem::SLOT_HEAD))->setIcon(7, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("helmetCoral");
+	Item::chestplate_coral = (new ArmorItem(174, ArmorItem::IRON, 5, ArmorItem::SLOT_TORSO))->setIcon(8, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("chestplateCoral");
+	Item::leggings_coral   = (new ArmorItem(175, ArmorItem::IRON, 5, ArmorItem::SLOT_LEGS))->setIcon(10, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("leggingsCoral");
+	Item::boots_coral      = (new ArmorItem(176, ArmorItem::IRON, 5, ArmorItem::SLOT_FEET))->setIcon(0, 12)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("bootsCoral");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.
@@ -381,4 +397,10 @@ void Item::teardownItems() {
 ItemInstance Item::useTimeDepleted(ItemInstance* itemInstance, Level* level, Player* player )
 {
 	return *itemInstance;
+}
+
+bool Item::isCoralTool(int id)
+{
+	return (shovel_coral && id == shovel_coral->id) || (pickAxe_coral && id == pickAxe_coral->id)
+		|| (hatchet_coral && id == hatchet_coral->id);
 }

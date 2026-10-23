@@ -209,6 +209,15 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* kelp;
+	static Item* shovel_coral;
+	static Item* pickAxe_coral;
+	static Item* hatchet_coral;
+	static Item* helmet_coral;
+	static Item* chestplate_coral;
+	static Item* leggings_coral;
+	static Item* boots_coral;
+	/// A coral pickaxe, axe or shovel: no slowdown under water.
+	static bool isCoralTool(int id);
 	static Item* axolotlBucket;
 	static Item* turtleScute;
 	static Item* crystalizedCoral;

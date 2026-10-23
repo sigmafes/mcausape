@@ -57,6 +57,8 @@ public:
     //int getEnchantmentValue() {
     //    return tier.getEnchantmentValue();
     //}
+public:
+    const Tier& getTier() const { return tier; }
 protected:
     float speed;
 

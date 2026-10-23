@@ -653,7 +653,11 @@ void Player::reallyDrop(ItemEntity* thrownItem) {
 
 float Player::getDestroySpeed(Tile* tile) {
     float speed = inventory->getDestroySpeed(tile);
-    //if (isUnderLiquid(Material.water)) speed /= 5;
+    // Under water, a fifth as fast, as Java -- except with a coral tool.
+    if (isUnderLiquid(Material::water)) {
+		ItemInstance* held = inventory->getSelected();
+		if (!held || held->isNull() || !Item::isCoralTool(held->id)) speed /= 5;
+	}
     //if (!onGround) speed /= 5;
     return speed;
 }

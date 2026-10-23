@@ -51,6 +51,11 @@ void ToolRecipes::addRecipes( Recipes* r )
 		}
 	}
 
+	// Coral: from coral ingots, as iron's.
+	r->addShapedRecipe(ItemInstance(Item::pickAxe_coral), shapes[0], definition('#', Item::stick, 'X', Item::coralIngot));
+	r->addShapedRecipe(ItemInstance(Item::shovel_coral), shapes[1], definition('#', Item::stick, 'X', Item::coralIngot));
+	r->addShapedRecipe(ItemInstance(Item::hatchet_coral), shapes[2], definition('#', Item::stick, 'X', Item::coralIngot));
+
 	r->addShapedRecipe( ItemInstance(Item::shears), //
 	        " #", //
 	        "# ", //

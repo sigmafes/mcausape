@@ -320,7 +320,15 @@ void MobSpawner::makeBabyMob( Mob* mob, float probability ) {
 int MobSpawner::spawnFish(Level* level)
 {
 	if (level->players.empty() || level->random.nextInt(20) != 0) return 0;
-	if (level->countInstanceOfBaseType(MobTypes::BaseWaterCreature) >= MobCategory::waterCreature.getMaxInstancesPerLevel())
+	// Tamed axolotls are pets, not part of the sea's count.
+	int waterMobs = 0;
+	for (unsigned int i = 0; i < level->entities.size(); ++i) {
+		Entity* e = level->entities[i];
+		if (!e->isMob() || ((Mob*) e)->getCreatureBaseType() != MobTypes::BaseWaterCreature) continue;
+		if (e->getEntityTypeId() == MobTypes::Axolotl && !((Axolotl*) e)->owner.empty()) continue;
+		++waterMobs;
+	}
+	if (waterMobs >= MobCategory::waterCreature.getMaxInstancesPerLevel())
 		return 0;
 	Player* p = level->players[level->random.nextInt((int) level->players.size())];
 	const int x = Mth::floor(p->x) + level->random.nextInt(65) - 32;

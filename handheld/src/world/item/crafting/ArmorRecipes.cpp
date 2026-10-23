@@ -50,4 +50,7 @@ void ArmorRecipes::addRecipes( Recipes* r )
 				definition('X', Item::items[materialId]) );
 		}
 	}
+	Item* coral[4] = { Item::helmet_coral, Item::chestplate_coral, Item::leggings_coral, Item::boots_coral };
+	for (int t = 0; t < 4; t++)
+		r->addShapedRecipe(ItemInstance(coral[t]), shapes[t], definition('X', Item::coralIngot));
 }
