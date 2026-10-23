@@ -67,6 +67,9 @@ EntityRenderDispatcher::EntityRenderDispatcher()
 	assign(	ER_SHRIMP_RENDERER,		new ShrimpRenderer());
 	assign(	ER_TURTLE_RENDERER,		new TurtleRenderer());
 	assign(	ER_AXOLOTL_RENDERER,	new AxolotlRenderer());
+	assign(	ER_AQUATICBLAZE_RENDERER, new AquaticBlazeRenderer());
+	// The prismarine crystals picture (0,10), small.
+	assign(	ER_WATERBOLT_RENDERER,	new ItemSpriteRenderer(10 * 16 + 0, 0.5f));
 	assign(	ER_MAGMACUBE_RENDERER,	new MagmaCubeRenderer());
 	// The fire charge picture of the items atlas (14,2), big for a ghast's and small for a blaze's.
 	assign(	ER_FIREBALL_RENDERER,		new ItemSpriteRenderer(2 * 16 + 14, 2.0f));

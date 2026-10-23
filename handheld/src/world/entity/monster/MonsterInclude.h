@@ -11,4 +11,6 @@
 #include "Spider.h"
 #include "Zombie.h"
 #include "PigZombie.h"
+#include "Drowned.h"
+#include "AquaticBlaze.h"
 #endif /*NET_MINECRAFT_WORLD_ENTITY_MONSTER__MonsterInclude_H__*/

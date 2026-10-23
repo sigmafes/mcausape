@@ -49,6 +49,12 @@ public:
 			case MobTypes::BlackSquid:
 				mob = new BlackSquid(level);
 				break;
+			case MobTypes::Drowned:
+				mob = new Drowned(level);
+				break;
+			case MobTypes::AquaticBlaze:
+				mob = new AquaticBlaze(level);
+				break;
 
 			// Monsters
 			case MobTypes::Creeper:

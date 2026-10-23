@@ -7,6 +7,7 @@
 #include "projectile/ThrownEgg.h"
 #include "projectile/Snowball.h"
 #include "projectile/Fireball.h"
+#include "projectile/WaterBolt.h"
 #include "Painting.h"
 #include "item/FallingTile.h"
 
@@ -20,6 +21,7 @@ Entity* EntityFactory::CreateEntity( int typeId, Level* level )
         case EntityTypes::IdThrownEgg:  return new ThrownEgg(level);
         case EntityTypes::IdSnowball:   return new Snowball(level);
         case EntityTypes::IdFireball:   return new Fireball(level);
+        case EntityTypes::IdWaterBolt:  return new WaterBolt(level);
 		case EntityTypes::IdPainting:   return new Painting(level);
 	}
 	return NULL;

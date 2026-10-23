@@ -31,6 +31,7 @@ public:
 	static const int IdThrownEgg= 82;
 	static const int IdPainting = 83;
 	static const int IdFireball = 84;
+	static const int IdWaterBolt = 85;
 };
 
 // For now; mobs 0-63
@@ -54,6 +55,8 @@ public:
 	static const int Turtle     = 22;
 	static const int Axolotl    = 23;
 	static const int BlackSquid = 24;
+	static const int Drowned    = 25;
+	static const int AquaticBlaze = 26;
 
 	static const int Zombie		= 32;
 	static const int Creeper	= 33;

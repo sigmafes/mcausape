@@ -18,6 +18,7 @@ protected:
 	void updateAi();
 private:
 	int fleeTicks;
+	int unstickTicks;
 };
 
 #endif

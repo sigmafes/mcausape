@@ -36,7 +36,7 @@ int MobSpawner::tick(Level* level, bool spawnEnemies, bool spawnFriendlies) {
     }
 	// The Aquarium: fish only, in schools, anywhere in its water.
 	if (level->dimension && level->dimension->isAllWater())
-		return spawnFish(level);
+		return spawnFish(level) + (spawnEnemies || spawnFriendlies ? spawnDeepMonsters(level) : 0);
 
     chunksToPoll.clear();
 	// Add all chunks as a quick-and-dirty test
@@ -363,4 +363,31 @@ int MobSpawner::spawnFish(Level* level)
 		else delete mob;
 	}
 	return made;
+}
+
+/** The Aquarium's monsters: drowned and aquatic blazes, in its deep water
+    (under the shelf, below 50), away from players, up to 12 at a time, none
+    on peaceful. */
+int MobSpawner::spawnDeepMonsters(Level* level)
+{
+	if (level->difficulty <= 0 || level->players.empty() || level->random.nextInt(40) != 0) return 0;
+	int monsters = 0;
+	for (unsigned int i = 0; i < level->entities.size(); ++i) {
+		const int t = level->entities[i]->getEntityTypeId();
+		if (t == MobTypes::Drowned || t == MobTypes::AquaticBlaze) ++monsters;
+	}
+	if (monsters >= 12) return 0;
+	Player* p = level->players[level->random.nextInt((int) level->players.size())];
+	const int x = Mth::floor(p->x) + level->random.nextInt(65) - 32;
+	const int z = Mth::floor(p->z) + level->random.nextInt(65) - 32;
+	const int y = 8 + level->random.nextInt(40);
+	if (x < 0 || z < 0 || x >= LEVEL_WIDTH || z >= LEVEL_DEPTH) return 0;
+	if (!level->allWaterAt(x, y, z) || !level->allWaterAt(x, y + 1, z)) return 0;
+	if (level->getNearestPlayer(x + 0.5f, (float) y, z + 0.5f, (float) MIN_SPAWN_DISTANCE) != NULL) return 0;
+	const int type = level->random.nextInt(3) == 0 ? MobTypes::AquaticBlaze : MobTypes::Drowned;
+	Mob* mob = MobFactory::CreateMob(type, level);
+	if (!mob) return 0;
+	if (addMob(level, mob, x + 0.5f, (float) y, z + 0.5f, level->random.nextFloat() * 360, 0, false)) return 1;
+	delete mob;
+	return 0;
 }

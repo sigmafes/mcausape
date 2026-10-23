@@ -9,7 +9,8 @@
 
 BlackSquid::BlackSquid(Level* level)
 :	super(level),
-	fleeTicks(0)
+	fleeTicks(0),
+	unstickTicks(0)
 {
 	textureName = "mob/black_squid.png";
 }
@@ -19,6 +20,17 @@ int BlackSquid::getEntityTypeId() const { return MobTypes::BlackSquid; }
 void BlackSquid::updateAi()
 {
 	if (fleeTicks > 0) --fleeTicks;
+	// Against a wall (or the floor or ceiling) it used to push on into it:
+	// it turns off a random way for a second instead, rising a little.
+	if (unstickTicks > 0) { --unstickTicks; noActionTime = 0; return; }
+	if (horizontalCollision || (verticalCollision && !onGround)) {
+		const float angle = random.nextFloat() * Mth::PI * 2.0f;
+		tx = Mth::cos(angle) * 0.3f;
+		ty = 0.1f + random.nextFloat() * 0.15f;
+		tz = Mth::sin(angle) * 0.3f;
+		unstickTicks = SharedConstants::TicksPerSecond;
+		return;
+	}
 	// The nearest player within 16 blocks, not in creative.
 	Player* prey = NULL;
 	float best = 16 * 16;
