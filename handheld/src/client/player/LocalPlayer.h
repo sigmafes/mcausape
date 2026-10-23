@@ -83,6 +83,11 @@ public:
 	bool autoJumpEnabled;
 protected:
 	Minecraft* minecraft;
+public:
+	/// A visitor: the host says this player is on fire (ExtPacket::Burning).
+	bool hostBurning;
+	bool isOnFire() { return Player::isOnFire() || hostBurning; }
+protected:
 	int jumpTriggerTime;
 	// Sprint: ticks left in which a second press of forward counts as a double
 	// tap, and whether forward was down last tick.

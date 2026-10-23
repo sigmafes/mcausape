@@ -1,5 +1,7 @@
 #include "../network/packet/ExtPacket.h"
 #include "ServerPlayer.h"
+#include <cmath>
+#include "../network/packet/SetEntityMotionPacket.h"
 #include "../world/level/Level.h"
 
 #include "../network/RakNetInstance.h"
@@ -27,6 +29,7 @@ ServerPlayer::ServerPlayer( Minecraft* minecraft, Level* level )
 :   super(level, minecraft->isCreativeMode()),
 	_mc(minecraft),
 	_sentHealth(-999),
+	_sentBurning(false),
 	_containerCounter(0)
 {
 	hasFakeInventory = true;
@@ -52,7 +55,28 @@ void ServerPlayer::aiStep() {
 }
 
 void ServerPlayer::tick() {
+	// Knockback. A visitor moves its own player, so a hit that pushed this
+	// copy here (a mob's knockback, the hoglin's launch, an arrow) moved
+	// nothing on the visitor's screen: 0.6.1 never sent it. Now the push goes
+	// to the visitor as motion, the way Java's server sends it. Only real
+	// pushes - a burn marks hurt too, with nothing to send.
+	if (hurtMarked) {
+		hurtMarked = false;
+		if (std::fabs(xd) + std::fabs(yd) + std::fabs(zd) > 0.1f) {
+			SetEntityMotionPacket motion(entityId, xd, yd, zd);
+			_mc->raknetInstance->send(owner, motion);
+		}
+	}
+
 	super::tick();
+
+	// On fire or not, as the host sees it: the visitor's own level never
+	// burns anyone, so this is how it knows to draw the flames.
+	if ((onFire > 0) != _sentBurning) {
+		_sentBurning = onFire > 0;
+		ExtPacket burning(ExtPacket::Burning, _sentBurning ? 1 : 0);
+		_mc->raknetInstance->send(owner, burning);
+	}
 
 	if(!useItem.isNull())
 		useItemDuration--;

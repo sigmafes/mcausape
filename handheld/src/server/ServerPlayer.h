@@ -52,6 +52,7 @@ private:
 
 	Minecraft* _mc;
     int _sentHealth;
+    bool _sentBurning;
 	int _containerCounter;
 };
 

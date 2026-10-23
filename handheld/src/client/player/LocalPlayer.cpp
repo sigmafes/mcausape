@@ -61,6 +61,7 @@ static bool isJumpable(int tileId) {
 LocalPlayer::LocalPlayer(Minecraft* minecraft, Level* level, User* user, int dimension, bool isCreative)
 :	Player(level, isCreative),
 	minecraft(minecraft),
+	hostBurning(false),
 	input(NULL),
 	_poisonTicks(0),
 	sentInventoryItemId(-1),

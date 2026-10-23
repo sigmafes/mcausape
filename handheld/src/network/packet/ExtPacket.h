@@ -26,6 +26,9 @@ public:
 		AuthLock = 5,
 		/// a, b: effect id, ticks. The host gave this player a potion effect.
 		MobEffect = 6,
+		/// a: 1 burning, 0 not. The host has this player on fire (its own
+		/// level keeps no fire: Entity::baseTick), for the flames over its view.
+		Burning = 7,
 	};
 
 	ExtPacket() : kind(0), a(0), b(0), c(0) {}
