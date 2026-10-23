@@ -6,6 +6,7 @@
 #include "feature/OreFeature.h"
 #include "feature/HellFireFeature.h"
 #include "../../entity/MobCategory.h"
+#include "../../entity/EntityTypes.h"
 #include "../Level.h"
 #include "../ChunkPos.h"
 #include "../biome/Biome.h"
@@ -407,6 +408,32 @@ Biome::MobList HellRandomLevelSource::getMobsAt(const MobCategory& mobCategory, 
     // Inside the fortress, its own monsters.
     if (&mobCategory == &MobCategory::monster && fortress.isInside(x, y, z))
         return fortress.getEnemies();
+
+    // Java 1.16's lists, per biome (new worlds).
+    if (version >= LGV_NETHER_BIOMES && &mobCategory == &MobCategory::monster) {
+        static Biome::MobList lists[NetherBiomes::Count];
+        static bool made = false;
+        if (!made) {
+            made = true;
+            Biome::MobList& w = lists[NetherBiomes::Wastes];
+            w.push_back(Biome::MobSpawnerData(MobTypes::PigZombie, 100, 4, 4));
+            w.push_back(Biome::MobSpawnerData(MobTypes::Ghast, 50, 4, 4));
+            w.push_back(Biome::MobSpawnerData(MobTypes::MagmaCube, 2, 4, 4));
+            w.push_back(Biome::MobSpawnerData(MobTypes::Piglin, 15, 4, 4));
+            Biome::MobList& c = lists[NetherBiomes::CrimsonForest];
+            c.push_back(Biome::MobSpawnerData(MobTypes::PigZombie, 1, 2, 4));
+            c.push_back(Biome::MobSpawnerData(MobTypes::Hoglin, 9, 3, 4));
+            c.push_back(Biome::MobSpawnerData(MobTypes::Piglin, 5, 3, 4));
+            Biome::MobList& s = lists[NetherBiomes::SoulSandValley];
+            s.push_back(Biome::MobSpawnerData(MobTypes::Skeleton, 20, 5, 5));
+            s.push_back(Biome::MobSpawnerData(MobTypes::Ghast, 50, 4, 4));
+            Biome::MobList& d = lists[NetherBiomes::BasaltDeltas];
+            d.push_back(Biome::MobSpawnerData(MobTypes::Ghast, 40, 1, 1));
+            d.push_back(Biome::MobSpawnerData(MobTypes::MagmaCube, 100, 2, 5));
+            // The warped forest is the quiet one (Java: endermen and striders).
+        }
+        return lists[NetherBiomes::at(seed, x, z)];
+    }
 
     BiomeSource* biomeSource = level->getBiomeSource();
     if (biomeSource == NULL) {

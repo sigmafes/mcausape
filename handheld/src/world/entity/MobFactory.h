@@ -55,6 +55,10 @@ public:
 			case MobTypes::AquaticBlaze:
 				mob = new AquaticBlaze(level);
 				break;
+			case MobTypes::Hoglin:      mob = new Hoglin(level, false); break;
+			case MobTypes::Zoglin:      mob = new Hoglin(level, true); break;
+			case MobTypes::Piglin:      mob = new Piglin(level, false); break;
+			case MobTypes::PiglinBrute: mob = new Piglin(level, true); break;
 
 			// Monsters
 			case MobTypes::Creeper:

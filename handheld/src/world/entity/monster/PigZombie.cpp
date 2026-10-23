@@ -10,7 +10,9 @@ PigZombie::PigZombie( Level* level )
 	,  playAngrySoundIn(0)
 	, weapon(Item::sword_gold)
     , stunedTime(SharedConstants::TicksPerSecond * 3){
-	textureName = "mob/pigzombie.png";
+	// Java 1.16's zombified piglin: the piglin model, its own texture.
+	textureName = "mob/zombified_piglin.png";
+	entityRendererId = ER_PIGLIN_RENDERER;
 	runSpeed = 0.7f;
 	fireImmune = true;
 	attackDamage = 5;

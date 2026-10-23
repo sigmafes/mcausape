@@ -13,4 +13,6 @@
 #include "PigZombie.h"
 #include "Drowned.h"
 #include "AquaticBlaze.h"
+#include "Hoglin.h"
+#include "Piglin.h"
 #endif /*NET_MINECRAFT_WORLD_ENTITY_MONSTER__MonsterInclude_H__*/

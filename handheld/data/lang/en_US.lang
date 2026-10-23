@@ -1240,3 +1240,7 @@ item.doorWarped.name=Warped Door
 desc.doorwarped=A door of warped planks.
 tile.stoneSlab.crimson.name=Crimson Slab
 tile.stoneSlab.warped.name=Warped Slab
+entity.Hoglin.name=Hoglin
+entity.Zoglin.name=Zoglin
+entity.Piglin.name=Piglin
+entity.PiglinBrute.name=Piglin Brute

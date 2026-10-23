@@ -28,6 +28,8 @@
 #include "ShrimpRenderer.h"
 #include "TurtleRenderer.h"
 #include "AxolotlRenderer.h"
+#include "HoglinRenderer.h"
+#include "../../model/PiglinModel.h"
 #include "MagmaCubeRenderer.h"
 
 #include "ChickenRenderer.h"
@@ -68,6 +70,9 @@ EntityRenderDispatcher::EntityRenderDispatcher()
 	assign(	ER_TURTLE_RENDERER,		new TurtleRenderer());
 	assign(	ER_AXOLOTL_RENDERER,	new AxolotlRenderer());
 	assign(	ER_AQUATICBLAZE_RENDERER, new AquaticBlazeRenderer());
+	assign(	ER_HOGLIN_RENDERER,		new HoglinRenderer());
+	// Piglins, brutes and zombified piglins: Java's piglin model.
+	assign(	ER_PIGLIN_RENDERER,		new HumanoidMobRenderer(new PiglinModel(), 0.5f));
 	// The prismarine crystals picture (0,10), small.
 	assign(	ER_WATERBOLT_RENDERER,	new ItemSpriteRenderer(10 * 16 + 0, 0.5f));
 	assign(	ER_MAGMACUBE_RENDERER,	new MagmaCubeRenderer());

@@ -57,6 +57,10 @@ public:
 	static const int BlackSquid = 24;
 	static const int Drowned    = 25;
 	static const int AquaticBlaze = 26;
+	static const int Hoglin     = 27;
+	static const int Zoglin     = 28;
+	static const int Piglin     = 29;
+	static const int PiglinBrute = 30;
 
 	static const int Zombie		= 32;
 	static const int Creeper	= 33;
