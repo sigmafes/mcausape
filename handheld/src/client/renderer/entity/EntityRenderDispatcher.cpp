@@ -1,4 +1,5 @@
 #include "EntityRenderDispatcher.h"
+#include "../Textures.h"
 
 #include "../../Options.h"
 #include "../../../world/entity/player/Player.h"
@@ -170,7 +171,11 @@ void EntityRenderDispatcher::render( Entity* entity, float x, float y, float z, 
 	EntityRenderer* renderer = getRenderer(entity);
 	if (renderer != NULL) {
 		renderer->render(entity, x, y, z, rot, a);
-		//renderer->postRender(entity, x, y, z, rot, a);
+		// Burning players and mobs carry flames (Java's postRender).
+		if (entity->isMob() && entity->isOnFire()) {
+			textures->loadAndBindTexture("terrain.png");
+			EntityRenderer::renderFlame(entity, x, y, z, playerRotY);
+		}
 	}
 }
 

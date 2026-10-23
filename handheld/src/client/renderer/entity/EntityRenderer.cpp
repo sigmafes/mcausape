@@ -5,6 +5,9 @@
 #include "../gles.h"
 #include "../../../world/phys/AABB.h"
 #include "EntityRenderDispatcher.h"
+#include "../TerrainAtlas.h"
+#include "../../../world/entity/Entity.h"
+#include "../../../world/level/tile/FireTile.h"
 
 EntityRenderDispatcher* EntityRenderer::entityRenderDispatcher = NULL;
 
@@ -106,6 +109,47 @@ void EntityRenderer::renderFlat(const AABB& bb) {
 	t.vertex(bb.x1, bb.y1, bb.z1);
 	t.vertex(bb.x1, bb.y0, bb.z1);
 	t.draw();
+}
+
+/** Java's renderFlame, back from the comment 0.6.1 left it in: flames up a
+    burning entity, a billboard turned to the camera, one panel per block of
+    its height, alternating the two animated fire cells. */
+void EntityRenderer::renderFlame(Entity* e, float x, float y, float z, float playerRotY)
+{
+	Tesselator& t = Tesselator::instance;
+	glPushMatrix2();
+	glTranslatef2(x, y, z);
+	const float s = e->bbWidth * 1.4f;
+	glScalef2(s, s, s);
+	glRotatef2(-playerRotY, 0, 1, 0);
+	float h = e->bbHeight / e->bbWidth;
+	glTranslatef2(0, 0, -0.3f + ((int) h) * 0.02f);
+	glColor4f2(1, 1, 1, 1);
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable2(GL_CULL_FACE);
+	float r = 0.5f, yo = 0, zo = 0;
+	int i = 0;
+	t.begin();
+	while (h > 0) {
+		const int tex = ((Tile*) Tile::fire)->tex + (i % 2) * 16;
+		const float u0 = TerrainAtlas::px(tex) / TerrainAtlas::SizeF, u1 = (TerrainAtlas::px(tex) + 15.99f) / TerrainAtlas::SizeF;
+		const float v0 = TerrainAtlas::py(tex) / TerrainAtlas::SizeF, v1 = (TerrainAtlas::py(tex) + 15.99f) / TerrainAtlas::SizeF;
+		const float uA = i % 2 ? u1 : u0, uB = i % 2 ? u0 : u1;	// every other panel mirrored
+		t.vertexUV( r, 0 + yo, zo, uB, v1);
+		t.vertexUV(-r, 0 + yo, zo, uA, v1);
+		t.vertexUV(-r, 1.4f + yo, zo, uA, v0);
+		t.vertexUV( r, 1.4f + yo, zo, uB, v0);
+		h -= 0.45f;
+		yo += 0.45f;
+		r *= 0.9f;
+		zo -= 0.03f;
+		++i;
+	}
+	t.draw();
+	glEnable2(GL_CULL_FACE);
+	glDisable2(GL_BLEND);
+	glPopMatrix2();
 }
 
 void EntityRenderer::init(EntityRenderDispatcher* entityRenderDispatcher) {

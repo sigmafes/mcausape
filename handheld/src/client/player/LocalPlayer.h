@@ -86,7 +86,7 @@ protected:
 public:
 	/// A visitor: the host says this player is on fire (ExtPacket::Burning).
 	bool hostBurning;
-	bool isOnFire() { return Player::isOnFire() || hostBurning; }
+	bool isOnFire() { return Mob::isOnFire() || hostBurning; }
 protected:
 	int jumpTriggerTime;
 	// Sprint: ticks left in which a second press of forward counts as a double

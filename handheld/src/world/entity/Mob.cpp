@@ -268,8 +268,19 @@ void Mob::superTick()
 	super::tick();
 }
 
+bool Mob::isOnFire()
+{
+	// A visitor's level keeps no fire of its own (Entity::baseTick zeroes
+	// it): the host's burning arrives as the shared flag, set below.
+	return Entity::isOnFire() || (level && level->isClientSide && getSharedFlag(SharedFlagsInformation::FLAG_ONFIRE));
+}
+
 void Mob::tick()
 {
+	// The host keeps the on-fire flag true to its fire, so every visitor can
+	// draw the flames (EntityRenderer::renderFlame).
+	if (level && !level->isClientSide && getSharedFlag(SharedFlagsInformation::FLAG_ONFIRE) != (onFire > 0))
+		setSharedFlag(SharedFlagsInformation::FLAG_ONFIRE, onFire > 0);
 	super::tick();
 
 	if (arrowCount > 0) {

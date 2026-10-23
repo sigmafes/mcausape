@@ -31,6 +31,9 @@ public:
 
 protected:
 	void bindTexture(const std::string& resourceName);
+public:
+	static void renderFlame(Entity* e, float x, float y, float z, float playerRotY);
+protected:
 
 	float shadowRadius;
 	float shadowStrength;

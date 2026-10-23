@@ -161,6 +161,7 @@ protected:
 	bool interpolateOnly();
 	virtual bool useNewAi();
 	bool getSharedFlag(int flag);
+	bool isOnFire();
 	void setSharedFlag(int flag, bool value);
 	void checkDespawn(Mob* nearestBlocking);
 	void checkDespawn();
