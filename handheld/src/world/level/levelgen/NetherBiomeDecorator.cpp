@@ -44,37 +44,111 @@ static int ceilingAbove(Level* level, int x, int y, int z, int span)
 	return -1;
 }
 
-/** Java's HugeFungusFeature, a little simplified: a stem 4-13 tall on nylium
-    and a hat of wart block two blocks out, narrowing to one at the top,
-    hollow but for some flecks, with shroomlights in it; the crimson one
-    trails weeping vines from its rim. */
+/** Java 1.16's HugeFungusFeature: a stem 4-13 tall (one in twelve twice
+    that; a few thick, 3x3 less corners), and a hat over its top 5 + a third
+    of its height: wart blocks two out (three at the base of tall hats, one
+    more round a thick stem), one out for the top layer or two, hollow inside
+    but for flecks, shroomlights studded under the shell. The crimson one
+    trails weeping vines from the underside of its hat's rim. */
 static void hugeFungus(Level* level, Random* r, int x, int y, int z, bool crimson)
 {
 	const int ground = level->getTile(x, y - 1, z);
 	if (ground != (crimson ? Tile::crimsonNylium->id : Tile::warpedNylium->id)) return;
-	const int height = 4 + r->nextInt(10);
-	for (int j = 0; j <= height; ++j) if (!air(level, x, y + j, z)) return;
+	int height = 4 + r->nextInt(10);
+	if (r->nextInt(12) == 0) height *= 2;
+	const bool thick = r->nextInt(16) == 0;
+	// Room for the stem, or a shorter one; give up under a low ceiling.
+	int room = 0;
+	while (room < height + 2 && air(level, x, y + room, z)) ++room;
+	if (room < height + 2) height = room - 2;
+	if (height < 4) return;
 	const int stem = crimson ? Tile::crimsonStem->id : Tile::warpedStem->id;
 	const int wart = crimson ? Tile::netherWartBlock->id : Tile::warpedWartBlock->id;
-	for (int j = 0; j < height; ++j) level->setTileNoUpdate(x, y + j, z, stem);
-	const int top = y + height;
-	const int capH = 2 + height / 3;
-	for (int yy = top - capH; yy <= top; ++yy) {
-		const int rad = yy >= top - 1 ? 1 : 2;
+	for (int j = 0; j < height; ++j)
+		for (int dx = -thick; dx <= (int)thick; ++dx)
+			for (int dz = -thick; dz <= (int)thick; ++dz)
+				if (!(dx && dz)) {
+					if (dx || dz) { if (air(level, x + dx, y + j, z + dz)) level->setTileNoUpdate(x + dx, y + j, z + dz, stem); }
+					else level->setTileNoUpdate(x, y + j, z, stem);
+				}
+	int hatH = r->nextInt(1 + height / 3) + 5;
+	if (hatH > height) hatH = height;
+	const int top = y + height, start = top - hatH;
+	for (int yy = start; yy <= top; ++yy) {
+		int rad = yy < top - r->nextInt(3) ? 2 : 1;
+		if (hatH > 8 && yy < start + 4) rad = 3;
+		if (thick) ++rad;
 		for (int dx = -rad; dx <= rad; ++dx)
 			for (int dz = -rad; dz <= rad; ++dz) {
-				const bool edge = dx == -rad || dx == rad || dz == -rad || dz == rad;
-				if ((dx == -rad || dx == rad) && (dz == -rad || dz == rad) && rad > 1) continue;
-				if (dx == 0 && dz == 0 && yy < top) continue;
-				if (!edge && yy < top && r->nextInt(10) != 0) continue;
-				put(level, x + dx, yy, z + dz, r->nextInt(12) == 0 ? Tile::shroomlight->id : wart);
-				if (crimson && edge && yy == top - capH && r->nextInt(5) == 0) {
-					const int len = 1 + r->nextInt(4);
-					for (int k = 1; k <= len; ++k) put(level, x + dx, yy - k, z + dz, Tile::weepingVines->id);
+				const bool ex = dx == -rad || dx == rad, ez = dz == -rad || dz == rad;
+				const bool corner = ex && ez, edge = ex || ez;
+				const int bx = x + dx, bz = z + dz;
+				if (yy == top) {	// the crown: solid but for the corners
+					if (!corner || r->nextInt(3) == 0) put(level, bx, yy, bz, wart);
+					continue;
+				}
+				if (corner && r->nextInt(10) != 0) continue;
+				if (edge) {
+					put(level, bx, yy, bz, wart);
+					// Vines from the rim's lowest layers.
+					if (crimson && yy <= start + 1 && r->nextInt(6) == 0) {
+						const int len = 1 + r->nextInt(5);
+						for (int k = 1; k <= len && air(level, bx, yy - k, bz); ++k)
+							level->setTileNoUpdate(bx, yy - k, bz, Tile::weepingVines->id);
+					}
+				} else if (r->nextInt(10) == 0) {
+					put(level, bx, yy, bz, r->nextInt(3) == 0 ? Tile::shroomlight->id : wart);
+				} else if (r->nextInt(14) == 0 && air(level, bx, yy, bz)) {
+					// Shroomlights hung just inside the shell.
+					level->setTileNoUpdate(bx, yy, bz, Tile::shroomlight->id);
 				}
 			}
 	}
-	put(level, x, top + 1, z, wart);
+}
+
+/** The two forests, floor by floor and block by block across the chunk, as
+    Java's features add up to: huge fungi everywhere on nylium (about one
+    floor block in twenty, packed close enough that their hats touch), the
+    floor between carpeted with roots - and in the warped forest sprouts and
+    tall twisting vines - with the odd small fungus; and from the ceilings,
+    in the crimson forest, clumps of wart block trailing long weeping vines. */
+static void forestField(Level* level, Random* r, int xo, int zo, bool crimson)
+{
+	const int nylium = crimson ? Tile::crimsonNylium->id : Tile::warpedNylium->id;
+	const int roots = crimson ? Tile::crimsonRoots->id : Tile::warpedRoots->id;
+	for (int dx = 0; dx < 16; ++dx)
+		for (int dz = 0; dz < 16; ++dz) {
+			const int x = xo + 8 + dx, z = zo + 8 + dz;
+			for (int y = 122; y > 6; --y) {
+				if (level->getTile(x, y, z) != 0) continue;
+				const int under = level->getTile(x, y - 1, z), over = level->getTile(x, y + 1, z);
+				if (under == nylium) {
+					const int n = r->nextInt(100);
+					if (n < 5) hugeFungus(level, r, x, y, z, crimson);
+					else if (n < 6) level->setTileNoUpdate(x, y, z, crimson ? Tile::crimsonFungus->id : Tile::warpedFungus->id);
+					else if (!crimson && n < 9) {
+						const int len = 1 + r->nextInt(r->nextInt(3) == 0 ? 12 : 5);
+						for (int k = 0; k < len && level->getTile(x, y + k, z) == 0; ++k)
+							level->setTileNoUpdate(x, y + k, z, Tile::twistingVines->id);
+					}
+					else if (n < 30) level->setTileNoUpdate(x, y, z, roots);
+					else if (!crimson && n < 45) level->setTileNoUpdate(x, y, z, Tile::netherSprouts->id);
+				} else if (crimson && over == Tile::netherrack->id && r->nextInt(40) == 0) {
+					// A clump of wart block let into the ceiling, vines below it.
+					for (int ax = -1; ax <= 1; ++ax)
+						for (int az = -1; az <= 1; ++az) {
+							if (ax && az && r->nextInt(2)) continue;
+							if (level->getTile(x + ax, y + 1, z + az) == Tile::netherrack->id)
+								level->setTileNoUpdate(x + ax, y + 1, z + az, Tile::netherWartBlock->id);
+							if (r->nextInt(2) == 0) {
+								const int len = 1 + r->nextInt(9);
+								for (int k = 0; k < len && level->getTile(x + ax, y - k, z + az) == 0 && y - k > 6; ++k)
+									level->setTileNoUpdate(x + ax, y - k, z + az, Tile::weepingVines->id);
+							}
+						}
+				}
+			}
+		}
 }
 
 /// A patch of plants on the biome's ground: tries round a point.
@@ -401,20 +475,7 @@ void decorate(Level* level, Random* r, int xo, int zo, long seed)
 	if (biome == NetherBiomes::CrimsonForest || biome == NetherBiomes::WarpedForest) {
 		const bool crimson = biome == NetherBiomes::CrimsonForest;
 		const int nylium = crimson ? Tile::crimsonNylium->id : Tile::warpedNylium->id;
-		for (int i = 0; i < 6; ++i) {
-			const int x = xo + 8 + r->nextInt(16), z = zo + 8 + r->nextInt(16);
-			const int y = floorBelow(level, x, 10 + r->nextInt(100), z, 30);
-			if (y > 0) hugeFungus(level, r, x, y, z, crimson);
-		}
-		for (int i = 0; i < 4; ++i) {
-			const int x = xo + 8 + r->nextInt(16), z = zo + 8 + r->nextInt(16);
-			const int y = 10 + r->nextInt(100);
-			plants(level, r, x, y, z, crimson ? Tile::crimsonRoots->id : Tile::warpedRoots->id, nylium, 24);
-			plants(level, r, x, y, z, crimson ? Tile::crimsonFungus->id : Tile::warpedFungus->id, nylium, 8);
-			if (!crimson) plants(level, r, x, y, z, Tile::netherSprouts->id, nylium, 16);
-		}
-		for (int i = 0; i < 10; ++i)
-			vines(level, r, xo + 8 + r->nextInt(16), 10 + r->nextInt(110), zo + 8 + r->nextInt(16), crimson);
+		forestField(level, r, xo, zo, crimson);
 	} else if (biome == NetherBiomes::BasaltDeltas) {
 		// Lakes first, then columns over them (Java's order); counts per
 		// chunk follow Java's 1.16 biome: 40 deltas, 4 small and 2 large
