@@ -1066,3 +1066,9 @@ int Player::getArmorValue() {
     return val;
 }
 
+
+std::string Player::getHurtSound() {
+	if (onFire > 0 || isInLava()) return "player.hurt.fire";
+	if (airSupply <= 0 && isUnderLiquid(Material::water) && !canBreatheUnderwater()) return "player.hurt.drown";
+	return "player.hurt";
+}

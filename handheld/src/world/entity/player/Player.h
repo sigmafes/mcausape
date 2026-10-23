@@ -195,6 +195,8 @@ public:
 	int pressureTicks;
 	/// Gives an effect, or lengthens one already running.
 	void addEffect(int id, int duration);
+	/// Which of the three hurt sounds: burning, drowning, or the plain one.
+	std::string getHurtSound();
 	bool hasEffect(int id) const;
 	/// Told when an effect is given: a visitor's copy on the host passes it on.
 	virtual void onEffectAdded(int id, int duration) {}

@@ -164,6 +164,16 @@ void SoundEngine::init( Minecraft* mc, Options* options )
 	sounds.add("mob.blaze.hit", SA_blazehit3);
 	sounds.add("mob.blaze.hit", SA_blazehit4);
 	sounds.add("mob.blaze.death", SA_blazedeath);
+	// The player's own hurt sounds: plain, drowning, burning (Player::getHurtSound).
+	sounds.add("player.hurt", SA_playerhurt1);
+	sounds.add("player.hurt", SA_playerhurt2);
+	sounds.add("player.hurt", SA_playerhurt3);
+	sounds.add("player.hurt.drown", SA_playerdrown1);
+	sounds.add("player.hurt.drown", SA_playerdrown2);
+	sounds.add("player.hurt.drown", SA_playerdrown3);
+	sounds.add("player.hurt.fire", SA_playerburn1);
+	sounds.add("player.hurt.fire", SA_playerburn2);
+	sounds.add("player.hurt.fire", SA_playerburn3);
 	sounds.add("mob.magmacube.big", SA_magmacubebig1);
 	sounds.add("mob.magmacube.big", SA_magmacubebig2);
 	sounds.add("mob.magmacube.big", SA_magmacubebig3);
