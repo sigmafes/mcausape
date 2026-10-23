@@ -87,6 +87,14 @@ void Fish::aiStep()
 			yRot = yBodyRot;
 		}
 	} else {
+		dryStep();
+	}
+	if (panicTicks > 0) --panicTicks;
+}
+
+void Fish::dryStep()
+{
+	{
 		// Out of water: flops about on the ground, and runs out of breath
 		// after a few seconds (Java's 300 ticks of air, then a heart a second).
 		if (onGround && random.nextInt(4) == 0) {
@@ -98,7 +106,6 @@ void Fish::aiStep()
 		if (++dryTicks > SharedConstants::TicksPerSecond * 15 && dryTicks % SharedConstants::TicksPerSecond == 0)
 			hurt(NULL, 2);
 	}
-	if (panicTicks > 0) --panicTicks;
 }
 
 void Fish::travel(float xa, float ya)

@@ -43,6 +43,9 @@ public:
 			case MobTypes::Turtle:
 				mob = new Turtle(level);
 				break;
+			case MobTypes::Axolotl:
+				mob = new Axolotl(level);
+				break;
 
 			// Monsters
 			case MobTypes::Creeper:

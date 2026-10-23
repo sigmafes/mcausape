@@ -37,6 +37,8 @@ protected:
 
 protected:
 	bool waterAt(float x, float y, float z);
+	/// Out of water, each tick on the host: flop and suffocate.
+	virtual void dryStep();
 	float tx, ty, tz;
 	bool hasTarget;
 	int dryTicks;

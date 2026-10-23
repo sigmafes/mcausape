@@ -188,6 +188,10 @@ public:
 	/// The Aquarium's pressure, 0 to MAX_PRESSURE (LocalPlayer::tickPressure).
 	static const int MAX_PRESSURE = 10;
 	int pressure;
+	/// Who this player last hit, and when (level time): a tamed axolotl
+	/// joins in (Axolotl::aiStep).
+	int lastAttackedId;
+	long lastAttackedTime;
 	int pressureTicks;
 	/// Gives an effect, or lengthens one already running.
 	void addEffect(int id, int duration);

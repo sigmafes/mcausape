@@ -209,6 +209,7 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* kelp;
+	static Item* axolotlBucket;
 	static Item* turtleScute;
 	static Item* crystalizedCoral;
 	static Item* coralIngot;

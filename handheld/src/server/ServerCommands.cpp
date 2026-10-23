@@ -41,6 +41,7 @@ static const SummonName SUMMON_NAMES[] = {
 	{ "pufferfish",     MobTypes::Pufferfish },
 	{ "shrimp",         MobTypes::Shrimp },
 	{ "turtle",         MobTypes::Turtle },
+	{ "axolotl",        MobTypes::Axolotl },
 	{ "cow",            MobTypes::Cow },
 	{ "chicken",        MobTypes::Chicken },
 	{ "sheep",          MobTypes::Sheep },

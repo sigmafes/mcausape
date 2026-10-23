@@ -575,6 +575,8 @@ void Player::tickEffects() {
 void Player::_init() {
 	oBob = bob = 0;
 	pressure = 0;
+	lastAttackedId = 0;
+	lastAttackedTime = 0;
 	pressureTicks = 0;
 	swinging = 0;
 	swingTime = 0;
@@ -851,6 +853,10 @@ void Player::interact(Entity* entity) {
 //}
 
 void Player::attack(Entity* entity) {
+	if (entity) {
+		lastAttackedId = entity->entityId;
+		lastAttackedTime = level->getTime();
+	}
 	int dmg = inventory->getAttackDamage(entity);
     if (dmg > 0) {
         entity->hurt(this, dmg);
