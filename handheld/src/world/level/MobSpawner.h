@@ -23,6 +23,7 @@ public:
     static int tick(Level* level, bool spawnEnemies, bool spawnFriendlies);
 	static int spawnFish(Level* level);
 	static int spawnDeepMonsters(Level* level);
+	static int spawnFloorFauna(Level* level);
 
 	static void postProcessSpawnMobs(Level* level, Biome* biome, int xo, int zo, int cellWidth, int cellHeight, Random* random);
     static void finalizeMobSettings(Mob* mob, Level* level, float xx, float yy, float zz);

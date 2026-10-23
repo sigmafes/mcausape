@@ -19,6 +19,9 @@ protected:
 private:
 	int fleeTicks;
 	int unstickTicks;
+	int progressTicks;
+	bool stalled;
+	float lastX, lastY, lastZ;
 };
 
 #endif

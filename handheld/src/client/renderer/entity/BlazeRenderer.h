@@ -4,6 +4,7 @@
 #include "MobRenderer.h"
 #include "../gles.h"
 #include "../../model/BlazeModel.h"
+#include "../../model/AquaticBlazeModel.h"
 
 class BlazeRenderer: public MobRenderer
 {
@@ -15,8 +16,10 @@ public:
 };
 
 // The aquatic blaze: its rods turn and bob at half the blaze's pace.
-class AquaticBlazeRenderer: public BlazeRenderer
+class AquaticBlazeRenderer: public MobRenderer
 {
+public:
+    AquaticBlazeRenderer() : MobRenderer(new AquaticBlazeModel(), 0.5f) {}
 protected:
     float getBob(Mob* mob, float a) { return (mob->tickCount + a) * 0.5f; }
 };

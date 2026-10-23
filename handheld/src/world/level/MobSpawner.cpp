@@ -36,7 +36,7 @@ int MobSpawner::tick(Level* level, bool spawnEnemies, bool spawnFriendlies) {
     }
 	// The Aquarium: fish only, in schools, anywhere in its water.
 	if (level->dimension && level->dimension->isAllWater())
-		return spawnFish(level) + (spawnEnemies || spawnFriendlies ? spawnDeepMonsters(level) : 0);
+		return spawnFish(level) + spawnFloorFauna(level) + (spawnEnemies || spawnFriendlies ? spawnDeepMonsters(level) : 0);
 
     chunksToPoll.clear();
 	// Add all chunks as a quick-and-dirty test
@@ -346,8 +346,7 @@ int MobSpawner::spawnFish(Level* level)
 	else if (roll == 8) type = MobTypes::Turtle;
 	else if (roll < 3) type = MobTypes::Cod;
 	else if (roll < 5) type = MobTypes::Shrimp;
-	else if (roll == 6 && deep) type = MobTypes::BlackSquid;
-	else if (roll < 6 && deep) type = MobTypes::Pufferfish;
+	else if (roll < 7 && deep) type = MobTypes::Cod;
 	else type = MobTypes::Salmon;
 	int count = (type == MobTypes::Cod || type == MobTypes::Shrimp) ? 3 + level->random.nextInt(4) : 1 + level->random.nextInt(3);
 	if (type == MobTypes::Turtle || type == MobTypes::Axolotl || type == MobTypes::BlackSquid) count = 1 + level->random.nextInt(2);
@@ -390,4 +389,37 @@ int MobSpawner::spawnDeepMonsters(Level* level)
 	if (addMob(level, mob, x + 0.5f, (float) y, z + 0.5f, level->random.nextFloat() * 360, 0, false)) return 1;
 	delete mob;
 	return 0;
+}
+
+/** Pufferfish and black squid live down by the sand floor, under the shelf:
+    a few blocks over the sand, near a player, their own cap of 10 (the
+    fish's shared one was always full of cod by the time any got there). */
+int MobSpawner::spawnFloorFauna(Level* level)
+{
+	if (level->players.empty() || level->random.nextInt(25) != 0) return 0;
+	int count = 0;
+	for (unsigned int i = 0; i < level->entities.size(); ++i) {
+		const int t = level->entities[i]->getEntityTypeId();
+		if (t == MobTypes::Pufferfish || t == MobTypes::BlackSquid) ++count;
+	}
+	if (count >= 10) return 0;
+	Player* p = level->players[level->random.nextInt((int) level->players.size())];
+	const int x = Mth::floor(p->x) + level->random.nextInt(49) - 24;
+	const int z = Mth::floor(p->z) + level->random.nextInt(49) - 24;
+	if (x < 0 || z < 0 || x >= LEVEL_WIDTH || z >= LEVEL_DEPTH) return 0;
+	int y = 1;
+	while (y < 30 && !level->allWaterAt(x, y, z)) ++y;
+	y += level->random.nextInt(6);
+	if (!level->allWaterAt(x, y, z) || !level->allWaterAt(x, y + 1, z)) return 0;
+	if (level->getNearestPlayer(x + 0.5f, (float) y, z + 0.5f, 10.0f) != NULL) return 0;
+	const bool squid = level->random.nextInt(5) < 2;
+	const int n = squid ? 1 : 1 + level->random.nextInt(2);
+	int made = 0;
+	for (int i = 0; i < n; ++i) {
+		Mob* mob = MobFactory::CreateMob(squid ? MobTypes::BlackSquid : MobTypes::Pufferfish, level);
+		if (!mob) continue;
+		if (addMob(level, mob, x + 0.5f + i, (float) y, z + 0.5f, level->random.nextFloat() * 360, 0, false)) ++made;
+		else delete mob;
+	}
+	return made;
 }

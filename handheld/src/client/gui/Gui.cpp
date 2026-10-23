@@ -656,6 +656,11 @@ void Gui::renderHearts() {
 	int xx = screenWidth / 2 - (Player::MAX_HEALTH / 2 * 8 + 1) / 2;
 
 	int armor = minecraft->player->getArmorValue();
+	// Poisoned: the hearts go dark yellow (icons 81/90 on row 18). Inked by a
+	// black squid: every heart is a black one with a "?" (99), so the health
+	// cannot be read while it lasts.
+	const bool poisoned = minecraft->player->hasEffect(MobEffects::Poison);
+	const bool inked = minecraft->player->hasEffect(MobEffects::Ink);
 	for (int i = 0; i < Player::MAX_HEALTH / 2; i++) {
 		int yo = heartsY;
 		int ip2 = i + i + 1;
@@ -674,7 +679,16 @@ void Gui::renderHearts() {
 		if (h <= 4) {
 			yo = yo + random.nextInt(2) - 1;
 		}
+		if (inked) {
+			blit(xo, heartsY, 99, 18, 9, 9);
+			continue;
+		}
 		blit(xo, yo, 16 + bg * 9, 9 * 0, 9, 9);
+		if (poisoned) {
+			if (ip2 < h) blit(xo, yo, 81, 18, 9, 9);
+			else if (ip2 == h) blit(xo, yo, 90, 18, 9, 9);
+			continue;
+		}
 		if (blink) {
 			if (ip2 < oh) blit(xo, yo, 16 + 6 * 9, 9 * 0, 9, 9);
 			else if (ip2 == oh) blit(xo, yo, 16 + 7 * 9, 9 * 0, 9, 9);
