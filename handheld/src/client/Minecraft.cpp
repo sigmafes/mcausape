@@ -175,7 +175,7 @@ Minecraft::Minecraft()
 	ticksSinceLastUpdate(0),
 	gameMode(NULL),
 	mouseGrabbed(true),
-	_musicOn(false),
+	_musicOn(0),
 	_musicVolume(-1.0f),
 	missTime(0),
 	pause(false),
@@ -1966,18 +1966,26 @@ void Minecraft::setScreen( Screen* screen )
 void Minecraft::updateMusic()
 {
 #if defined(__EMSCRIPTEN__) && !defined(STANDALONE_SERVER)
-	const bool on = (level == NULL) && (options.music > 0.0f);
+	// Which track the moment calls for (shell.html's TRACKS): the menu's with
+	// no world loaded, the Nether playlist while in the Nether, and nothing
+	// anywhere else - leaving the Nether stops its music.
+	int track = 0;
+	if (level == NULL)
+		track = 1;
+	else if (level->dimension && level->dimension->id == Dimension::NETHER)
+		track = 2;
+	if (options.music <= 0.0f) track = 0;
 	const float volume = options.music;
 
-	if (on == _musicOn && volume == _musicVolume)
+	if (track == _musicOn && volume == _musicVolume)
 		return;
 
-	_musicOn = on;
+	_musicOn = track;
 	_musicVolume = volume;
 
 	EM_ASM({
-		if (window.mcpeMusic) window.mcpeMusic.set($0 != 0, $1);
-	}, on ? 1 : 0, (double)volume);
+		if (window.mcpeMusic) window.mcpeMusic.set($0, $1);
+	}, track, (double)volume);
 #endif
 }
 

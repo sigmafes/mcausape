@@ -56,6 +56,8 @@ jobs:
           # Menu music, only present once a track has been dropped into
           # handheld/project/web/. Without it the page simply plays nothing.
           cp handheld/project/web/build/menu.mp3 site/ 2>/dev/null || true
+          # The Nether's biome music (shell.html's TRACKS), streamed like the menu's.
+          cp -r handheld/project/web/music site/
           ls -lh site
 
       - uses: actions/upload-pages-artifact@v3

@@ -152,4 +152,9 @@ else()
     message(STATUS "No menu.mp3 beside shell.html -- building without menu music.")
 endif()
 
+# The Nether's biome music, beside the menu track for the same reason.
+add_custom_command(TARGET minecraftpe POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/music" "$<TARGET_FILE_DIR:minecraftpe>/music")
+
 target_link_libraries(minecraftpe PRIVATE raknet)

@@ -950,25 +950,54 @@
     // mp3 rather than the aac the sound effects use: the track arrives as mp3,
     // every browser plays it, and re-encoding one lossy format into another
     // costs quality to save nothing.
-    var TRACK = 'menu.mp3';
+    // Index = the track number Minecraft::updateMusic asks for (0 = none).
+    // The menu's loops. The Nether's is a playlist: a random song (never the
+    // same one twice running), then two minutes of silence, then another,
+    // for as long as the player stays in the Nether.
+    var N = 'music/';
+    var TRACKS = [null,
+      { list: ['menu.mp3'], loop: true },
+      { list: [N + 'nether1.mp3', N + 'nether2.mp3', N + 'nether3.mp3', N + 'nether4.mp3',
+               N + 'rubedo.mp3', N + 'so_below.mp3', N + 'chrysopoeia.mp3'], gap: 120000 }
+    ];
+    var lastSong = '';
+    function pickSong(t) {
+      var l = t.list, s;
+      do { s = l[Math.floor(Math.random() * l.length)]; } while (l.length > 1 && s === lastSong);
+      return (lastSong = s);
+    }
 
     var el = null;
-    var wanted = false;   // what the game last asked for
+    var current = 0;      // the track el holds
+    var wanted = 0;       // what the game last asked for
+    var gap = null;       // the silence between plays
     var volume = 1;
-    var broken = false;   // no track, or the browser cannot decode it
     var pending = false;  // asked to play, waiting on a user gesture
 
     function clamp(v) { return Math.max(0, Math.min(1, v)); }
 
+    var brokenTracks = {};
     function element() {
-      if (el || broken) return el;
+      if (current !== wanted) {
+        if (el) { el.pause(); el = null; }
+        current = wanted;
+      }
+      if (el || !TRACKS[current] || brokenTracks[current]) return el;
+      var t = TRACKS[current], id = current;
       el = document.createElement('audio');
-      el.loop = true;
+      el.loop = !!t.loop;
       el.preload = 'none';
-      el.src = TRACK;
+      el.src = pickSong(t);
       // A missing file is the normal case, not a failure worth reporting: give
       // up on it for the session rather than retrying on every screen change.
-      el.addEventListener('error', function () { broken = true; el = null; });
+      var mine = el;
+      el.addEventListener('error', function () { if (t.list.length === 1) brokenTracks[id] = true; if (el === mine) el = null; });
+      // A song over: silence, then the next one (a fresh element, a new pick).
+      el.addEventListener('ended', function () {
+        if (el !== mine || gap) return;
+        el = null;
+        gap = setTimeout(function () { gap = null; if (wanted === id) attempt(); }, t.gap || 0);
+      });
       return el;
     }
 
@@ -994,16 +1023,18 @@
     });
 
     window.mcpeMusic = {
-      set: function (on, vol) {
+      set: function (track, vol) {
         volume = vol;
-        if (el && !broken) el.volume = clamp(vol);
-        if (on === wanted) return;
-        wanted = on;
-        if (on) {
+        if (el) el.volume = clamp(vol);
+        if (track === wanted) return;
+        wanted = track;
+        if (gap) { clearTimeout(gap); gap = null; }
+        if (track) {
           attempt();
         } else {
           pending = false;
-          if (el) { el.pause(); el.currentTime = 0; }
+          if (el) { el.pause(); el = null; }
+          current = 0;
         }
       }
     };

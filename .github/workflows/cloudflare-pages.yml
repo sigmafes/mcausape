@@ -55,6 +55,8 @@ jobs:
           # poll it to tell their players a newer build is out.
           git rev-list --count HEAD > site/version.txt
           cp handheld/project/web/build/menu.mp3 site/ 2>/dev/null || true
+          # The Nether's biome music (shell.html's TRACKS), streamed like the menu's.
+          cp -r handheld/project/web/music site/
           ls -lh site
 
       - name: Deploy

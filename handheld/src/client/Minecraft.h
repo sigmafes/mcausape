@@ -295,7 +295,7 @@ public:
 
 	// What updateMusic() last told the page, so it only speaks on a change.
 	// The volume starts at an impossible value to force that first push.
-	bool _musicOn;
+	int _musicOn;	// the track playing: Minecraft::updateMusic
 	float _musicVolume;
 
     PixelCalc pixelCalc;
