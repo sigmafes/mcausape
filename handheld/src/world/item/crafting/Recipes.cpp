@@ -291,12 +291,12 @@ Recipes::Recipes()
 	// Spruce and birch: the same shapes from their own planks. Fences, which
 	// oak makes from sticks alone, take planks and sticks.
 	{
-		Tile* fences[2] = { Tile::fence_spruce, Tile::fence_birch };
-		Tile* gates[2] = { Tile::fenceGate_spruce, Tile::fenceGate_birch };
-		Tile* traps[2] = { Tile::trapdoor_spruce, Tile::trapdoor_birch };
-		Item* doors[2] = { Item::door_spruce, Item::door_birch };
-		const int planks[2] = { WoodTile::SPRUCE_PLANKS, WoodTile::BIRCH_PLANKS };
-		for (int i = 0; i < 2; i++) {
+		Tile* fences[4] = { Tile::fence_spruce, Tile::fence_birch, Tile::fence_crimson, Tile::fence_warped };
+		Tile* gates[4] = { Tile::fenceGate_spruce, Tile::fenceGate_birch, Tile::fenceGate_crimson, Tile::fenceGate_warped };
+		Tile* traps[4] = { Tile::trapdoor_spruce, Tile::trapdoor_birch, Tile::trapdoor_crimson, Tile::trapdoor_warped };
+		Item* doors[4] = { Item::door_spruce, Item::door_birch, Item::door_crimson, Item::door_warped };
+		const int planks[4] = { WoodTile::SPRUCE_PLANKS, WoodTile::BIRCH_PLANKS, WoodTile::CRIMSON_PLANKS, WoodTile::WARPED_PLANKS };
+		for (int i = 0; i < 4; i++) {
 			ItemInstance plank(Tile::wood, 1, planks[i]);
 			addShapedRecipe(ItemInstance(fences[i], 3), //
 				"W#W", //
@@ -354,6 +354,14 @@ Recipes::Recipes()
 		"#", //
 
 		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::NORMAL_TRUNK)));
+
+	// The Nether's planks, from its stems; their stairs and slabs.
+	addShapedRecipe(ItemInstance(Tile::wood, 4, WoodTile::CRIMSON_PLANKS), "#", definition('#', Tile::crimsonStem));
+	addShapedRecipe(ItemInstance(Tile::wood, 4, WoodTile::WARPED_PLANKS), "#", definition('#', Tile::warpedStem));
+	addShapedRecipe(ItemInstance(Tile::stairs_crimson, 4), "#  ", "## ", "###", definition('#', ItemInstance(Tile::wood, 1, WoodTile::CRIMSON_PLANKS)));
+	addShapedRecipe(ItemInstance(Tile::stairs_warped, 4), "#  ", "## ", "###", definition('#', ItemInstance(Tile::wood, 1, WoodTile::WARPED_PLANKS)));
+	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf2, 6, StoneSlabTile::CRIMSON_SLAB), "###", definition('#', ItemInstance(Tile::wood, 1, WoodTile::CRIMSON_PLANKS)));
+	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf2, 6, StoneSlabTile::WARPED_SLAB), "###", definition('#', ItemInstance(Tile::wood, 1, WoodTile::WARPED_PLANKS)));
 
 	addShapedRecipe(ItemInstance(Tile::wood, 4, WoodTile::SPRUCE_PLANKS), //
 		"#", //

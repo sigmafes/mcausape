@@ -11,7 +11,7 @@ const std::string StoneSlabTile::SLAB_NAMES[] = {
 };
 const int StoneSlabTile::SLAB_NAMES_COUNT = sizeof(SLAB_NAMES) / sizeof(std::string);
 const std::string StoneSlabTile::SLAB_NAMES2[] = {
-	"netherBrick", "quartz", "prismarineBricks", "darkPrismarine"
+	"netherBrick", "quartz", "prismarineBricks", "darkPrismarine", "crimson", "warped"
 };
 const int StoneSlabTile::SLAB_NAMES2_COUNT = sizeof(SLAB_NAMES2) / sizeof(std::string);
 
@@ -68,6 +68,8 @@ int StoneSlabTile::getTexture(int face, int data) {
 		if (data == QUARTZ_SLAB) return Tile::quartzBlock->getTexture(face, QuartzBlockTile::TYPE_DEFAULT);
 		if (data == PRISMARINE_BRICK_SLAB) return Tile::prismarineBricks->tex;
 		if (data == DARK_PRISMARINE_SLAB) return Tile::darkPrismarine->tex;
+		if (data == CRIMSON_SLAB) return Tile::wood->getTexture(face, WoodTile::CRIMSON_PLANKS);
+		if (data == WARPED_SLAB) return Tile::wood->getTexture(face, WoodTile::WARPED_PLANKS);
 		return Tile::netherBrick->tex;
 	}
     if (data == STONE_SLAB) {

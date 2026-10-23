@@ -151,6 +151,8 @@ public:
     static Item* brewingStand;
     static Item* door_spruce;
     static Item* door_birch;
+    static Item* door_crimson;
+    static Item* door_warped;
 
     static Item* bucket_empty;
     static Item* bucket_water;

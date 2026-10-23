@@ -31,6 +31,8 @@ public:
 	static const int QUARTZ_SLAB = 1;
 	static const int PRISMARINE_BRICK_SLAB = 2;
 	static const int DARK_PRISMARINE_SLAB = 3;
+	static const int CRIMSON_SLAB = 4;
+	static const int WARPED_SLAB = 5;
 	static const std::string SLAB_NAMES2[];
 	static const int SLAB_NAMES2_COUNT;
 	static const int SLAB_NAMES_COUNT;

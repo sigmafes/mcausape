@@ -94,7 +94,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 	Item* const drinks[] = { Item::waterBottle, Item::awkwardPotion, Item::waterBreathingPotion, Item::unpoisonPotion, Item::mushroomStew };
 	if (self->isFood() || isOneOf(id, drinks, COUNT(drinks))) return FoodDrinks;
 	Item* const building[] = {
-		Item::door_wood, Item::door_iron, Item::door_spruce, Item::door_birch, Item::painting,
+		Item::door_wood, Item::door_iron, Item::door_spruce, Item::door_birch, Item::door_crimson, Item::door_warped, Item::painting,
 	};
 	if (isOneOf(id, building, COUNT(building))) return Building;
 	// Useful blocks: the brewing stand, the bed, the sign.

@@ -249,6 +249,16 @@ public:
 	static Tile* soulFire;
 	static Tile* netherGoldOre;
 	static Tile* ancientDebris;
+	static Tile* stairs_crimson;
+	static Tile* stairs_warped;
+	static Tile* fence_crimson;
+	static Tile* fence_warped;
+	static Tile* fenceGate_crimson;
+	static Tile* fenceGate_warped;
+	static Tile* trapdoor_crimson;
+	static Tile* trapdoor_warped;
+	static Tile* door_crimson;
+	static Tile* door_warped;
 	static Tile* prismarineBricks;
 	static Tile* darkPrismarine;
 	static Tile* stairs_prismarineBricks;

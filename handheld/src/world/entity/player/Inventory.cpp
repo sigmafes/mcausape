@@ -132,6 +132,20 @@ void Inventory::setupDefault() {
 		Sel[5] =  addItem(new ItemInstance(Tile::wood));
 		addItem(new ItemInstance(Tile::wood, 1, WoodTile::SPRUCE_PLANKS));
 		addItem(new ItemInstance(Tile::wood, 1, WoodTile::BIRCH_PLANKS));
+		addItem(new ItemInstance(Tile::wood, 1, WoodTile::CRIMSON_PLANKS));
+		addItem(new ItemInstance(Tile::wood, 1, WoodTile::WARPED_PLANKS));
+		addItem(new ItemInstance(Tile::stairs_crimson));
+		addItem(new ItemInstance(Tile::stairs_warped));
+		addItem(new ItemInstance(Tile::stoneSlabHalf2, 1, StoneSlabTile::CRIMSON_SLAB));
+		addItem(new ItemInstance(Tile::stoneSlabHalf2, 1, StoneSlabTile::WARPED_SLAB));
+		addItem(new ItemInstance(Tile::fence_crimson));
+		addItem(new ItemInstance(Tile::fence_warped));
+		addItem(new ItemInstance(Tile::fenceGate_crimson));
+		addItem(new ItemInstance(Tile::fenceGate_warped));
+		addItem(new ItemInstance(Tile::trapdoor_crimson));
+		addItem(new ItemInstance(Tile::trapdoor_warped));
+		addItem(new ItemInstance(Item::door_crimson));
+		addItem(new ItemInstance(Item::door_warped));
 		Sel[2] = addItem(new ItemInstance(Tile::redBrick));
 
 #ifdef RPI

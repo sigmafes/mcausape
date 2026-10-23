@@ -14,6 +14,8 @@ public:
 	static const int OAK_PLANKS    = 0;
 	static const int SPRUCE_PLANKS = 1;
 	static const int BIRCH_PLANKS  = 2;
+	static const int CRIMSON_PLANKS = 3;	// from crimson stems; never burn
+	static const int WARPED_PLANKS  = 4;	// from warped stems; never burn
 
 	WoodTile(int id, const int* textures, int texCount, const Material* material)
 	:	super(id, textures, texCount, material)

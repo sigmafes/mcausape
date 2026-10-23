@@ -22,6 +22,10 @@ public:
             return super::getDescriptionId() + ".spruce";
         if (auxValue == WoodTile::BIRCH_PLANKS)
             return super::getDescriptionId() + ".birch";
+        if (auxValue == WoodTile::CRIMSON_PLANKS)
+            return super::getDescriptionId() + ".crimson";
+        if (auxValue == WoodTile::WARPED_PLANKS)
+            return super::getDescriptionId() + ".warped";
         // Oak keeps the plain "tile.wood" name
         return super::getDescriptionId();
     }
