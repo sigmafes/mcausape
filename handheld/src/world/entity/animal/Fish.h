@@ -39,6 +39,8 @@ protected:
 	bool waterAt(float x, float y, float z);
 	/// Out of water, each tick on the host: flop and suffocate.
 	virtual void dryStep();
+	/// How much faster than a cod it swims.
+	virtual float swimScale() { return 1.0f; }
 	float tx, ty, tz;
 	bool hasTarget;
 	int dryTicks;

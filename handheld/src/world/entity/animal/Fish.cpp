@@ -66,7 +66,7 @@ void Fish::aiStep()
 	if (isInWater()) {
 		dryTicks = 0;
 		// Swim towards the target, turning to face the way it goes.
-		const float speed = (panicTicks > 0 ? 0.12f : 0.05f) * (salmon ? 1.1f : 1.0f);
+		const float speed = (panicTicks > 0 ? 0.12f : 0.05f) * (salmon ? 1.1f : 1.0f) * swimScale();
 		if (hasTarget) {
 			float dx = tx - x, dy = ty - y, dz = tz - z;
 			const float d = sqrtf(dx * dx + dy * dy + dz * dz);

@@ -35,6 +35,7 @@ protected:
 	int getDeathLoot() { return 0; }
 	void dropDeathLoot() {}
 	void dryStep();
+	float swimScale() { return 2.0f; }
 
 private:
 	Player* findOwner();

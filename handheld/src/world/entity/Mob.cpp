@@ -579,7 +579,8 @@ void Mob::travel( float xa, float ya )
 			if (look <= 0 || jumping || level->getMaterial(Mth::floor(x), Mth::floor(bb.y0 + 0.9f), Mth::floor(z)) == Material::water)
 				yd += (look - yd) * pull;
 		}
-		moveRelative(xa, ya, 0.02f);
+		// Swimming strokes a little harder than walking under water.
+		moveRelative(xa, ya, swimming ? 0.026f : 0.02f);
 		move(xd, yd, zd);
 
 		const float drag = swimming ? 0.90f : 0.80f;
