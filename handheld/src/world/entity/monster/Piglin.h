@@ -23,6 +23,8 @@ public:
 	bool interact(Player* player);
 	bool hurt(Entity* source, int dmg);
 	ItemInstance* getCarriedItem();
+	/// A bastion's brutes stay put, as Java's never despawn.
+	bool removeWhenFarAway() { return !brute && super::removeWhenFarAway(); }
 
 	bool admiring();
 	bool hasAxe() const;

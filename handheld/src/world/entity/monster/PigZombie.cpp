@@ -35,7 +35,7 @@ void PigZombie::tick() {
 }
 
 std::string PigZombie::getTexture() {
-	return "mob/pigzombie.png";
+	return textureName;	// the 1.16 texture, not the old pigman one
 }
 
 bool PigZombie::canSpawn() {
