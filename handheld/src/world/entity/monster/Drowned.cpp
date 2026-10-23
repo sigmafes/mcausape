@@ -30,10 +30,13 @@ ItemInstance* Drowned::getCarriedItem()
 void Drowned::aiStep()
 {
 	super::aiStep();
+	// The monsters' AI "jumps" in water to keep afloat; with no gravity here
+	// that shot it up to the ceiling in seconds, out of sight.
+	jumping = false;
 	if (level->isClientSide || !isInWater()) return;
 	// Up or down to its target's height, as a swimming player steers.
 	Mob* target = getTarget();
-	if (!target) return;
+	if (!target) { yd *= 0.8f; return; }
 	const float dy = (target->y - target->heightOffset + 0.5f) - (y - heightOffset);
 	const float want = dy > 0.5f ? 0.08f : (dy < -0.5f ? -0.08f : 0.0f);
 	yd += (want - yd) * 0.2f;

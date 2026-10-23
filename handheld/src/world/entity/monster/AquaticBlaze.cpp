@@ -18,15 +18,37 @@ int AquaticBlaze::getEntityTypeId() const { return MobTypes::AquaticBlaze; }
 
 void AquaticBlaze::aiStep()
 {
-	// The blaze's hovering after its target, without the smoke.
-	if (!level->isClientSide) {
-		Mob* target = getTarget();
-		if (target) {
-			const float dy = (target->y + target->getHeadHeight()) - (y + getHeadHeight() + 0.5f);
-			yd += ((dy > 0 ? 0.12f : -0.06f) - yd) * 0.2f;
-		}
-	}
+	// Bubbles off it, as the blaze gives off smoke.
+	for (int i = 0; i < 2; i++)
+		level->addParticle("bubble",
+			x + (random.nextFloat() - 0.5f) * bbWidth,
+			y + random.nextFloat() * bbHeight,
+			z + (random.nextFloat() - 0.5f) * bbWidth, 0, 0.05f, 0);
 	Monster::aiStep();
+	jumping = false;
+	if (level->isClientSide) return;
+	// It keeps level with its target and follows it across, staying about
+	// six blocks off to shoot; with no target it hangs where it is.
+	Mob* target = getTarget();
+	if (!target) { xd *= 0.8f; yd *= 0.8f; zd *= 0.8f; return; }
+	const float dy = (target->y - target->heightOffset + 0.6f) - y;
+	yd += ((dy > 0.3f ? 0.08f : (dy < -0.3f ? -0.08f : 0.0f)) - yd) * 0.2f;
+	const float dx = target->x - x, dz = target->z - z;
+	const float d = Mth::sqrt(dx * dx + dz * dz);
+	if (d > 0.01f) {
+		const float want = d > 7 ? 0.08f : (d < 4 ? -0.05f : 0.0f);
+		xd += (dx / d * want - xd) * 0.2f;
+		zd += (dz / d * want - zd) * 0.2f;
+	}
+}
+
+void AquaticBlaze::travel(float xa, float ya)
+{
+	// Its own swimming (aiStep's): no sinking, no strokes from the AI.
+	move(xd, yd, zd);
+	xd *= 0.91f;
+	yd *= 0.91f;
+	zd *= 0.91f;
 }
 
 void AquaticBlaze::checkHurtTarget(Entity* target, float d)

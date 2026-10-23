@@ -938,7 +938,8 @@ void GameRenderer::setupClearColor(float a) {
         // its strongest channel is full (Java's FogRenderer.setupColor): the
         // old navy turns a clear blue, the Aquarium's a warm-ocean cyan.
         if (level->dimension->isAllWater()) {
-            fr = 0.025f; fg = 0.18f; fb = 0.20f;
+            // Bluer and more saturated than the old cyan.
+            fr = 0.012f; fg = 0.13f; fb = 0.22f;
         } else {
             fr = 0.02f; fg = 0.02f; fb = 0.2f;
         }
@@ -955,7 +956,14 @@ void GameRenderer::setupClearColor(float a) {
     float brr = fogBrO + (fogBr - fogBrO) * a;
     // The Aquarium's light fades with depth; its fog dims with it, but only to
     // half, so the bottom reads as deep without going black.
-    if (underWater && level->dimension->isAllWater()) brr = 0.5f + 0.5f * brr;
+    if (underWater && level->dimension->isAllWater()) {
+        brr = 0.5f + 0.5f * brr;
+        // And darker the deeper: a quarter of it on the sand floor, all of it
+        // from the shelf's top up.
+        float depth = (player->y - 10.0f) / 85.0f;
+        depth = depth < 0 ? 0 : (depth > 1 ? 1 : depth);
+        brr *= 0.25f + 0.75f * depth;
+    }
     fr *= brr;
     fg *= brr;
     fb *= brr;

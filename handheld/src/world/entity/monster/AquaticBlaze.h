@@ -13,6 +13,8 @@ public:
 	AquaticBlaze(Level* level);
 	int getEntityTypeId() const;
 	void aiStep();
+	void travel(float xa, float ya);
+	bool canBreatheUnderwater() { return true; }
 protected:
 	void checkHurtTarget(Entity* target, float d);
 private:

@@ -17,6 +17,7 @@ public:
 	ItemInstance* getCarriedItem();
 	/// Worked out from the entity id, which host and visitors share.
 	bool hasTrident() const;
+	bool canBreatheUnderwater() { return true; }
 };
 
 #endif

@@ -42,7 +42,9 @@ public:
         yd *= 0.85f;
         zd *= 0.85f;
 
-        if (level->getMaterial(Mth::floor(x), Mth::floor(y), Mth::floor(z)) != Material::water) remove();
+        // Out of water it bursts -- the Aquarium's air is water.
+        const int bx = Mth::floor(x), by = Mth::floor(y), bz = Mth::floor(z);
+        if (level->getMaterial(bx, by, bz) != Material::water && !level->allWaterAt(bx, by, bz)) remove();
 
         if (lifetime-- <= 0) remove();
     }
