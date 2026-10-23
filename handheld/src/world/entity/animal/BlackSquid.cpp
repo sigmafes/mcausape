@@ -33,7 +33,7 @@ void BlackSquid::updateAi()
 	}
 	// The nearest player within 16 blocks, not in creative.
 	Player* prey = NULL;
-	float best = 16 * 16;
+	float best = 48 * 48;	// far: the deep is meant to be dangerous
 	for (unsigned int i = 0; i < level->players.size(); ++i) {
 		Player* p = level->players[i];
 		if (!p->isAlive() || p->abilities.instabuild) continue;

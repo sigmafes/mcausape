@@ -1,3 +1,5 @@
+#include "../../../world/entity/monster/Drowned.h"
+#include "../../../world/entity/EntityTypes.h"
 #include "HumanoidMobRenderer.h"
 #include "EntityRenderDispatcher.h"
 #include "../ItemInHandRenderer.h"
@@ -77,10 +79,22 @@ void HumanoidMobRenderer::render( Entity* mob_, float x, float y, float z, float
 		humanoidModel->holdingRightHand = true;
 
 	humanoidModel->sneaking = mob->isSneaking();
-	humanoidModel->swimAmount = mob->isPlayer() ? ((Player*) mob)->getSwimAmount(a) : 0;
+	humanoidModel->swimAmount = mob->isPlayer() ? ((Player*) mob)->getSwimAmount(a)
+		: (mob->getEntityTypeId() == MobTypes::Drowned && ((Drowned*) mob)->swimming() ? 1.0f : 0.0f);
 
 	super::render(mob_, x, y, z, rot, a);
 	humanoidModel->holdingRightHand = false;
 	// The first-person hand is drawn with this model too.
 	humanoidModel->swimAmount = 0;
+}
+
+void HumanoidMobRenderer::setupRotations(Entity* mob, float bob, float bodyRot, float a) {
+	super::setupRotations(mob, bob, bodyRot, a);
+	// A swimming drowned lies along its heading, as a swimming player does.
+	if (mob->getEntityTypeId() == MobTypes::Drowned && ((Drowned*) mob)->swimming()) {
+		const float pitch = mob->xRotO + (mob->xRot - mob->xRotO) * a;
+		glTranslatef2(0, 0.9f, 0);
+		glRotatef2(-90.0f - pitch, 1, 0, 0);
+		glTranslatef2(0, -0.9f, 0);
+	}
 }

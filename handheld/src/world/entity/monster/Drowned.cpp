@@ -1,9 +1,12 @@
 #include "Drowned.h"
 #include "../EntityTypes.h"
+#include "../player/Player.h"
 #include "../../level/Level.h"
 #include "../../level/material/Material.h"
 #include "../../item/Item.h"
 #include "../../item/ItemInstance.h"
+#include "../../../util/Mth.h"
+#include <math.h>
 
 Drowned::Drowned(Level* level)
 :	super(level)
@@ -27,28 +30,49 @@ ItemInstance* Drowned::getCarriedItem()
 	return &trident;
 }
 
-void Drowned::aiStep()
+Player* Drowned::nearestPrey(Mob* from, float range)
 {
-	super::aiStep();
-	// The monsters' AI "jumps" in water to keep afloat; with no gravity here
-	// that shot it up to the ceiling in seconds, out of sight.
+	Player* best = NULL;
+	float bestD = range * range;
+	for (unsigned int i = 0; i < from->level->players.size(); ++i) {
+		Player* p = from->level->players[i];
+		if (!p->isAlive() || p->abilities.instabuild) continue;
+		const float d = p->distanceToSqr(from);
+		if (d < bestD) { bestD = d; best = p; }
+	}
+	return best;
+}
+
+void Drowned::updateAi()
+{
+	super::updateAi();
 	jumping = false;
-	if (level->isClientSide || !isInWater()) return;
-	// Up or down to its target's height, as a swimming player steers.
-	Mob* target = getTarget();
-	if (!target) { yd *= 0.8f; return; }
-	const float dy = (target->y - target->heightOffset + 0.5f) - (y - heightOffset);
-	const float want = dy > 0.5f ? 0.08f : (dy < -0.5f ? -0.08f : 0.0f);
-	yd += (want - yd) * 0.2f;
 }
 
 void Drowned::travel(float xa, float ya)
 {
 	if (!isInWater()) { super::travel(xa, ya); return; }
-	// The player's swim: a good stroke, little drag, no sinking.
-	moveRelative(xa, ya, 0.035f);
+	if (!level->isClientSide) {
+		Player* p = nearestPrey(this, (float) HuntRange);
+		if (p) {
+			// Straight at the player's chest, at a swimmer's pace.
+			const float dx = p->x - x, dy = (p->y - p->heightOffset + 0.4f) - y, dz = p->z - z;
+			const float d = sqrtf(dx * dx + dy * dy + dz * dz);
+			if (d > 0.01f) {
+				const float speed = 0.13f;
+				xd += (dx / d * speed - xd) * 0.25f;
+				yd += (dy / d * speed - yd) * 0.25f;
+				zd += (dz / d * speed - zd) * 0.25f;
+				yRot = yBodyRot = -atan2f(dx, dz) * Mth::RADDEG;
+				xRot = -atan2f(dy, sqrtf(dx * dx + dz * dz)) * Mth::RADDEG;
+			}
+			if (attackTime <= 0 && d < 1.6f) {
+				attackTime = 20;
+				doHurtTarget(p);
+			}
+		} else {
+			xd *= 0.8f; yd *= 0.8f; zd *= 0.8f;
+		}
+	}
 	move(xd, yd, zd);
-	xd *= 0.9f;
-	yd *= 0.9f;
-	zd *= 0.9f;
 }

@@ -16,6 +16,7 @@ public:
 	void renderHand();
 	void render(Entity* mob_, float x, float y, float z, float rot, float a);
 protected:
+	void setupRotations(Entity* mob, float bob, float bodyRot, float a);
     void additionalRendering(Mob* mob, float a);
 
 	// Swaps the model drawn (and posed, and held items hung off) as one; see

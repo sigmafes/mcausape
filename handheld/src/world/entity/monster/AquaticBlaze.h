@@ -3,9 +3,10 @@
 
 #include "Blaze.h"
 
-/** The Aquarium's blaze: purple, grown over with coral, no smoke, rods
-    turning at half speed, and instead of fireballs it fires water bolts
-    (WaterBolt) that keep their speed under water and trail bubbles. */
+/** The Aquarium's blaze: purple, grown over with coral, giving off bubbles,
+    rods turning at half speed. It hunts the nearest player within 48 blocks:
+    level with them and following across about six blocks off, firing the
+    blaze's three-shot volleys as water bolts (WaterBolt) from within 32. */
 class AquaticBlaze: public Blaze
 {
 	typedef Blaze super;
@@ -16,10 +17,10 @@ public:
 	void travel(float xa, float ya);
 	bool canBreatheUnderwater() { return true; }
 protected:
-	void checkHurtTarget(Entity* target, float d);
+	void updateAi();
+	void checkHurtTarget(Entity* target, float d) {}
 private:
 	int shots;
-	int shotCooldown;
 };
 
 #endif
