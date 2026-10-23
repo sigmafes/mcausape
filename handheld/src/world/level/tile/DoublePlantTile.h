@@ -3,6 +3,7 @@
 
 #include "Bush.h"
 #include "../../item/Item.h"
+#include "TallGrass.h"
 
 /// Java's tall grass: two blocks of crossed pictures, the top marked by data
 /// bit 8. Placing the bottom puts the top over it; either half going takes
@@ -11,6 +12,8 @@ class DoublePlantTile: public Bush
 {
 public:
 	static const int TopBit = 8;
+	/// The bottom half stands in a snow layer.
+	static const int SnowyBit = 4;
 
 	DoublePlantTile(int id, int tex) : Bush(id, tex, Material::replaceable_plant) {
 		setTicking(false);
@@ -18,7 +21,7 @@ public:
 	}
 
 	int getTexture(int face, int data) { return (data & TopBit) ? tex + 1 : tex; }
-	int getColor(LevelSource* level, int x, int y, int z) { return 0x339933; }
+	int getColor(LevelSource* level, int x, int y, int z) { return TallGrass::grassColorAt(level, x, z); }
 	int getColor(int data) { return 0x339933; }
 
 	bool mayPlace(Level* level, int x, int y, int z, unsigned char face) {
@@ -42,6 +45,11 @@ public:
 			if (!top) spawnResources(level, x, y, z, 0);
 			level->setTile(x, y, z, 0);
 		}
+	}
+
+	void destroy(Level* level, int x, int y, int z, int data) {
+		if (!(data & TopBit) && (data & SnowyBit) && level->getTile(x, y, z) == 0)
+			level->setTile(x, y, z, Tile::topSnow->id);
 	}
 
 	int getResource(int data, Random* random) {

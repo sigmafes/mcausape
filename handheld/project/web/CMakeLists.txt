@@ -46,7 +46,7 @@ file(GLOB RAKNET_SOURCES "${RAKNET_DIR}/*.cpp")
 add_library(raknet STATIC ${RAKNET_SOURCES})
 target_include_directories(raknet PUBLIC "${RAKNET_DIR}")
 target_compile_definitions(raknet PUBLIC MC_WASM)
-target_compile_options(raknet PRIVATE -w ${EM_PORTS})
+target_compile_options(raknet PRIVATE -w -O2 ${EM_PORTS})
 
 #
 # Game
@@ -88,7 +88,8 @@ target_compile_definitions(minecraftpe PRIVATE
 
 # This code predates -Wall being survivable; silence the noise so real errors
 # stay visible.
-target_compile_options(minecraftpe PRIVATE -w ${EM_PORTS})
+# Optimised: without a level Emscripten builds at -O0, several times slower.
+target_compile_options(minecraftpe PRIVATE -w -O2 ${EM_PORTS})
 
 target_link_options(minecraftpe PRIVATE
     ${EM_PORTS}
@@ -110,6 +111,9 @@ target_link_options(minecraftpe PRIVATE
     # 16MB heap, and worldgen is recursive enough to overflow the 64KB stack.
     -sINITIAL_MEMORY=268435456
     -sALLOW_MEMORY_GROWTH=1
+    # Up to wasm32's whole 4GB instead of the default 2GB.
+    -sMAXIMUM_MEMORY=4294967296
+    -O2
     -sSTACK_SIZE=4194304
 
     # _malloc/_free are called from the EM_JS prompt bridge in the web dialog.

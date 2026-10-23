@@ -1,4 +1,6 @@
 #include "TileRenderer.h"
+#include "../../world/level/tile/DoublePlantTile.h"
+#include "../../world/level/tile/TallGrass.h"
 #include "TerrainAtlas.h"
 #include "../Minecraft.h"
 #include "Tesselator.h"
@@ -302,6 +304,14 @@ bool TileRenderer::tesselateCrossInWorld( Tile* tt, int x, int y, int z )
 	}
 
 	int data = level->getData(x, y, z);
+	// A plant standing in snow: the layer first, the plant over it.
+	const bool snowy = (tt == Tile::tallgrass && (data & TallGrass::SnowyBit))
+		|| (tt == Tile::doubleGrass && !(data & DoublePlantTile::TopBit) && (data & DoublePlantTile::SnowyBit));
+	if (snowy) {
+		tesselateBlockInWorld(Tile::topSnow, x, y, z, 1, 1, 1);
+		t.color(br * r, br * g, br * b);
+		data &= ~(tt == Tile::tallgrass ? TallGrass::SnowyBit : DoublePlantTile::SnowyBit);
+	}
 	// Kelp: the stalk under more kelp, the tip on top (KelpTile::getTexture).
 	if (tt == Tile::kelp) data = level->getTile(x, y + 1, z) == tt->id ? 1 : 0;
 	tesselateCrossTexture(tt, data, xt, yt, zt);

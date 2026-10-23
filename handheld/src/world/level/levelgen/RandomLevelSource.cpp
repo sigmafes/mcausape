@@ -1,3 +1,5 @@
+#include "../tile/DoublePlantTile.h"
+#include "../tile/TallGrass.h"
 #include "RandomLevelSource.h"
 
 #include "feature/FeatureInclude.h"
@@ -480,6 +482,14 @@ void RandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
             int y = level->getTopSolidBlock(x, z);
             float temp = temperatures[xp * 16 + zp] - (y - 64) / 64.0f * SNOW_SCALE;
             if (temp < SNOW_CUTOFF) {
+                // Grass keeps its place and gets the snow in its block, as a
+                // slab gets water (the bits TileRenderer draws the layer for).
+                const int here = (y > 0 && y < 128) ? level->getTile(x, y, z) : 0;
+                if (here == Tile::tallgrass->id && level->getMaterial(x, y - 1, z)->blocksMotion()) {
+                    level->setDataNoUpdate(x, y, z, level->getData(x, y, z) | TallGrass::SnowyBit);
+                } else if (here == Tile::doubleGrass->id && !(level->getData(x, y, z) & DoublePlantTile::TopBit)) {
+                    level->setDataNoUpdate(x, y, z, level->getData(x, y, z) | DoublePlantTile::SnowyBit);
+                } else
                 if (y > 0 && y < 128 && level->isEmptyTile(x, y, z) && level->getMaterial(x, y - 1, z)->blocksMotion()) {
                     if (level->getMaterial(x, y - 1, z) != Material::ice) level->setTile(x, y, z, Tile::topSnow->id);
                 }
