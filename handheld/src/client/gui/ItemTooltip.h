@@ -40,8 +40,24 @@ namespace ItemTooltip
 		} else if (Item::shovel_wood && (id == Item::shovel_wood->id || id == Item::shovel_stone->id || id == Item::shovel_iron->id
 				|| id == Item::shovel_gold->id || id == Item::shovel_emerald->id)) {
 			snprintf(buf, sizeof buf, "+%d Dig Efficiency", (int) ((DiggerItem*) it)->getSpeed());
+		} else if (Item::trident && id == Item::trident->id) {
+			snprintf(buf, sizeof buf, "+6 Attack Damage");
+		} else if (Item::pickAxe_coral && id == Item::pickAxe_coral->id) {
+			snprintf(buf, sizeof buf, "+%d Mining Efficiency, underwater too", (int) ((DiggerItem*) it)->getSpeed());
+		} else if (Item::hatchet_coral && id == Item::hatchet_coral->id) {
+			snprintf(buf, sizeof buf, "+%d Chop Efficiency, underwater too", (int) ((DiggerItem*) it)->getSpeed());
+		} else if (Item::shovel_coral && id == Item::shovel_coral->id) {
+			snprintf(buf, sizeof buf, "+%d Dig Efficiency, underwater too", (int) ((DiggerItem*) it)->getSpeed());
+		} else if (Item::helmet_coral && (id == Item::helmet_coral->id || id == Item::chestplate_coral->id
+				|| id == Item::leggings_coral->id || id == Item::boots_coral->id)) {
+			snprintf(buf, sizeof buf, "+%d Armor, +15s Pressure Time", ((ArmorItem*) it)->defense);
 		} else if (it->isArmor()) {
 			snprintf(buf, sizeof buf, "+%d Armor", ((ArmorItem*) it)->defense);
+		} else if (Item::unpoisonPotion && id == Item::unpoisonPotion->id) {
+			const int s = Item::PotionDurationTicks / 20;
+			snprintf(buf, sizeof buf, "Poison Immunity (%d:%02d)", s / 60, s % 60);
+		} else if (Item::shrimp && id == Item::shrimp->id) {
+			snprintf(buf, sizeof buf, "-2 Pressure");
 		} else if (Item::waterBreathingPotion && id == Item::waterBreathingPotion->id) {
 			const int s = Item::PotionDurationTicks / 20;
 			snprintf(buf, sizeof buf, "Water Breathing (%d:%02d)", s / 60, s % 60);

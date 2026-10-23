@@ -346,7 +346,7 @@ void Item::initItems() {
 	// Java's spider eye (id 375, icon 11,8 already in the atlas): poisons 4s.
 	Item::spiderEye  = (new PoisonFoodItem(119, 2, 4 * 20))->setIcon(11, 8)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("spiderEye");
 	Item::pufferfish = (new PoisonFoodItem(164, 1, MobEffects::PufferPoisonTicks))->setIcon(6, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("pufferfish");
-	Item::shrimp = (new ShrimpItem(165))->setIcon(7, 10)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("shrimp");
+	Item::shrimp = (new ShrimpItem(165))->setIcon(3, 12)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("shrimp");
 	Item::turtleScute      = (new Item(166))->setIcon(8, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("turtleScute");
 	Item::crystalizedCoral = (new Item(167))->setIcon(0, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("crystalizedCoral");
 	Item::coralIngot       = (new Item(168))->setIcon(1, 11)->setCategory(ItemCategory::Tools)->setDescriptionId("coralIngot");
@@ -367,7 +367,7 @@ void Item::initItems() {
 	Item::waterBottle = (new BottleItem(117, true))->setIcon(11, 11)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("emptyPotion");
 	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
 	Item::awkwardPotion = (new PotionItem(155, -1))->setIcon(3, 9)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("awkwardPotion");
-	Item::unpoisonPotion = (new PotionItem(163, MobEffects::Unpoison))->setIcon(5, 10)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("unpoisonPotion");
+	Item::unpoisonPotion = (new PotionItem(163, MobEffects::Unpoison))->setIcon(2, 12)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("unpoisonPotion");
 	Item::waterBreathingPotion = (new PotionItem(156, MobEffects::WaterBreathing))->setIcon(4, 9)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("waterBreathingPotion");
 	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");
 	Item::magmaCream = (new Item(122))->setIcon(13, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("magmaCream");

@@ -76,7 +76,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 	if (self->isArmor()) return WeaponsArmor;
 	Item* const weapons[] = {
 		Item::sword_wood, Item::sword_stone, Item::sword_iron, Item::sword_gold, Item::sword_emerald,
-		Item::bow, Item::arrow,
+		Item::bow, Item::arrow, Item::trident,
 	};
 	if (isOneOf(id, weapons, COUNT(weapons))) return WeaponsArmor;
 	Item* const tools[] = {
@@ -86,15 +86,17 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 		Item::hoe_wood, Item::hoe_stone, Item::hoe_iron, Item::hoe_gold, Item::hoe_emerald,
 		Item::flintAndSteel, Item::shears, Item::bucket_empty, Item::bucket_water, Item::bucket_lava,
 		Item::clock, Item::compass, Item::camera,
+		Item::pickAxe_coral, Item::shovel_coral, Item::hatchet_coral, Item::axolotlBucket,
 	};
 	if (isOneOf(id, tools, COUNT(tools))) return Tools;
-	Item* const drinks[] = { Item::waterBottle, Item::awkwardPotion, Item::waterBreathingPotion, Item::mushroomStew };
+	Item* const drinks[] = { Item::waterBottle, Item::awkwardPotion, Item::waterBreathingPotion, Item::unpoisonPotion, Item::mushroomStew };
 	if (self->isFood() || isOneOf(id, drinks, COUNT(drinks))) return FoodDrinks;
 	Item* const building[] = {
-		Item::door_wood, Item::door_iron, Item::door_spruce, Item::door_birch, Item::sign, Item::painting, Item::bed,
+		Item::door_wood, Item::door_iron, Item::door_spruce, Item::door_birch, Item::painting,
 	};
 	if (isOneOf(id, building, COUNT(building))) return Building;
-	if (id == Item::brewingStand->id) return Functional;
+	// Useful blocks: the brewing stand, the bed, the sign.
+	if (id == Item::brewingStand->id || id == Item::bed->id || id == Item::sign->id) return Functional;
 	return Ingredients;
 }
 
