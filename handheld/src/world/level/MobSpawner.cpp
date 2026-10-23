@@ -346,10 +346,11 @@ int MobSpawner::spawnFish(Level* level)
 	else if (roll == 8) type = MobTypes::Turtle;
 	else if (roll < 3) type = MobTypes::Cod;
 	else if (roll < 5) type = MobTypes::Shrimp;
-	else if (roll < 7 && deep) type = MobTypes::Pufferfish;
+	else if (roll == 6 && deep) type = MobTypes::BlackSquid;
+	else if (roll < 6 && deep) type = MobTypes::Pufferfish;
 	else type = MobTypes::Salmon;
 	int count = (type == MobTypes::Cod || type == MobTypes::Shrimp) ? 3 + level->random.nextInt(4) : 1 + level->random.nextInt(3);
-	if (type == MobTypes::Turtle || type == MobTypes::Axolotl) count = 1 + level->random.nextInt(2);
+	if (type == MobTypes::Turtle || type == MobTypes::Axolotl || type == MobTypes::BlackSquid) count = 1 + level->random.nextInt(2);
 	int made = 0;
 	for (int i = 0; i < count; ++i) {
 		const float xx = x + 0.5f + level->random.nextInt(5) - 2;

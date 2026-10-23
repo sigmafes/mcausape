@@ -56,6 +56,9 @@ void ToolRecipes::addRecipes( Recipes* r )
 	r->addShapedRecipe(ItemInstance(Item::shovel_coral), shapes[1], definition('#', Item::stick, 'X', Item::coralIngot));
 	r->addShapedRecipe(ItemInstance(Item::hatchet_coral), shapes[2], definition('#', Item::stick, 'X', Item::coralIngot));
 
+	// The trident: a pickaxe's shape, crystalized coral on top, ingots for the shaft.
+	r->addShapedRecipe(ItemInstance(Item::trident), shapes[0], definition('#', Item::coralIngot, 'X', Item::crystalizedCoral));
+
 	r->addShapedRecipe( ItemInstance(Item::shears), //
 	        " #", //
 	        "# ", //

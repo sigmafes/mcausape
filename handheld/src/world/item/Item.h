@@ -209,6 +209,7 @@ public:
 	static Item* goldNugget;
 	static Item* oceanShard;
 	static Item* kelp;
+	static Item* trident;
 	static Item* shovel_coral;
 	static Item* pickAxe_coral;
 	static Item* hatchet_coral;

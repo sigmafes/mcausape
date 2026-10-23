@@ -53,6 +53,7 @@ public:
 	static const int Shrimp     = 21;
 	static const int Turtle     = 22;
 	static const int Axolotl    = 23;
+	static const int BlackSquid = 24;
 
 	static const int Zombie		= 32;
 	static const int Creeper	= 33;

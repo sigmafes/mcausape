@@ -1,6 +1,7 @@
 #include "ItemInclude.h"
 #include "PoisonFoodItem.h"
 #include "ShrimpItem.h"
+#include "TridentItem.h"
 #include "AxolotlBucketItem.h"
 #include "ItemCategory.h"
 #include "../level/tile/Tile.h"
@@ -115,6 +116,7 @@ Item* Item::bucket_lava = NULL;
 Item* Item::goldNugget = NULL;
 Item* Item::oceanShard = NULL;
 Item* Item::kelp = NULL;
+Item* Item::trident = NULL;
 Item* Item::shovel_coral = NULL;
 Item* Item::pickAxe_coral = NULL;
 Item* Item::hatchet_coral = NULL;
@@ -358,6 +360,7 @@ void Item::initItems() {
 	Item::chestplate_coral = (new ArmorItem(174, ArmorItem::IRON, 5, ArmorItem::SLOT_TORSO))->setIcon(8, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("chestplateCoral");
 	Item::leggings_coral   = (new ArmorItem(175, ArmorItem::IRON, 5, ArmorItem::SLOT_LEGS))->setIcon(10, 11)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("leggingsCoral");
 	Item::boots_coral      = (new ArmorItem(176, ArmorItem::IRON, 5, ArmorItem::SLOT_FEET))->setIcon(0, 12)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("bootsCoral");
+	Item::trident = (new TridentItem(177))->setIcon(1, 12)->setCategory(ItemCategory::Tools)->setDescriptionId("trident");
 	Item::oceanShard   = (new Item(153))->setIcon(6, 6)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanShard");
 	Item::oceanCrystal = (new Item(154))->setIcon(6, 8)->setCategory(ItemCategory::Tools)->setDescriptionId("oceanCrystal");
 	// Bottles and the plain potion stack to 16; potions with an effect do not.

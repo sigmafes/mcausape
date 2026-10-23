@@ -256,6 +256,7 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::crystalizedCoral));
 		addItem(new ItemInstance(Item::coralIngot));
 		addItem(new ItemInstance(Item::axolotlBucket));
+		addItem(new ItemInstance(Item::trident));
 		addItem(new ItemInstance(Item::pickAxe_coral));
 		addItem(new ItemInstance(Item::hatchet_coral));
 		addItem(new ItemInstance(Item::shovel_coral));

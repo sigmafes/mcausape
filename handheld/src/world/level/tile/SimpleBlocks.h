@@ -26,13 +26,11 @@ public:
 	int getResourceCount(Random* random) { return 4; }
 };
 
-/// Prismarine: breaks into the two ocean shards it is crafted from.
+/// Prismarine: drops itself.
 class PrismarineTile: public Tile
 {
 public:
 	PrismarineTile(int id, int tex) : Tile(id, tex, Material::stone) {}
-	int getResource(int data, Random* random) { return Item::oceanShard->id; }
-	int getResourceCount(Random* random) { return 2; }
 };
 
 #endif

@@ -11,6 +11,9 @@ namespace MobEffects
 	static const int Poison = 19;
 	/// Ours: no poison while it lasts (the Unpoison potion).
 	static const int Unpoison = 40;
+	/// The black squid's: ink over the view (no icon; Gui::renderInk).
+	static const int Ink = 41;
+	static const int InkTicks = 10 * 20;
 	/// How long a pufferfish's poison lasts, stung or eaten.
 	static const int PufferPoisonTicks = 15 * 20;
 
@@ -28,6 +31,7 @@ namespace MobEffects
 			{ Poison, 0x4E9331, 6, 0, "Poison" },
 			// Fuchsia; its icon is poison's with a red cross over it (0, 3).
 			{ Unpoison, 0xFF00FF, 0, 3, "Unpoison" },
+			{ Ink, 0x101010, -1, -1, "Ink" },
 		};
 		for (unsigned int i = 0; i < sizeof(table) / sizeof(table[0]); ++i)
 			if (table[i].id == id) return &table[i];

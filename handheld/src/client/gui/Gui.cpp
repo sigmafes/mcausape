@@ -78,6 +78,7 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	const int screenHeight = (int)(minecraft->height * InvGuiScale);
 	blitOffset = -90;
 	renderProgressIndicator(isTouchInterface, screenWidth, screenHeight, a);
+	renderInk(screenWidth, screenHeight);
 
 	// A phone has no T: this opens the chat (TouchscreenInput handles the tap).
 	if (isTouchInterface && !minecraft->screen && !minecraft->options.hideGui) {
@@ -301,6 +302,33 @@ void Gui::displayClientMessage(const std::string& messageId) {
 	//std::string languageString = language.getElement(messageId);
 	// Chat lines arrive here too, already in "<name> message" form, so no label.
 	addMessage(messageId);
+}
+
+/// The black squid's ink, over the world and under the HUD: big blots
+/// (gui/ink.png) that fade in their last two seconds.
+void Gui::renderInk(int w, int h) {
+	const std::vector<MobEffectInstance>& effects = minecraft->player->activeEffects;
+	int left = 0;
+	for (unsigned int i = 0; i < effects.size(); ++i)
+		if (effects[i].id == MobEffects::Ink) left = effects[i].duration;
+	if (left <= 0) return;
+	const float alpha = left >= 40 ? 1.0f : left / 40.0f;
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(false);
+	glEnable(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glColor4f2(1, 1, 1, alpha);
+	minecraft->textures->loadAndBindTexture("gui/ink.png");
+	Tesselator& t = Tesselator::instance;
+	t.begin();
+	t.vertexUV(0, (float)h, -90, 0, 1);
+	t.vertexUV((float)w, (float)h, -90, 1, 1);
+	t.vertexUV((float)w, 0, -90, 1, 0);
+	t.vertexUV(0, 0, -90, 0, 0);
+	t.draw();
+	glDepthMask(true);
+	glEnable(GL_DEPTH_TEST);
+	glColor4f2(1, 1, 1, 1);
 }
 
 void Gui::renderVignette(float br, int w, int h) {
@@ -757,7 +785,7 @@ void Gui::renderEffects(const int screenWidth, Font* font, bool isTouchInterface
 	glColor4f2(1, 1, 1, 1);
 	for (unsigned int i = 0; i < effects.size(); ++i, x -= size + gap + 4) {
 		const MobEffects::Info* info = MobEffects::get(effects[i].id);
-		if (!info) continue;
+		if (!info || info->iconX < 0) continue;
 		const int left = effects[i].duration;
 		const bool hidden = left <= 200 && (left / 5) % 2 == 0;
 		if (!hidden) {

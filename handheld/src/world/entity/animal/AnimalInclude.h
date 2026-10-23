@@ -12,5 +12,6 @@
 #include "Shrimp.h"
 #include "Turtle.h"
 #include "Axolotl.h"
+#include "BlackSquid.h"
 
 #endif /*NET_MINECRAFT_WORLD_ENTITY_ANIMAL__AnimalInclude_H__*/

@@ -36,7 +36,7 @@ protected:
 	int getDeathLoot();
 	void dropDeathLoot();
 
-private:
+protected:
 	float speed;
 	float tentacleSpeed;
 	float rotateSpeed;

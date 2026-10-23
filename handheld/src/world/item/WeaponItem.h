@@ -9,6 +9,7 @@
 #include "../entity/player/Player.h"
 #include "../level/Level.h"
 #include "../level/tile/Tile.h"
+#include "../level/dimension/Dimension.h"
 
 class WeaponItem: public Item
 {
@@ -45,6 +46,11 @@ public:
     }
 
     int getAttackDamage(Entity* entity) {
+        // Swords are poor under the Aquarium's water: 1, a diamond one 2, so
+        // the trident (6) is the weapon there.
+        if (entity && entity->level && entity->level->dimension
+                && entity->level->dimension->id == Dimension::AQUARIUM)
+            return &tier == &Item::Tier::EMERALD ? 2 : 1;
         return damage;
     }
 

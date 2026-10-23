@@ -46,6 +46,9 @@ public:
 			case MobTypes::Axolotl:
 				mob = new Axolotl(level);
 				break;
+			case MobTypes::BlackSquid:
+				mob = new BlackSquid(level);
+				break;
 
 			// Monsters
 			case MobTypes::Creeper:
