@@ -57,6 +57,7 @@ namespace NetherBridgePieces
 		StructurePiece* generateChildForward(StartPiece* startPiece, PieceList* pieces, Random* random, int xOff, int yOff, bool isCastle);
 		StructurePiece* generateChildLeft(StartPiece* startPiece, PieceList* pieces, Random* random, int yOff, int zOff, bool isCastle);
 		StructurePiece* generateChildRight(StartPiece* startPiece, PieceList* pieces, Random* random, int yOff, int zOff, bool isCastle);
+		void hazards(Level* level, BoundingBox* chunkBB, int x0, int x1, int z0, int z1, int y);
 
 	public:
 		static bool isOkBox(BoundingBox* box);

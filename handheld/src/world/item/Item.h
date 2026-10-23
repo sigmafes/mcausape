@@ -252,6 +252,7 @@ public:
 	// Potions (docs/brewing-plan.md): drunk, they give their effect (PotionItem).
 	static Item* awkwardPotion;
 	static Item* waterBreathingPotion;
+	static Item* fireResistancePotion;
 	/// Every potion lasts this long once drunk (5 minutes), when effects exist.
 	static const int PotionDurationTicks = 5 * 60 * 20;
 	static Item* blazeRod;

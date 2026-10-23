@@ -56,6 +56,9 @@ namespace ItemTooltip
 		} else if (Item::unpoisonPotion && id == Item::unpoisonPotion->id) {
 			const int s = Item::PotionDurationTicks / 20;
 			snprintf(buf, sizeof buf, "Poison Immunity (%d:%02d)", s / 60, s % 60);
+		} else if (Item::fireResistancePotion && id == Item::fireResistancePotion->id) {
+			const int s = Item::PotionDurationTicks / 20;
+			snprintf(buf, sizeof buf, "Fire Immunity (%d:%02d)", s / 60, s % 60);
 		} else if (Item::shrimp && id == Item::shrimp->id) {
 			snprintf(buf, sizeof buf, "-2 Pressure");
 		} else if (Item::waterBreathingPotion && id == Item::waterBreathingPotion->id) {

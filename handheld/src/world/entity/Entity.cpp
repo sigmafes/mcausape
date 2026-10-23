@@ -514,7 +514,7 @@ void Entity::baseTick()
 	    onFire = 0;
 	} else {
 	    if (onFire > 0) {
-	        if (fireImmune) {
+	        if (resistsFire()) {
 	            onFire -= 4;
 	            if (onFire < 0) onFire = 0;
 	        } else {
@@ -808,7 +808,7 @@ bool Entity::isPlayer()
 
 
 void Entity::lavaHurt() {
-    if (fireImmune) {
+    if (resistsFire()) {
     } else {
         hurt(NULL, 4);
         onFire = 30 * SharedConstants::TicksPerSecond;
@@ -820,7 +820,7 @@ void Entity::lavaHurt() {
 //   }
 
 void Entity::burn(int dmg) {
-    if (!fireImmune) {
+    if (!resistsFire()) {
         hurt(NULL, dmg);
     }
 }

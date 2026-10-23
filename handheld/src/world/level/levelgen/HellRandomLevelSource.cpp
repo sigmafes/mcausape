@@ -224,6 +224,8 @@ void HellRandomLevelSource::postProcess(ChunkSource* parent, int xt, int zt) {
 
     // la fortaleza: solo los bloques que caen en este chunk
     fortress.postProcess(level, &random, xt, zt);
+    if (version >= LGV_NETHER_BIOMES)
+        NetherBiomeDecorator::fortressPatches(level, xt * 16, zt * 16, seed);
 
     // manantiales de lava (MCPE 1.0: HellSpringFeature, 8 intentos)
     for (int i = 0; i < 8; i++) {

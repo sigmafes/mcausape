@@ -20,7 +20,8 @@ static const int DATA_PIGLIN_FLAGS = 16;	// bit 1: admiring a gold ingot
 Piglin::Piglin(Level* level, bool brute)
 :	super(level),
 	brute(brute),
-	admireTicks(0), angryAt(0), angryTicks(0), outsideTicks(0), pickupCheck(0)
+	admireTicks(0), angryAt(0), angryTicks(0), outsideTicks(0), pickupCheck(0),
+	inFortress(false), fortressCheck(0)
 {
 	entityRendererId = ER_PIGLIN_RENDERER;
 	textureName = brute ? "mob/piglin_brute.png" : "mob/piglin.png";
@@ -122,7 +123,7 @@ Entity* Piglin::findAttackTarget()
 	for (unsigned int i = 0; i < level->players.size(); ++i) {
 		Player* p = level->players[i];
 		if (!p->isAlive() || p->abilities.instabuild) continue;
-		if (!brute && wearsGold(p)) continue;
+		if (!brute && !inFortress && wearsGold(p)) continue;
 		const float d = p->distanceToSqr(this);
 		if (d < bestD && canSee(p)) { bestD = d; best = p; }
 	}
@@ -160,17 +161,19 @@ bool Piglin::interact(Player* player)
 }
 
 /** The barter table asked for: rare -- a diamond, an obsidian, 1-3 iron
-    ingots, a magma cream; common -- 2-4 gravel, 2-4 soul sand, 5-10
+    ingots, a magma cream, a Potion of Fire Resistance; common -- 2-4 gravel, 2-4 soul sand, 5-10
     netherrack, 1-2 bones, 1-2 gunpowder. One roll in eleven is rare. */
 void Piglin::barter()
 {
 	int id, count;
-	const int roll = random.nextInt(44);
+	// One roll in 45 is a Potion of Fire Resistance, the rarest offer.
+	const int roll = random.nextInt(45);
 	switch (roll) {
 		case 0: id = Item::emerald->id; count = 1; break;	// the diamond (0.6 calls it emerald)
 		case 1: id = Tile::obsidian->id; count = 1; break;
 		case 2: id = Item::ironIngot->id; count = 1 + random.nextInt(3); break;
 		case 3: id = Item::magmaCream->id; count = 1; break;
+		case 44: id = Item::fireResistancePotion->id; count = 1; break;
 		default:
 			switch ((roll - 4) % 5) {
 				case 0: id = Tile::gravel->id; count = 2 + random.nextInt(3); break;
@@ -195,6 +198,19 @@ void Piglin::aiStep()
 	if (level->isClientSide || !isAlive()) return;
 
 	if (angryTicks > 0 && --angryTicks == 0) angryAt = 0;
+
+	// In a fortress, gold or no gold, it attacks (the bastions' garrison
+	// moved in). Judged by what it stands on, every two seconds.
+	if (--fortressCheck <= 0) {
+		fortressCheck = 40;
+		inFortress = false;
+		const int fx = Mth::floor(x), fy = Mth::floor(bb.y0), fz = Mth::floor(z);
+		for (int dy = 1; dy <= 3 && !inFortress; ++dy) {
+			const int t = level->getTile(fx, fy - dy, fz);
+			inFortress = t == Tile::netherBrick->id || t == Tile::netherFence->id || t == Tile::stairs_netherBricks->id
+				|| t == Tile::polishedBlackstoneBricks->id || t == Tile::crackedPolishedBlackstoneBricks->id;
+		}
+	}
 
 	if (admireTicks > 0) {
 		// Stands looking at the gold.

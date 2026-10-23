@@ -7,6 +7,7 @@
     gui/effects.png, Java's inventory.png grid of 18x18 icons. */
 namespace MobEffects
 {
+	static const int FireResistance = 12;
 	static const int WaterBreathing = 13;
 	static const int Poison = 19;
 	/// Ours: no poison while it lasts (the Unpoison potion).
@@ -29,6 +30,7 @@ namespace MobEffects
 			// Cyan-green like the potion here, not Java's blue (0x2E5299).
 			{ WaterBreathing, 0x2EB4A6, 0, 2, "Water Breathing" },
 			{ Poison, 0x4E9331, 6, 0, "Poison" },
+			{ FireResistance, 0xE49A3A, 7, 1, "Fire Resistance" },
 			// Fuchsia; its icon is poison's with a red cross over it (0, 3).
 			{ Unpoison, 0xFF00FF, 0, 3, "Unpoison" },
 			{ Ink, 0x101010, -1, -1, "Ink" },

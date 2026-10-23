@@ -13,6 +13,8 @@ class Random;
 namespace NetherBiomeDecorator
 {
 	void decorate(Level* level, Random* random, int xo, int zo, long seed);
+	/// Bastion stone patched into the fortress blocks of chunk (cx, cz).
+	void fortressPatches(Level* level, int cx, int cz, long seed);
 }
 
 #endif

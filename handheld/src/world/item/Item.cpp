@@ -155,6 +155,7 @@ Item* Item::prismarineCrystals = NULL;
 Item* Item::oceanCrystal = NULL;
 Item* Item::awkwardPotion = NULL;
 Item* Item::waterBreathingPotion = NULL;
+Item* Item::fireResistancePotion = NULL;
 Item* Item::blazeRod = NULL;
 Item* Item::blazePowder = NULL;
 Item* Item::magmaCream = NULL;
@@ -397,6 +398,8 @@ void Item::initItems() {
 	Item::glassBottle = (new BottleItem(118, false))->setIcon(12, 8)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("glassBottle");
 	Item::awkwardPotion = (new PotionItem(155, -1))->setIcon(3, 9)->setMaxStackSize(16)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("awkwardPotion");
 	Item::unpoisonPotion = (new PotionItem(163, MobEffects::Unpoison))->setIcon(2, 12)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("unpoisonPotion");
+	// Awkward potion + magma cream (Java's).
+	Item::fireResistancePotion = (new PotionItem(191, MobEffects::FireResistance))->setIcon(6, 13)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("fireResistancePotion");
 	Item::waterBreathingPotion = (new PotionItem(156, MobEffects::WaterBreathing))->setIcon(4, 9)->setMaxStackSize(1)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("waterBreathingPotion");
 	Item::blazePowder = (new Item(121))->setIcon(13, 9)->setCategory(ItemCategory::Tools)->setDescriptionId("blazePowder");
 	Item::magmaCream = (new Item(122))->setIcon(13, 10)->setCategory(ItemCategory::Tools)->setDescriptionId("magmaCream");

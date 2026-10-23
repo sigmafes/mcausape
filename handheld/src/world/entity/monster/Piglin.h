@@ -47,6 +47,8 @@ private:
 	void barter();
 	static bool wearsGold(Player* p);
 	int admireTicks, angryAt, angryTicks, outsideTicks, pickupCheck;
+	bool inFortress;	///< hostile to every player, gold or not
+	int fortressCheck;
 };
 
 #endif

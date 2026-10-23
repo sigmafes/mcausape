@@ -94,7 +94,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 		Item::pickAxe_netherite, Item::shovel_netherite, Item::hatchet_netherite, Item::hoe_netherite,
 	};
 	if (isOneOf(id, tools, COUNT(tools))) return Tools;
-	Item* const drinks[] = { Item::waterBottle, Item::awkwardPotion, Item::waterBreathingPotion, Item::unpoisonPotion, Item::mushroomStew };
+	Item* const drinks[] = { Item::waterBottle, Item::awkwardPotion, Item::waterBreathingPotion, Item::unpoisonPotion, Item::fireResistancePotion, Item::mushroomStew };
 	if (self->isFood() || isOneOf(id, drinks, COUNT(drinks))) return FoodDrinks;
 	Item* const building[] = {
 		Item::door_wood, Item::door_iron, Item::door_spruce, Item::door_birch, Item::door_crimson, Item::door_warped, Item::painting,

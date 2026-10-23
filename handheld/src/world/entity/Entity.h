@@ -215,6 +215,10 @@ protected:
 	bool makeStepSound;
 	bool wasInWater;
 	bool fireImmune;
+public:
+	/// Fire, lava and burning pass it by: fireImmune, or (Player) a potion.
+	virtual bool resistsFire() { return fireImmune; }
+protected:
 
 protected:
 	bool firstTick;

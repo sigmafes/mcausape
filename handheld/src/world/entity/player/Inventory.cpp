@@ -318,6 +318,7 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::boots_coral));
 		addItem(new ItemInstance(Item::spiderEye));
 		addItem(new ItemInstance(Item::unpoisonPotion));
+		addItem(new ItemInstance(Item::fireResistancePotion));
 		addItem(new ItemInstance(Tile::doubleGrass));
 		addItem(new ItemInstance(Item::oceanCrystal));
 		addItem(new ItemInstance(Item::oceanShard));

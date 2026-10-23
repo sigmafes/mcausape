@@ -4,10 +4,6 @@
 #include "../Level.h"
 #include "../tile/Tile.h"
 #include "../../../util/Random.h"
-#include "../tile/entity/ChestTileEntity.h"
-#include "../../item/Item.h"
-#include "../../item/ItemInstance.h"
-#include "../../entity/monster/Piglin.h"
 
 namespace NetherBiomeDecorator
 {
@@ -381,229 +377,29 @@ static void fossil(Level* level, Random* r, int x, int y, int z)
 }
 
 
-/** Bastion remnants, after Java 1.16's: a great keep of polished blackstone
-    bricks 40 blocks square and three storeys tall, open in the middle. Its
-    walls are cracked and broken off at uneven heights; inside, galleries run
-    round an atrium at 7 and 14 up, reached by stairs along the walls; every
-    floor is holed (two-block gaps over a long drop, or over lava on the
-    ground floor), the upper ones with lava basins let into them; and in the
-    middle a treasure dais of gold sits behind a lava moat crossed by four
-    bridges a block wide. Brutes guard the dais, piglins - some with bows -
-    the galleries.
-
-    A bastion is far bigger than one chunk's window, so it is built the way
-    a structure has to be here: every block is a pure function of where it is
-    and of the bastion's seed (blockAt), and each chunk, when decorated,
-    builds just the part that falls in its own window. Chests and mobs go in
-    with the chunk that holds their spot. Order does not matter. */
-static const int BASTION_REGION = 6 * 16;	// one chance per 96x96 blocks
-static const int BW = 40, BH = 26;		// footprint, and the height carved out
-
-struct Loot { int id, aux, lo, hi, w; };
-
-static void fillChest(Level* level, Random* r, int x, int y, int z, const Loot* t, int n, int rolls)
+/** The fortresses' borrowing from Java's bastions (new worlds): patches of
+    their stone let into the nether brick - polished blackstone bricks, the
+    cracked and gilded ones, plain blackstone - where a coarse noise runs
+    high, so a fortress reads as patched and repaired with piglin work.
+    Runs over the same 16x16 the fortress just built (HellRandomLevelSource). */
+void fortressPatches(Level* level, int cx, int cz, long seed)
 {
-	level->setTile(x, y, z, Tile::chest->id);
-	TileEntity* te = level->getTileEntity(x, y, z);
-	if (!TileEntity::isType(te, TileEntityType::Chest)) return;
-	ChestTileEntity* chest = (ChestTileEntity*)te;
-	int total = 0;
-	for (int i = 0; i < n; ++i) total += t[i].w;
-	for (int k = 0; k < rolls; ++k) {
-		int pick = r->nextInt(total), i = 0;
-		while ((pick -= t[i].w) >= 0) ++i;
-		chest->setItem(r->nextInt(chest->getContainerSize()),
-			new ItemInstance(t[i].id, t[i].lo + r->nextInt(t[i].hi - t[i].lo + 1), t[i].aux));
-	}
-}
-
-static unsigned int bhash(unsigned int seed, int a, int b, int c)
-{
-	unsigned int h = seed ^ (unsigned int)(a * 73856093) ^ (unsigned int)(b * 19349663) ^ (unsigned int)(c * 83492791);
-	h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
-	return h;
-}
-
-struct Bastion { int x0, y0, z0; unsigned int seed; };
-
-/// The bastion of the region holding (bx, bz), if it has one.
-static bool bastionIn(long seed, int rx, int rz, Bastion& b)
-{
-	const unsigned int h = bhash((unsigned int)seed ^ 0x5a17b0u, rx, rz, 7);
-	if (h % 5 < 2) return false;	// three regions in five
-	b.x0 = rx * BASTION_REGION + 8 + (int)((h >> 4) % (BASTION_REGION - BW - 16));
-	b.z0 = rz * BASTION_REGION + 8 + (int)((h >> 12) % (BASTION_REGION - BW - 16));
-	b.y0 = 36 + (int)((h >> 20) % 10);	// clear of the lava sea at 31
-	b.seed = h;
-	// Every biome but the deltas, judged at its middle.
-	return NetherBiomes::at(seed, b.x0 + BW / 2, b.z0 + BW / 2) != NetherBiomes::BasaltDeltas;
-}
-
-static int brick(unsigned int seed, int u, int h, int v)
-{
-	const unsigned int n = bhash(seed, u, h, v) % 100;
-	if (n < 62) return Tile::polishedBlackstoneBricks->id;
-	if (n < 84) return Tile::crackedPolishedBlackstoneBricks->id;
-	if (n < 92) return Tile::blackstone->id;
-	if (n < 96) return Tile::polishedBlackstone->id;
-	if (n < 98) return Tile::gildedBlackstone->id;
-	return Tile::chiseledPolishedBlackstone->id;
-}
-
-/// A two-block hole in the floor at storey `f`?
-static bool hole(unsigned int seed, int u, int v, int f)
-{
-	return bhash(seed, u >> 1, v >> 1, 100 + f) % 100 < 13;
-}
-
-/** What the bastion has at (u, h, v), relative to its corner and floor:
-    -1 leaves the terrain alone, 0 is air, anything else a tile. */
-static int blockAt(const Bastion& b, int u, int h, int v)
-{
-	if (u < 0 || v < 0 || u >= BW || v >= BW || h >= BH) return -1;
-	const unsigned int S = b.seed;
-	const int c = BW / 2, du = u - c, dv = v - c;
-	const int adu = du < 0 ? -du : du, adv = dv < 0 ? -dv : dv, ring = adu > adv ? adu : adv;
-	const bool wall = u < 2 || v < 2 || u >= BW - 2 || v >= BW - 2;
-
-	if (wall) {
-		// Broken off at uneven heights, lowest towards the corners' gaps.
-		const int top = 22 - (int)(bhash(S, u >> 1, 0, v >> 1) % 7) - (bhash(S, u >> 3, 1, v >> 3) % 3 == 0 ? 5 : 0);
-		if (h > top) return 0;
-		const bool mid = (adu <= 2 && (v < 2 || v >= BW - 2)) || (adv <= 2 && (u < 2 || u >= BW - 2));
-		if (mid && h >= 1 && h <= 5) return 0;	// the gates
-		if ((h == 9 || h == 10 || h == 16 || h == 17) && ((u + v) % 6 == 3)) return 0;	// windows
-		return brick(S, u, h, v);
-	}
-
-	// Pillars of basalt up through the storeys, out of the atrium.
-	if (ring > 9 && (u % 8) == 4 && (v % 8) == 4) return h <= 21 ? (h % 7 == 0 ? Tile::polishedBlackstone->id : Tile::polishedBasalt->id) : 0;
-
-	// Stairs: ground floor to the first gallery along the north wall, the
-	// first to the second along the south one. Steps of brick, headroom air.
-	if (v >= 2 && v <= 3 && u >= 4 && u < 11) {
-		const int step = u - 4 + 1;	// 1..7
-		if (h < step) return h == 0 ? brick(S, u, h, v) : Tile::polishedBlackstone->id;
-		if (h < step + 3) return 0;
-	}
-	if (v >= BW - 4 && v <= BW - 3 && u >= 4 && u < 11) {
-		const int step = 7 + (u - 4) + 1;	// 8..14
-		if (h >= 7 && h < step) return Tile::polishedBlackstone->id;
-		if (h >= step && h < step + 3) return 0;
-	}
-
-	if (h == 0) {
-		// The ground floor: the dais, its moat and bridges, holes elsewhere.
-		if (ring <= 2) return brick(S, u, h, v);
-		if (ring <= 6) return (du == 0 || dv == 0) ? Tile::polishedBlackstoneBricks->id : Tile::calmLava->id;
-		if (hole(S, u, v, 0)) return 0;
-		return brick(S, u, h, v);
-	}
-	if (ring <= 2 && h <= 2) {
-		// The dais: two steps up, gold round its rim.
-		if (h == 1) return ring == 2 ? ((adu == 2 && adv == 2) || bhash(S, u, h, v) % 3 == 0 ? Tile::goldBlock->id : Tile::polishedBlackstone->id) : Tile::blackstone->id;
-		return ring <= 1 && !(du == 0 && dv == 0) ? Tile::goldBlock->id * (bhash(S, u, 2, v) % 2) : 0;
-	}
-	if (h == 7 || h == 14) {
-		const int f = h / 7;
-		if (ring <= 9) return 0;	// the atrium
-		if (hole(S, u, v, f)) return 0;
-		if (bhash(S, u >> 1, v >> 1, 200 + f) % 100 < 5) return Tile::calmLava->id;	// a basin
-		return brick(S, u, h, v);
-	}
-	if ((h == 8 || h == 15) && ring == 10 && bhash(S, u, h, v) % 3 != 0)
-		return Tile::polishedBlackstoneBricks->id;	// a broken railing round the atrium
-	return 0;
-}
-
-static void fillChestAt(Level* level, Random* r, int x, int y, int z, bool isTreasure)
-{
-	static Loot common[] = {
-		{0, 0, 2, 6, 12}, {0, 0, 4, 12, 12}, {0, 0, 1, 4, 8}, {0, 0, 1, 1, 6}, {0, 0, 1, 1, 6},
-		{0, 0, 1, 1, 4}, {0, 0, 1, 1, 4}, {0, 0, 2, 6, 6}, {0, 0, 5, 12, 8}, {0, 0, 2, 5, 6},
-		{0, 0, 1, 1, 2}, {0, 0, 1, 1, 2}, {0, 0, 2, 5, 6}
-	};
-	static Loot treasure[] = {
-		{0, 0, 3, 9, 10}, {0, 0, 1, 1, 5}, {0, 0, 1, 2, 5}, {0, 0, 1, 1, 3}, {0, 0, 1, 1, 3},
-		{0, 0, 1, 1, 4}, {0, 0, 1, 2, 6}, {0, 0, 1, 1, 2}
-	};
-	static bool init = false;
-	if (!init) {
-		init = true;
-		const int c[13] = { Item::goldIngot->id, Item::goldNugget->id, Item::ironIngot->id, Item::sword_gold->id, Item::hatchet_gold->id,
-			Item::helmet_gold->id, Item::boots_gold->id, Item::arrow->id, Item::string->id, Item::magmaCream->id,
-			Tile::ancientDebris->id, Item::netheriteScrap->id, Tile::obsidian->id };
-		for (int i = 0; i < 13; ++i) common[i].id = c[i];
-		const int t[8] = { Item::goldIngot->id, Item::netheriteIngot->id, Item::netheriteScrap->id, Item::sword_netherite->id,
-			Item::chestplate_diamond->id, Tile::ancientDebris->id, Item::emerald->id, Tile::goldBlock->id };
-		for (int i = 0; i < 8; ++i) treasure[i].id = t[i];
-	}
-	if (isTreasure) fillChest(level, r, x, y, z, treasure, 8, 5 + r->nextInt(3));
-	else fillChest(level, r, x, y, z, common, 13, 4 + r->nextInt(5));
-}
-
-/// Builds the part of the bastion b inside the window [wx, wx+16) x [wz, wz+16).
-static void buildBastion(Level* level, Random* r, const Bastion& b, int wx, int wz)
-{
-	const int bs = Tile::polishedBlackstoneBricks->id;
-	for (int x = wx; x < wx + 16; ++x)
-		for (int z = wz; z < wz + 16; ++z) {
-			const int u = x - b.x0, v = z - b.z0;
-			if (u < 0 || v < 0 || u >= BW || v >= BW) continue;
-			for (int h = 0; h < BH; ++h) {
-				const int t = blockAt(b, u, h, v);
-				if (t >= 0) level->setTileNoUpdate(x, b.y0 + h, z, t);
+	const int nb = Tile::netherBrick->id;
+	for (int x = cx; x < cx + 16; ++x)
+		for (int z = cz; z < cz + 16; ++z) {
+			const float patch = valueNoise(seed, x, z, 5, 11);
+			for (int y = 10; y < 110; ++y) {
+				if (level->getTile(x, y, z) != nb) continue;
+				const float v = patch + (valueNoise(seed, x + y * 7, z - y * 5, 4, 12) - 0.5f) * 0.3f;
+				if (v < 0.7f) continue;
+				const unsigned int h = (unsigned int)(x * 73856093) ^ (unsigned int)(y * 19349663) ^ (unsigned int)(z * 83492791);
+				const unsigned int n = ((h ^ (h >> 13)) * 0x5bd1e995u >> 7) % 100;
+				const int t = n < 55 ? Tile::polishedBlackstoneBricks->id
+					: n < 80 ? Tile::crackedPolishedBlackstoneBricks->id
+					: n < 92 ? Tile::blackstone->id
+					: n < 97 ? Tile::polishedBlackstone->id : Tile::gildedBlackstone->id;
+				level->setTileNoUpdate(x, y, z, t);
 			}
-			// Under the ground floor: lava under its holes (a pit two deep),
-			// and the whole footprint founded down to whatever is below.
-			int y = b.y0 - 1;
-			if (blockAt(b, u, 0, v) == 0) {
-				level->setTileNoUpdate(x, y--, z, Tile::calmLava->id);
-				level->setTileNoUpdate(x, y--, z, Tile::calmLava->id);
-			}
-			for (int k = 0; k < 40 && y > 1; ++k, --y) {
-				const int t = level->getTile(x, y, z);
-				if (k > 0 && t > 0 && Tile::solid[t]) break;
-				level->setTileNoUpdate(x, y, z, (u % 8 == 4 && v % 8 == 4) ? Tile::basalt->id : bs);
-			}
-		}
-
-	// Chests and the guard, each with the chunk that holds its spot.
-	#define INWIN(px, pz) ((px) >= wx && (px) < wx + 16 && (pz) >= wz && (pz) < wz + 16)
-	const int cx = b.x0 + BW / 2, cz = b.z0 + BW / 2;
-	if (INWIN(cx, cz)) fillChestAt(level, r, cx, b.y0 + 2, cz, true);
-	static const int spots[6][3] = { {3, 1, 6}, {BW - 4, 1, BW - 7}, {3, 8, BW - 8}, {BW - 4, 8, 5}, {5, 15, 6}, {BW - 6, 15, BW - 5} };
-	for (int i = 0; i < 6; ++i) {
-		const int px = b.x0 + spots[i][0], pz = b.z0 + spots[i][2];
-		if (INWIN(px, pz)) fillChestAt(level, r, px, b.y0 + spots[i][1], pz, false);
-	}
-	// Brutes by the dais' bridges; piglins on the floors and galleries.
-	static const int guard[12][4] = {
-		{0, 0, -4, 1}, {0, 0, 4, 1}, {-4, 0, 0, 1}, {4, 0, 0, 1},
-		{-14, 1, -14, 0}, {14, 1, 14, 0}, {-14, 1, 12, 0}, {12, 1, -14, 0},
-		{-15, 8, 0, 0}, {15, 8, 0, 0}, {0, 15, -15, 0}, {0, 15, 15, 0} };
-	for (int i = 0; i < 12; ++i) {
-		const int px = cx + guard[i][0], pz = cz + guard[i][2];
-		if (!INWIN(px, pz)) continue;
-		Piglin* p = new Piglin(level, guard[i][3] != 0);
-		p->moveTo(px + 0.5f, (float)(b.y0 + guard[i][1] + (guard[i][3] ? 1 : 0)), pz + 0.5f, r->nextFloat() * 360, 0);
-		level->addEntity(p);
-	}
-	#undef INWIN
-}
-
-/// Any bastion overlapping this chunk's window gets its part built.
-static void bastions(Level* level, Random* r, int xo, int zo, long seed)
-{
-	const int wx = xo + 8, wz = zo + 8;
-	const int rx0 = (wx - BW >= 0 ? wx - BW : wx - BW - BASTION_REGION + 1) / BASTION_REGION;
-	const int rz0 = (wz - BW >= 0 ? wz - BW : wz - BW - BASTION_REGION + 1) / BASTION_REGION;
-	for (int rx = rx0; rx <= rx0 + 1; ++rx)
-		for (int rz = rz0; rz <= rz0 + 1; ++rz) {
-			Bastion b;
-			if (!bastionIn(seed, rx, rz, b)) continue;
-			if (b.x0 >= wx + 16 || b.x0 + BW <= wx || b.z0 >= wz + 16 || b.z0 + BW <= wz) continue;
-			buildBastion(level, r, b, wx, wz);
 		}
 }
 
@@ -668,9 +464,6 @@ void decorate(Level* level, Random* r, int xo, int zo, long seed)
 		small.place(level, r, xo + r->nextInt(16), 8 + r->nextInt(112), zo + r->nextInt(16));
 	}
 
-	// Bastions: every biome but the basalt deltas, as Java's. Last, so
-	// nothing grows through them.
-	bastions(level, r, xo, zo, seed);
 }
 
 }

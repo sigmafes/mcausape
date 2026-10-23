@@ -1,6 +1,7 @@
 #include "NetherBridgePieces.h"
 #include "../../Level.h"
 #include "../../LevelConstants.h"
+#include "../../storage/LevelData.h"
 #include "../../tile/Tile.h"
 #include "../../tile/MobSpawnerTile.h"
 #include "../../../Direction.h"
@@ -20,7 +21,7 @@ static const int LOWEST_Y_POSITION = 10;
 #define NF (Tile::netherFence->id)
 
 // The fortress chest, as in the Java Edition (1.7) minus what this game has no item
-// for (saddles, horse armour).
+// for (saddles, horse armour), with the bastions' loot added in.
 static int fortressLoot(StructurePiece::LootEntry* out)
 {
 	StructurePiece::LootEntry table[] = {
@@ -32,11 +33,46 @@ static int fortressLoot(StructurePiece::LootEntry* out)
 		{ Item::flintAndSteel->id,    0, 1, 1, 5 },
 		{ Item::netherStalkSeeds->id, 0, 3, 7, 5 },
 		{ Tile::obsidian->id,         0, 2, 4, 2 },
+		// From Java's bastion chests.
+		{ Item::goldNugget->id,       0, 4, 12, 8 },
+		{ Item::netheriteScrap->id,   0, 1, 2, 3 },
+		{ Tile::ancientDebris->id,    0, 1, 2, 3 },
+		{ Item::magmaCream->id,       0, 2, 5, 5 },
+		{ Item::hatchet_gold->id,     0, 1, 1, 4 },
+		{ Item::boots_gold->id,       0, 1, 1, 4 },
+		{ Tile::goldBlock->id,        0, 1, 1, 2 },
+		{ Item::netheriteIngot->id,   0, 1, 1, 1 },
 	};
 	int n = sizeof(table) / sizeof(table[0]);
 	for (int i = 0; i < n; i++)
 		out[i] = table[i];
 	return n;
+}
+
+/** The long walks' hazards (new worlds' fortresses): small lava pits let
+    into the walking surface - a block or two, walled by the deck round them
+    - and a few patches of magma, inside x0..x1, z0..z1 at height y. Picked
+    from the piece's position so the chunks it spans agree. */
+void NetherBridgePiece::hazards(Level* level, BoundingBox* chunkBB, int x0, int x1, int z0, int z1, int y)
+{
+	if (!level->getLevelData() || level->getLevelData()->getGeneratorVersion() < 1) return;
+	Random rr((long)boundingBox->x0 * 734287LL + (long)boundingBox->z0 * 912931LL + boundingBox->y0 * 31);
+	const int w = x1 - x0 + 1, d = z1 - z0 + 1;
+	const int pits = rr.nextInt(d > 8 ? 3 : 2);
+	for (int i = 0; i < pits; ++i) {
+		const int x = x0 + rr.nextInt(w), z = z0 + rr.nextInt(d);
+		placeBlock(level, Tile::calmLava->id, 0, x, y, z, chunkBB);
+		if (rr.nextInt(2) && z + 1 <= z1) placeBlock(level, Tile::calmLava->id, 0, x, y, z + 1, chunkBB);
+	}
+	const int magma = 1 + rr.nextInt(d > 8 ? 4 : 2);
+	for (int i = 0; i < magma; ++i) {
+		const int x = x0 + rr.nextInt(w), z = z0 + rr.nextInt(d);
+		for (int k = 0; k < 2 + rr.nextInt(3); ++k) {
+			const int mx = x + rr.nextInt(3) - 1, mz = z + rr.nextInt(3) - 1;
+			if (mx >= x0 && mx <= x1 && mz >= z0 && mz <= z1 && getBlock(level, mx, y, mz, chunkBB) == NB)
+				placeBlock(level, Tile::magmaBlock->id, 0, mx, y, mz, chunkBB);
+		}
+	}
 }
 
 //
@@ -238,6 +274,7 @@ bool BridgeStraight::postProcess(Level* level, Random* random, BoundingBox* chun
 	generateBox(level, chunkBB, 4, 3, 14, 4, 4, 14, NF, NF, false);
 	generateBox(level, chunkBB, 4, 1, 17, 4, 4, 17, NF, NF, false);
 
+	hazards(level, chunkBB, 1, 3, 3, 15, 4);
 	return true;
 }
 
@@ -747,6 +784,18 @@ bool CastleStalkRoom::postProcess(Level* level, Random* random, BoundingBox* chu
 	generateBox(level, chunkBB, 8, 4, 4, 9, 4, 8, Tile::hellSand->id, Tile::hellSand->id, false);
 	generateBox(level, chunkBB, 3, 5, 4, 4, 5, 8, Tile::netherStalk->id, Tile::netherStalk->id, false);
 	generateBox(level, chunkBB, 8, 5, 4, 9, 5, 8, Tile::netherStalk->id, Tile::netherStalk->id, false);
+	// 2-5 of the soul sand are gold blocks (the bastions' treasure). Chosen
+	// from the piece's position, not the chunk's random, so every chunk this
+	// room spans agrees on which.
+	{
+		Random rr((long)boundingBox->x0 * 341873128712LL + (long)boundingBox->z0 * 132897987541LL + boundingBox->y0);
+		const int n = 2 + rr.nextInt(4);
+		for (int i = 0; i < n; ++i) {
+			const int bx = (rr.nextInt(2) ? 8 : 3) + rr.nextInt(2), bz = 4 + rr.nextInt(5);
+			placeBlock(level, Tile::goldBlock->id, 0, bx, 4, bz, chunkBB);
+			placeBlock(level, 0, 0, bx, 5, bz, chunkBB);
+		}
+	}
 
 	// supports
 	generateBox(level, chunkBB, 4, 2, 0, 8, 2, 12, NB, NB, false);
@@ -807,6 +856,7 @@ bool CastleSmallCorridorPiece::postProcess(Level* level, Random* random, Boundin
 		for (int z = 0; z <= 4; z++)
 			fillColumnDown(level, NB, 0, x, -1, z, chunkBB);
 
+	hazards(level, chunkBB, 1, 3, 0, 4, 1);
 	return true;
 }
 

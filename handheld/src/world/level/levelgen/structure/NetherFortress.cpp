@@ -16,6 +16,11 @@ NetherFortress::NetherFortress(long seed)
 	enemies.push_back(Biome::MobSpawnerData(MobTypes::PigZombie, 5, 4, 4));
 	enemies.push_back(Biome::MobSpawnerData(MobTypes::WitherSkeleton, 8, 2, 4));
 	enemies.push_back(Biome::MobSpawnerData(MobTypes::MagmaCube, 3, 4, 4));
+	// The bastions' garrison, moved in: piglins (always hostile here,
+	// Piglin::inFortress), their brutes, and hoglins.
+	enemies.push_back(Biome::MobSpawnerData(MobTypes::Piglin, 6, 2, 4));
+	enemies.push_back(Biome::MobSpawnerData(MobTypes::PiglinBrute, 3, 1, 2));
+	enemies.push_back(Biome::MobSpawnerData(MobTypes::Hoglin, 4, 2, 3));
 }
 
 NetherFortress::~NetherFortress()

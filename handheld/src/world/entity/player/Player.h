@@ -198,6 +198,7 @@ public:
 	/// Which of the three hurt sounds: burning, drowning, or the plain one.
 	std::string getHurtSound();
 	bool hasEffect(int id) const;
+	bool resistsFire() { return fireImmune || hasEffect(MobEffects::FireResistance); }
 	/// Told when an effect is given: a visitor's copy on the host passes it on.
 	virtual void onEffectAdded(int id, int duration) {}
 	bool canBreatheUnderwater();
