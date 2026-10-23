@@ -155,6 +155,10 @@ int PlayerRenderer::prepareArmor(Mob* mob, int layer, float a) {
 	armor->arm1.visible = layer == 1;
 	armor->leg0.visible = layer == 2 || layer == 3;
 	armor->leg1.visible = layer == 2 || layer == 3;
+	// The same pose as the body under it: the swimming stroke and the
+	// sneak were the player model's only, so the armour stayed upright.
+	armor->swimAmount = player->getSwimAmount(a);
+	armor->sneaking = player->isSneaking();
 
 	setArmor(armor);
 

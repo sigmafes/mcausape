@@ -29,6 +29,12 @@ public:
 
 	void tick(int nTick, int maxTick);
 	void render(float a);
+	/// /panorama: on the next frame, the world from the player's eyes in the
+	/// six directions, 90 degrees each, saved as one PNG strip.
+	void requestPanorama() { _panoramaRequested = true; }
+	bool _panoramaRequested;
+	bool _panorama;
+	void capturePanorama(float a);
 	void renderLevel(float a);
 	void renderItemInHand(float a, int eye);
 

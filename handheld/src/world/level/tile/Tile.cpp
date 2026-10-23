@@ -325,7 +325,7 @@ void Tile::initTiles() {
 		// Aquarium's prismarine (AquariumLevelSource::decorate).
 		static const char* names[5] = { "coralTube", "coralBrain", "coralBubble", "coralFire", "coralHorn" };
 		for (int i = 0; i < 5; ++i)
-			coral[i] = (new Tile(172 + i, 259 + i, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId(names[i]);
+			coral[i] = (new Tile(172 + i, 259 + i, Material::coral))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId(names[i]);
 		// The plants, in the same colours: ids 183-187, terrain cells 272-276.
 		static const char* plants[5] = { "coralTubePlant", "coralBrainPlant", "coralBubblePlant", "coralFirePlant", "coralHornPlant" };
 		for (int i = 0; i < 5; ++i)

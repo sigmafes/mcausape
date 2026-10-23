@@ -12,6 +12,12 @@ class ShrimpItem: public FoodItem
 public:
 	ShrimpItem(int id) : super(id, 1, false) {}
 
+	/// Eaten even at full health: it is eaten for the pressure as much.
+	ItemInstance* use(ItemInstance* instance, Level* level, Player* player) {
+		player->startUsingItem(*instance, getUseDuration(instance));
+		return instance;
+	}
+
 	ItemInstance useTimeDepleted(ItemInstance* instance, Level* level, Player* player) {
 		ItemInstance result = super::useTimeDepleted(instance, level, player);
 		player->pressure = player->pressure > 2 ? player->pressure - 2 : 0;

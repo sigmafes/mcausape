@@ -2,6 +2,7 @@
 #include "../Font.h"
 #include "../Gui.h"
 #include "../../Minecraft.h"
+#include "../../renderer/GameRenderer.h"
 #include "../../../network/packet/ChatPacket.h"
 #include "../../../network/RakNetInstance.h"
 #include "../../../platform/input/Keyboard.h"
@@ -145,7 +146,10 @@ void ChatScreen::send()
 	text.clear();
 
 	if (!line.empty()) {
-		if (line[0] == '/')
+		// Not a command anyone else sees or the host runs: taken here, quietly.
+		if (line == "/panorama")
+			minecraft->gameRenderer->requestPanorama();
+		else if (line[0] == '/')
 			runCommand(line.substr(1));
 		else
 			sendChat(line);

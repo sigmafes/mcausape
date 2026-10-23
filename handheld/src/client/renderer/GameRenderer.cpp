@@ -1,5 +1,7 @@
 #include "GameRenderer.h"
 #include "gles.h"
+#include <vector>
+#include <string.h>
 
 #include "../../util/PerfTimer.h"
 
@@ -31,7 +33,9 @@
 static int _shTicks = -1;
 
 GameRenderer::GameRenderer( Minecraft* mc )
-:	mc(mc),
+:	_panoramaRequested(false),
+	_panorama(false),
+	mc(mc),
 	renderDistance(0),
 	_tick(0),
 	_lastTickT(0),
@@ -122,7 +126,78 @@ void GameRenderer::setupCamera(float a, int eye) {
 extern int _t_keepPic;
 
 /*public*/
+#if defined(MC_WASM)
+#include <emscripten.h>
+// Six square faces side by side (N*6 x N) to a PNG the browser downloads.
+EM_JS(void, mcpe_save_panorama, (const unsigned char* px, int n), {
+	var c = document.createElement('canvas');
+	c.width = n * 6; c.height = n;
+	var ctx = c.getContext('2d');
+	for (var f = 0; f < 6; f++) {
+		var img = ctx.createImageData(n, n);
+		img.data.set(HEAPU8.subarray(px + f * n * n * 4, px + (f + 1) * n * n * 4));
+		ctx.putImageData(img, f * n, 0);
+	}
+	c.toBlob(function (b) {
+		var a = document.createElement('a');
+		a.href = URL.createObjectURL(b);
+		a.download = 'panorama.png';
+		document.body.appendChild(a); a.click(); a.remove();
+		setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+	}, 'image/png');
+});
+#endif
+
+/** The six faces, as Java's title panorama is laid out: 0-3 round the
+    horizon a quarter turn at a time from where the player faces, 4 up,
+    5 down. Rendered one after another in this frame, square (the window's
+    smaller side), 90 degrees, no hand, no GUI, no view bob; read back and
+    flipped the right way up. */
+void GameRenderer::capturePanorama(float a)
+{
+	Mob* p = mc->player;
+	if (!p || !mc->level) return;
+	const int savedW = mc->width, savedH = mc->height;
+	const int n = savedW < savedH ? savedW : savedH;
+	const float yRot = p->yRot, yRotO = p->yRotO, xRot = p->xRot, xRotO = p->xRotO;
+	const bool bob = mc->options.bobView, third = mc->options.thirdPersonView;
+	// Facing a whole quarter, so the faces meet.
+	const float base = Mth::floor(yRot / 90.0f + 0.5f) * 90.0f;
+	mc->options.bobView = false;
+	mc->options.thirdPersonView = false;
+	mc->width = mc->height = n;
+	_panorama = true;
+
+	std::vector<unsigned char> all((size_t) n * n * 4 * 6);
+	std::vector<unsigned char> face((size_t) n * n * 4);
+	for (int f = 0; f < 6; ++f) {
+		float yaw = base + (f < 4 ? f * 90.0f : 0.0f);
+		float pitch = f == 4 ? -90.0f : (f == 5 ? 90.0f : 0.0f);
+		p->yRot = p->yRotO = yaw;
+		p->xRot = p->xRotO = pitch;
+		renderLevel(a);
+		glReadPixels(0, 0, n, n, GL_RGBA, GL_UNSIGNED_BYTE, &face[0]);
+		for (int y = 0; y < n; ++y)
+			memcpy(&all[(size_t) f * n * n * 4 + (size_t) y * n * 4], &face[(size_t) (n - 1 - y) * n * 4], (size_t) n * 4);
+	}
+	for (size_t i = 3; i < all.size(); i += 4) all[i] = 255;
+
+	_panorama = false;
+	mc->width = savedW; mc->height = savedH;
+	p->yRot = yRot; p->yRotO = yRotO; p->xRot = xRot; p->xRotO = xRotO;
+	mc->options.bobView = bob;
+	mc->options.thirdPersonView = third;
+	glViewport(0, 0, savedW, savedH);
+#if defined(MC_WASM)
+	mcpe_save_panorama(&all[0], n);
+#endif
+}
+
 void GameRenderer::render(float a) {
+	if (_panoramaRequested) {
+		_panoramaRequested = false;
+		capturePanorama(a);
+	}
 	TIMER_PUSH("mouse");
 	// mouseGrabbed means a real cursor has been captured, which never happens on
 	// a touchscreen: grabMouse() returns early there instead of asking the
@@ -380,7 +455,7 @@ void GameRenderer::renderLevel(float a) {
 //        glDisable2(GL_FOG);
         setupFog(1);
 
-        if (zoom == 1) {
+        if (zoom == 1 && !_panorama) {
 			TIMER_POP_PUSH("hand");
             glClear(GL_DEPTH_BUFFER_BIT);
             renderItemInHand(a, i);
@@ -407,6 +482,7 @@ void GameRenderer::tickFov() {
 float GameRenderer::getFov(float a, bool applyEffects) {
     Mob* player = mc->cameraTargetPlayer;
     float fov = 70;
+	if (_panorama) return 90;
 
 	if (applyEffects)
 		fov *= this->oFov + (this->fov - this->oFov) * a;

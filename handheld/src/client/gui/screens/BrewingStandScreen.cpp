@@ -254,15 +254,8 @@ void BrewingStandScreen::render(int xm, int ym, float a) {
 	drawSlotItemAt(t, resultSlotItem, btnResult.x, btnResult.y, btnResult.id == selectedSlot);
 
 	if (!burnResult.isNull()) {
-		if (!resultSlotItem || resultSlotItem->isNull()) {
-			glEnable2(GL_BLEND);
-			t.beginOverride();
-			t.colorABGR(0x33ffffff);
-			t.noColor();
-			ItemRenderer::renderGuiItem(minecraft->font, minecraft->textures, &burnResult, (float)(btnResult.x + 7), (float)(btnResult.y + 8), true);
-			t.endOverrideAndDraw();
-			glDisable2(GL_BLEND);
-		}
+		// No faint picture of what it will make in the empty result slot:
+		// it read as already made.
 		minecraft->font->drawWordWrap(currentItemDesc, (float)btnResult.x - 24, (float)(btnResult.y + btnResult.height + 6), descWidth, rgbActive);
 	}
 

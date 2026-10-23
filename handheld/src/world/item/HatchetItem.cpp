@@ -22,7 +22,8 @@ HatchetItem::HatchetItem( int id, const Tier& tier ) :   super(id, 3, tier)
 
 float HatchetItem::getDestroySpeed( ItemInstance* itemInstance, Tile* tile )
 {
-	if (tile != NULL && tile->material == Material::wood) {
+	// Coral blocks are the axe's too (and no longer the pickaxe's).
+	if (tile != NULL && (tile->material == Material::wood || tile->material == Material::coral)) {
 		return speed;
 	}
 	return super::getDestroySpeed(itemInstance, tile);
