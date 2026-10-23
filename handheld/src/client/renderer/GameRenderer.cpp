@@ -1,4 +1,7 @@
 #include "GameRenderer.h"
+#include "../../world/level/dimension/Dimension.h"
+#include "../../SharedConstants.h"
+#include "../../world/level/biome/NetherBiomes.h"
 #include "gles.h"
 #include <vector>
 #include <string.h>
@@ -927,6 +930,22 @@ void GameRenderer::setupClearColor(float a) {
     fr = (float) fogColor.x;
     fg = (float) fogColor.y;
     fb = (float) fogColor.z;
+    // A new world's Nether: the fog of the biomes round the camera, averaged
+    // over a few blocks and eased towards, so crossing a border fades.
+    if (level->dimension->id == Dimension::NETHER && level->getLevelData()->getGeneratorVersion() >= LGV_NETHER_BIOMES) {
+        float tr = 0, tg = 0, tb = 0;
+        const int px = Mth::floor(player->x), pz = Mth::floor(player->z);
+        for (int dx = -8; dx <= 8; dx += 4)
+            for (int dz = -8; dz <= 8; dz += 4) {
+                const int c = NetherBiomes::fogColor(NetherBiomes::at(level->getSeed(), px + dx, pz + dz));
+                tr += ((c >> 16) & 0xff) / 255.0f; tg += ((c >> 8) & 0xff) / 255.0f; tb += (c & 0xff) / 255.0f;
+            }
+        tr /= 25; tg /= 25; tb /= 25;
+        static float nr = -1, ng, nb;
+        if (nr < 0) { nr = tr; ng = tg; nb = tb; }
+        nr += (tr - nr) * 0.02f; ng += (tg - ng) * 0.02f; nb += (tb - nb) * 0.02f;
+        fr = nr; fg = ng; fb = nb;
+    }
 
     fr += (sr - fr) * whiteness;
     fg += (sg - fg) * whiteness;

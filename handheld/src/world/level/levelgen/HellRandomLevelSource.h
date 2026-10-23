@@ -91,6 +91,9 @@ private:
 	float* pnr;
 	float* ar;
 	float* br;
+	long seed;
+	/// LevelData's generator version: 1 and up has NetherBiomes.
+	int version;
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL_LEVELGEN__HellRandomLevelSource_H__*/

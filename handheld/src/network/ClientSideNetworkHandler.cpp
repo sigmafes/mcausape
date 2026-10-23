@@ -202,6 +202,8 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, StartGam
 		SharedConstants::StorageVersion,
 		fixedDimension);
 	level->isClientSide = true;
+	// Which Nether the host's world has (its fog follows the biomes).
+	level->getLevelData()->setGeneratorVersion(packet->levelGeneratorVersion);
 	// Holds the host's chunks; generates nothing (see ClientChunkSource).
 	level->setChunkSource(new ClientChunkSource(level));
 

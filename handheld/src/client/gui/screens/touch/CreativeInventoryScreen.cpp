@@ -58,6 +58,7 @@ int CreativeInventoryScreen::sectionOf(const ItemInstance& item)
 			Tile::cactus, Tile::reeds, Tile::clay, Tile::snow, Tile::topSnow, Tile::ice, Tile::obsidian,
 			Tile::coalOre, Tile::ironOre, Tile::goldOre, Tile::emeraldOre, Tile::lapisOre,
 			Tile::redStoneOre, Tile::quartzOre, Tile::netherrack, Tile::hellSand, Tile::lightGem,
+			Tile::crimsonNylium, Tile::warpedNylium, Tile::soulSoil, Tile::basalt, Tile::blackstone,
 			Tile::pumpkin, Tile::melon, Tile::tallgrass, Tile::web, Tile::unbreakable,
 			Tile::prismarine, Tile::seaLantern, Tile::boneBlock, Tile::coral[0], Tile::coral[1], Tile::coral[2], Tile::coral[3], Tile::coral[4],
 			Tile::coralPlant[0], Tile::coralPlant[1], Tile::coralPlant[2], Tile::coralPlant[3], Tile::coralPlant[4], Tile::doubleGrass,

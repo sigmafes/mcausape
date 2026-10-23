@@ -239,6 +239,11 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Item::kelp));
 		addItem(new ItemInstance(Tile::boneBlock));
 		addItem(new ItemInstance(Tile::seaLantern));
+		addItem(new ItemInstance(Tile::crimsonNylium));
+		addItem(new ItemInstance(Tile::warpedNylium));
+		addItem(new ItemInstance(Tile::soulSoil));
+		addItem(new ItemInstance(Tile::basalt));
+		addItem(new ItemInstance(Tile::blackstone));
 		addItem(new ItemInstance(Tile::prismarineBricks));
 		addItem(new ItemInstance(Tile::darkPrismarine));
 		addItem(new ItemInstance(Tile::stairs_prismarineBricks));

@@ -228,6 +228,11 @@ public:
 	static Tile* coralPlant[5];
 	static Tile* doubleGrass;
 	static Tile* kelp;
+	static Tile* crimsonNylium;
+	static Tile* warpedNylium;
+	static Tile* soulSoil;
+	static Tile* basalt;
+	static Tile* blackstone;
 	static Tile* prismarineBricks;
 	static Tile* darkPrismarine;
 	static Tile* stairs_prismarineBricks;

@@ -172,6 +172,7 @@ void LevelData::setTagData( CompoundTag* tag, CompoundTag* playerTag )
 {
 	if (!tag) return;
 	tag->putLong("RandomSeed", seed);
+	tag->putInt("GeneratorVersion", generatorVersion);
 	tag->putInt("GameType", gameType);
 	tag->putInt("Dimension", dimension);
 	tag->putInt("SpawnX", xSpawn);
@@ -196,6 +197,8 @@ void LevelData::getTagData( const CompoundTag* tag )
 {
 	if (!tag) return;
 	seed = (long)tag->getLong("RandomSeed");
+	// Worlds from before it was saved are the original generator.
+	generatorVersion = tag->contains("GeneratorVersion") ? tag->getInt("GeneratorVersion") : 0;
 	gameType = tag->getInt("GameType");
 	// Worlds saved before this key existed read as 0 (Dimension::NORMAL).
 	dimension = tag->getInt("Dimension");

@@ -3,6 +3,7 @@
 #include "DoublePlantTile.h"
 #include "KelpTile.h"
 #include "SimpleBlocks.h"
+#include "NetherSurfaceTiles.h"
 #include "../Level.h"
 #include "../LevelConstants.h"
 #include "../../entity/player/Player.h"
@@ -166,6 +167,11 @@ Tile* Tile::coral[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::coralPlant[5] = { NULL, NULL, NULL, NULL, NULL };
 Tile* Tile::doubleGrass = NULL;
 Tile* Tile::kelp = NULL;
+Tile* Tile::crimsonNylium = NULL;
+Tile* Tile::warpedNylium = NULL;
+Tile* Tile::soulSoil = NULL;
+Tile* Tile::basalt = NULL;
+Tile* Tile::blackstone = NULL;
 Tile* Tile::prismarineBricks = NULL;
 Tile* Tile::darkPrismarine = NULL;
 Tile* Tile::stairs_prismarineBricks = NULL;
@@ -341,6 +347,12 @@ void Tile::initTiles() {
 	darkPrismarine = (new Tile(193, 285, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("darkPrismarine");
 	stairs_prismarineBricks = (new StairTile(194, prismarineBricks))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsPrismarineBricks");
 	stairs_darkPrismarine = (new StairTile(195, darkPrismarine))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsDarkPrismarine");
+	// The Nether's biome surfaces (NetherBiomes): cells 286-293.
+	crimsonNylium = (new NyliumTile(197, 286))->init()->setDestroyTime(0.4f)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("crimsonNylium");
+	warpedNylium  = (new NyliumTile(198, 288))->init()->setDestroyTime(0.4f)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("warpedNylium");
+	soulSoil      = (new Tile(199, 290, Material::sand))->init()->setDestroyTime(0.5f)->setSoundType(SOUND_SAND)->setCategory(ItemCategory::Structures)->setDescriptionId("soulSoil");
+	basalt        = (new TopSideTile(200, 291, Material::stone))->init()->setDestroyTime(1.25f)->setExplodeable(4.2f)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("basalt");
+	blackstone    = (new TopSideTile(201, 293, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("blackstone");
 	// Bone block: sides 281, top and bottom 282. Sea lantern: 283.
 	boneBlock = (new BoneBlockTile(190, 281))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("boneBlock");
 	seaLantern = (new SeaLanternTile(191, 283))->init()->setDestroyTime(0.3f)->setLightEmission(1.0f)->setSoundType(SOUND_GLASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("seaLantern");

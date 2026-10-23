@@ -10,12 +10,14 @@
 #include "../ChunkPos.h"
 #include "../biome/Biome.h"
 #include "../biome/BiomeSource.h"
+#include "../biome/NetherBiomes.h"
 #include "../chunk/LevelChunk.h"
 #include "../material/Material.h"
 #include "../tile/Tile.h"
 #include "../tile/HeavyTile.h"
 #include "../../../util/Mth.h"
 #include "../../../util/Random.h"
+#include "../../../SharedConstants.h"
 
 static const int MAX_BUFFER_SIZE = 1024;
 
@@ -31,7 +33,9 @@ HellRandomLevelSource::HellRandomLevelSource(Level* level, long seed, int versio
 	depthNoise(&random, 16),
 	spawnMobs(spawnMobs),
 	fortress(seed),
-	pnr(NULL), ar(NULL), br(NULL)
+	pnr(NULL), ar(NULL), br(NULL),
+	seed(seed),
+	version(version)
 {
 	buffer = new float[MAX_BUFFER_SIZE];
 }
@@ -129,6 +133,22 @@ void HellRandomLevelSource::buildSurfaces(int xOffs, int zOffs, unsigned char* b
             int top = Tile::netherrack->id;
             int material = Tile::netherrack->id;
 
+            // Java 1.16's biomes (new worlds): every floor of a biome gets
+            // its ground, at any height, a few blocks deep.
+            int biomeTop = 0, biomeFill = 0;
+            if (version >= LGV_NETHER_BIOMES) {
+                const int wx = xOffs * 16 + x, wz = zOffs * 16 + z;
+                switch (NetherBiomes::at(seed, wx, wz)) {
+                    case NetherBiomes::CrimsonForest: biomeTop = Tile::crimsonNylium->id; biomeFill = Tile::netherrack->id; break;
+                    case NetherBiomes::WarpedForest:  biomeTop = Tile::warpedNylium->id;  biomeFill = Tile::netherrack->id; break;
+                    case NetherBiomes::SoulSandValley:
+                        biomeTop = biomeFill = sand ? Tile::hellSand->id : Tile::soulSoil->id; break;
+                    case NetherBiomes::BasaltDeltas:
+                        biomeTop = biomeFill = gravel ? Tile::blackstone->id : Tile::basalt->id; break;
+                    default: break;
+                }
+            }
+
             for (int y = 127; y >= 0; y--) {
                 int offs = (x << 11) | (z << 7) | y;
 
@@ -141,6 +161,15 @@ void HellRandomLevelSource::buildSurfaces(int xOffs, int zOffs, unsigned char* b
 
                     if (old == 0) {
                         run = -1;
+                    } else if (old == Tile::netherrack->id && biomeTop) {
+                        // A floor (air just above), or the blocks under one.
+                        if (run == -1) {
+                            blocks[offs] = (unsigned char) biomeTop;
+                            run = runDepth > 0 ? runDepth : 1;
+                        } else if (run > 0) {
+                            run--;
+                            blocks[offs] = (unsigned char) biomeFill;
+                        }
                     } else if (old == Tile::netherrack->id) {
                         if (run == -1) {
                             if (runDepth <= 0) {

@@ -6,6 +6,8 @@
 enum LevelGeneratorVersion
 {
 	LGV_ORIGINAL = 0,
+	/// The Nether has Java 1.16's biomes (NetherBiomes).
+	LGV_NETHER_BIOMES = 1,
 };
 
 namespace Common {
@@ -40,7 +42,8 @@ namespace SharedConstants
     
 	const int TicksPerSecond = 20;
 
-	const int GeneratorVersion = (int)LGV_ORIGINAL;
+	// New worlds; saved in level.dat, and a world with none saved is 0.
+	const int GeneratorVersion = (int)LGV_NETHER_BIOMES;
 	//int FULLBRIGHT_LIGHTVALUE = 15 << 20 | 15 << 4;
 }
 
