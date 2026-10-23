@@ -190,6 +190,12 @@ Tile* Tile::soulFire = NULL;
 Tile* Tile::netherGoldOre = NULL;
 Tile* Tile::ancientDebris = NULL;
 Tile* Tile::netheriteBlock = NULL;
+Tile* Tile::polishedBlackstoneBricks = NULL;
+Tile* Tile::crackedPolishedBlackstoneBricks = NULL;
+Tile* Tile::polishedBlackstone = NULL;
+Tile* Tile::chiseledPolishedBlackstone = NULL;
+Tile* Tile::gildedBlackstone = NULL;
+Tile* Tile::polishedBasalt = NULL;
 Tile* Tile::stairs_crimson = NULL;
 Tile* Tile::stairs_warped = NULL;
 Tile* Tile::fence_crimson = NULL;
@@ -410,6 +416,13 @@ void Tile::initTiles() {
 	trapdoor_warped   = (new TrapDoorTile(225, Material::wood, 319))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorWarped");
 	door_crimson      = (new DoorTile(226, Material::wood, 336, &Item::door_crimson))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorCrimson");
 	door_warped       = (new DoorTile(227, Material::wood, 337, &Item::door_warped))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorWarped");
+	// The bastions' stone (cells 323-329).
+	polishedBlackstoneBricks = (new Tile(229, 323, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("polishedBlackstoneBricks");
+	crackedPolishedBlackstoneBricks = (new Tile(230, 324, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("crackedPolishedBlackstoneBricks");
+	polishedBlackstone = (new Tile(231, 325, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("polishedBlackstone");
+	chiseledPolishedBlackstone = (new Tile(232, 326, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("chiseledPolishedBlackstone");
+	gildedBlackstone = (new Tile(233, 327, Material::stone))->init()->setDestroyTime(1.5f)->setExplodeable(6)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("gildedBlackstone");
+	polishedBasalt = (new TopSideTile(234, 328, Material::stone))->init()->setDestroyTime(1.25f)->setExplodeable(4)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("polishedBasalt");
 	netheriteBlock = (new Tile(228, 322, Material::metal))->init()->setDestroyTime(50.0f)->setExplodeable(1200)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Structures)->setDescriptionId("netheriteBlock");
 	// Bone block: sides 281, top and bottom 282. Sea lantern: 283.
 	boneBlock = (new BoneBlockTile(190, 281))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("boneBlock");

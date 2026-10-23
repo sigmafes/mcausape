@@ -28,6 +28,9 @@ public:
 
 	bool admiring();
 	bool hasAxe() const;
+	bool hasBow() const;
+	float getWalkingSpeedModifier();
+	void checkHurtTarget(Entity* target, float d);
 	const bool brute;
 
 protected:

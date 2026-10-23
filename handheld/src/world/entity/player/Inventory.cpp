@@ -258,6 +258,12 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::soulSoil));
 		addItem(new ItemInstance(Tile::basalt));
 		addItem(new ItemInstance(Tile::blackstone));
+		addItem(new ItemInstance(Tile::polishedBasalt));
+		addItem(new ItemInstance(Tile::polishedBlackstoneBricks));
+		addItem(new ItemInstance(Tile::crackedPolishedBlackstoneBricks));
+		addItem(new ItemInstance(Tile::polishedBlackstone));
+		addItem(new ItemInstance(Tile::chiseledPolishedBlackstone));
+		addItem(new ItemInstance(Tile::gildedBlackstone));
 		addItem(new ItemInstance(Tile::netheriteBlock));
 		addItem(new ItemInstance(Item::netheriteScrap));
 		addItem(new ItemInstance(Item::netheriteIngot));

@@ -11,6 +11,9 @@
 #include "../../item/Item.h"
 #include "../../item/ItemInstance.h"
 #include "../../../SharedConstants.h"
+#include "../projectile/Arrow.h"
+#include "../../../util/Mth.h"
+#include <cmath>
 
 static const int DATA_PIGLIN_FLAGS = 16;	// bit 1: admiring a gold ingot
 
@@ -39,20 +42,59 @@ bool Piglin::hasAxe() const
 	return brute || ((unsigned int) entityId * 2654435761u >> 16) % 4 == 0;
 }
 
+bool Piglin::hasBow() const
+{
+	// Another one in four (Java's crossbow piglins): keeps its distance and
+	// shoots. From the id too, so visitors draw the same weapon.
+	return !brute && ((unsigned int) entityId * 2654435761u >> 16) % 4 == 1;
+}
+
+float Piglin::getWalkingSpeedModifier()
+{
+	// Charging a player, piglins break into a run (Java's piglins sprint at
+	// their target); the brute at full tilt.
+	float speed = super::getWalkingSpeedModifier();
+	if (getAttackTarget() && !admiring()) speed *= brute ? 1.8f : 1.6f;
+	return speed;
+}
+
+void Piglin::checkHurtTarget(Entity* target, float d)
+{
+	if (!hasBow()) { super::checkHurtTarget(target, d); return; }
+	// The archer: shoots from up to 14 blocks, stands its ground to do it.
+	if (d < 14) {
+		const float dx = target->x - x, dz = target->z - z;
+		if (attackTime == 0 && canSee(target)) {
+			Arrow* arrow = new Arrow(level, this, 1);
+			const float dy = (target->y + target->getHeadHeight() - 0.7f) - arrow->y;
+			const float lift = Mth::sqrt(dx * dx + dz * dz) * 0.2f;
+			level->playSound(this, "random.bow", 1.0f, 1 / (random.nextFloat() * 0.4f + 0.8f));
+			level->addEntity(arrow);
+			arrow->shoot(dx, dy + lift, dz, 1.6f, 12);
+			attackTime = SharedConstants::TicksPerSecond * 2;
+		}
+		yRot = (float) (std::atan2(dz, dx) * Mth::RADDEG) - 90;
+		holdGround = d < 8;
+	}
+}
+
 bool Piglin::admiring() { return (entityData.getByte(DATA_PIGLIN_FLAGS) & 1) != 0; }
 
 ItemInstance* Piglin::getCarriedItem()
 {
 	static ItemInstance held;
 	if (admiring()) held = ItemInstance(Item::goldIngot);
+	else if (hasBow()) held = ItemInstance(Item::bow);
 	else held = ItemInstance(hasAxe() ? Item::hatchet_gold : Item::sword_gold);
 	return &held;
 }
 
 int Piglin::getAttackDamage(Entity* target)
 {
-	// Java: a piglin's sword 8 (axe 9 on a brute's arm, 13 at hard).
-	if (brute) return 9;
+	// Java: a piglin's sword 8 (axe 9 on a brute's arm, 13 at hard). The
+	// brute's gold axe hits three times as hard as it would (27): the
+	// reason to fear a bastion.
+	if (brute) return 27;
 	return hasAxe() ? 7 : 6;
 }
 
@@ -193,5 +235,6 @@ void Piglin::dropDeathLoot()
 {
 	// Java: its weapon now and then (8.5%).
 	if (random.nextInt(12) == 0)
-		spawnAtLocation(hasAxe() ? Item::hatchet_gold->id : Item::sword_gold->id, 1);
+		spawnAtLocation(hasBow() ? Item::bow->id : hasAxe() ? Item::hatchet_gold->id : Item::sword_gold->id, 1);
+	if (hasBow() && random.nextInt(2) == 0) spawnAtLocation(Item::arrow->id, 1 + random.nextInt(2));
 }

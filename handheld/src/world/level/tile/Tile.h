@@ -250,6 +250,12 @@ public:
 	static Tile* netherGoldOre;
 	static Tile* ancientDebris;
 	static Tile* netheriteBlock;
+	static Tile* polishedBlackstoneBricks;
+	static Tile* crackedPolishedBlackstoneBricks;
+	static Tile* polishedBlackstone;
+	static Tile* chiseledPolishedBlackstone;
+	static Tile* gildedBlackstone;
+	static Tile* polishedBasalt;
 	static Tile* stairs_crimson;
 	static Tile* stairs_warped;
 	static Tile* fence_crimson;
