@@ -1976,6 +1976,8 @@ void Minecraft::updateMusic()
 		track = 2;
 	else if (level->dimension && level->dimension->isAllWater())
 		track = 3;
+	else if (isCreativeMode())	// anything else is the overworld (NORMAL or NORMAL_DAYCYCLE)
+		track = 4;
 	if (options.music <= 0.0f) track = 0;
 	const float volume = options.music;
 
