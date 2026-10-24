@@ -74,6 +74,9 @@ private:
 	void generateSky();
 	void generateStars();
 	void renderBetterSky(float alpha);
+public:
+	void renderShadowCasters(float alpha, float radius);
+private:
 
 	int  renderChunks(int from, int to, int layer, float alpha);
 	void resortChunks(int xc, int yc, int zc);

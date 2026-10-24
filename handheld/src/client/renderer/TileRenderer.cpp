@@ -141,7 +141,35 @@ void TileRenderer::tesselateInWorld( Tile* tile, int x, int y, int z, int fixedT
 	this->fixedTexture = -1;
 }
 
+/** The shaders' material tags (shell.html reads them from the scene's
+    alpha): opaque blocks draw with blending off, so a vertex alpha below 1
+    changes nothing on screen and survives into the framebuffer. Only while
+    the shaders' water is on - drawn straight to the page, an alpha below 1
+    would let the page show through. */
+static int materialTag(Tile* tt)
+{
+	if (!TileRenderer::shaderWater || !tt) return -1;
+	if (tt == Tile::ironBlock || tt == Tile::goldBlock || tt == Tile::emeraldBlock || tt == Tile::netheriteBlock)
+		return 200;	// metal
+	if (tt == Tile::lightGem || tt == Tile::seaLantern)
+		return 230;	// glossy and glowing
+	if (tt == Tile::obsidian || tt == Tile::enchantTable || tt == Tile::oceanCrystalBlock || tt == Tile::prismarine
+		|| tt == Tile::prismarineBricks || tt == Tile::darkPrismarine
+		|| tt == Tile::stairs_prismarineBricks || tt == Tile::stairs_darkPrismarine)
+		return 215;	// glossy stone
+	return -1;
+}
+
 bool TileRenderer::tesselateInWorld( Tile* tt, int x, int y, int z )
+{
+	Tesselator& t = Tesselator::instance;
+	t.tagAlpha = materialTag(tt);
+	const bool r = tesselateInWorldUntagged(tt, x, y, z);
+	t.tagAlpha = -1;
+	return r;
+}
+
+bool TileRenderer::tesselateInWorldUntagged( Tile* tt, int x, int y, int z )
 {
 	int shape = tt->getRenderShape();
 	tt->updateShape(level, x, y, z);

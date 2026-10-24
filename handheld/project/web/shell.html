@@ -1085,6 +1085,7 @@
     var W = 0, H = 0;
     var sceneFb, sceneTex, depthTex = null, depthRb = null, litFb, litTex;
     var waterFb = null, waterTex = null, waterDepth = null, waterUsed = false, maskFb = null;
+    var SHADOW = 2048, shadowFail = false, shadowFb = null, shadowTex = null, shadowCol = null, shadowUsed = false;
     var qFb = [], qTex = [];
     var quad, P = {};
 
@@ -1114,9 +1115,11 @@
       'vec2 toScreen(vec3 v){ return vec2(v.x / (-v.z) / (tanY * aspect), v.y / (-v.z) / tanY) * 0.5 + 0.5; }';
 
     var LIGHT = HEAD + DEPTH +
-      'uniform sampler2D s, wat, wmask; uniform vec2 texel; uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol, skyCol, sunCol, camPos;' +
-      'uniform float time, waterOn, ssr;' +
-      'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows;' +
+      'uniform sampler2D s, wat, wmask, smap; uniform vec2 texel, shTexel;' +
+      'uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol, skyCol, sunCol, camPos;' +
+      'uniform vec3 m0, m1, m2, mt;' +
+      'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows, time, waterOn, ssr;' +
+      'uniform float shOn, shR, shD, shCos, shSin;' +
       'float shadow(vec3 o, float bias){' +
       ' float t = 0.25, occ = 0.0;' +
       ' for (int i = 0; i < 14; i++) {' +
@@ -1129,6 +1132,22 @@
       '  t = t * 1.32 + 0.08;' +
       ' }' +
       ' return occ;' +
+      '}' +
+      // Cast shadows (High): the pixel taken into the sun's view (the
+      // shadow map GameRenderer drew from the sun, an ortho box shR round
+      // the player, shD deep) and tested against what the sun sees there,
+      // nine taps for soft edges, fading out at the box's rim.
+      'float mapShadow(vec3 p, vec3 n){' +
+      ' vec3 e = p + n * (0.05 + length(p) * 0.002) - mt;' +
+      ' vec3 w = vec3(dot(e, m0), dot(e, m1), dot(e, m2));' +
+      ' vec3 q = vec3(w.x * shCos - w.y * shSin, -w.z, w.x * shSin + w.y * shCos);' +
+      ' vec2 su = q.xy / shR * 0.5 + 0.5; float dz = -q.z / shD * 0.5 + 0.5;' +
+      ' if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) return 0.0;' +
+      ' float occ = 0.0;' +
+      ' for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++)' +
+      '  occ += step(texture2D(smap, su + vec2(float(x), float(y)) * shTexel * 1.2).r + 0.0015, dz);' +
+      ' vec2 rim = abs(su - 0.5) * 2.0;' +
+      ' return occ / 9.0 * (1.0 - smoothstep(0.8, 1.0, max(rim.x, rim.y)));' +
       '}' +
       // Water (phase 8). Its surface height field: a few travelling waves,
       // in world blocks; the normal comes from its slope.
@@ -1148,115 +1167,129 @@
       ' c = mix(c, sunsetCol, tw * tw * sunsetK);' +
       ' return c + sunCol * pow(tw, 220.0) * 6.0 * dayK;' +            // the sun's glint
       '}' +
+      // A reflected ray marched through the depth (High): what it meets on
+      // screen, faded at the screen's edges; the fallback where it leaves it.
+      'vec3 ssrTrace(vec3 o, vec3 r, vec3 fallback){' +
+      ' float tt = 0.3; vec3 q;' +
+      ' for (int i = 0; i < 24; i++) {' +
+      '  q = o + r * tt;' +
+      '  if (q.z > -near) break;' +
+      '  vec2 su = toScreen(q);' +
+      '  if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) break;' +
+      '  float sd = texture2D(dep, su).r;' +
+      '  if (sd > 0.02 && sd < 0.99999) {' +
+      '   float dz = -q.z - lin(sd);' +
+      '   if (dz > 0.0 && dz < 1.5 + tt * 0.08) {' +
+      '    vec2 e = smoothstep(0.0, 0.1, su) * smoothstep(1.0, 0.9, su);' +
+      '    return mix(fallback, texture2D(s, su).rgb, e.x * e.y);' +
+      '   }' +
+      '  }' +
+      '  tt = tt * 1.22 + 0.15;' +
+      ' }' +
+      ' return fallback;' +
+      '}' +
+      // A block face's normal from a depth texture, snapped to the world's
+      // axes (every face here is a block's; coarse depths wander).
+      'vec3 faceNormal(sampler2D t, vec2 q, vec3 p){' +
+      ' vec3 pr = viewPos(q + vec2(texel.x, 0.0), texture2D(t, q + vec2(texel.x, 0.0)).r);' +
+      ' vec3 pl = viewPos(q - vec2(texel.x, 0.0), texture2D(t, q - vec2(texel.x, 0.0)).r);' +
+      ' vec3 pu = viewPos(q + vec2(0.0, texel.y), texture2D(t, q + vec2(0.0, texel.y)).r);' +
+      ' vec3 pd = viewPos(q - vec2(0.0, texel.y), texture2D(t, q - vec2(0.0, texel.y)).r);' +
+      ' vec3 dx = abs(pr.z - p.z) < abs(p.z - pl.z) ? pr - p : p - pl;' +
+      ' vec3 dy = abs(pu.z - p.z) < abs(p.z - pd.z) ? pu - p : p - pd;' +
+      ' vec3 n = normalize(cross(dx, dy)); if (dot(n, p) > 0.0) n = -n;' +
+      ' vec3 w = vec3(dot(n, xV), dot(n, upV), dot(n, zV)); vec3 aw = abs(w);' +
+      ' if (aw.x > aw.y && aw.x > aw.z) return xV * sign(w.x);' +
+      ' if (aw.y > aw.z) return upV * sign(w.y);' +
+      ' return zV * sign(w.z);' +
+      '}' +
+      'vec3 hazed(vec3 c, vec3 p){' +
+      ' float h = clamp((1.0 - exp(-length(p) * hazeK)) / 0.95, 0.0, 1.0) * hazeMax;' +
+      ' float tw = max(dot(normalize(p), sunV), 0.0);' +
+      ' return mix(c, mix(hazeCol, sunsetCol, tw * tw * sunsetK), h);' +
+      '}' +
       'vec3 water(vec3 c, vec3 pw, float sceneDist){' +
       ' vec3 v = normalize(pw);' +
-      ' vec3 wp = vec3(dot(pw, xV), dot(pw, upV), dot(pw, zV)) + camPos;' +   // the surface point in the world
+      ' vec3 wp = vec3(dot(pw, xV), dot(pw, upV), dot(pw, zV)) + camPos;' +
       ' vec3 nw = waveNormal(wp.xz);' +
-      // Far off the waves are finer than a pixel and only alias into bands:
-      // they calm with distance, to a flat mirror.
-      ' nw = normalize(mix(nw, vec3(0.0, 1.0, 0.0), smoothstep(12.0, 48.0, length(pw))));' +
+      ' nw = normalize(mix(nw, vec3(0.0, 1.0, 0.0), smoothstep(12.0, 48.0, length(pw))));' +   // far waves calm: no aliasing
       ' vec3 n = normalize(xV * nw.x + upV * nw.y + zV * nw.z);' +
       ' vec3 r = reflect(v, n);' +
       ' float ct = max(dot(-v, n), 0.0);' +
-      ' float fres = 0.04 + 0.96 * pow(1.0 - ct, 5.0);' +
-      ' fres = clamp(fres * 1.15 + 0.06, 0.0, 1.0);' +
-      // What is seen through it: clearer and greener than the game's water,
-      // fading to a deep teal with the depth of water looked through.
-      // The game's water is baked nearly clear (TileRenderer::shaderWater),
-      // so c is the bed itself: through shallow water it shows tinted
-      // green-blue, through deep water the colour is the water's own.
-      ' float thick = max(sceneDist - length(pw), 0.0);' +
-      ' float absorb = 1.0 - exp(-thick * 0.22);' +
+      ' float fres = clamp((0.04 + 0.96 * pow(1.0 - ct, 5.0)) * 1.15 + 0.06, 0.0, 1.0);' +
+      // The game's water is baked nearly clear (TileRenderer::shaderWater): c
+      // is the bed, tinted green-blue, giving way to deep teal with depth.
+      ' float absorb = 1.0 - exp(-max(sceneDist - length(pw), 0.0) * 0.22);' +
       ' vec3 deep = vec3(0.05, 0.27, 0.3) * (0.3 + 0.7 * max(dayK, 0.15));' +
-      ' vec3 under = c * vec3(0.72, 0.96, 0.92);' +
-      ' under = mix(under, deep, clamp(absorb * 0.95, 0.0, 1.0));' +
+      ' vec3 under = mix(c * vec3(0.72, 0.96, 0.92), deep, clamp(absorb * 0.95, 0.0, 1.0));' +
       ' vec3 refl = skyRefl(r);' +
-      ' if (ssr > 0.5) {' +
-      // High: march the reflected ray through the depth; what it meets on
-      // screen is what the water shows, the sky where it leaves it.
-      '  float tt = 0.3; vec3 q;' +
-      '  for (int i = 0; i < 24; i++) {' +
-      '   q = pw + r * tt;' +
-      '   if (q.z > -near) break;' +
-      '   vec2 su = toScreen(q);' +
-      '   if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) break;' +
-      '   float sd = texture2D(dep, su).r;' +
-      '   if (sd > 0.02 && sd < 0.99999) {' +
-      '    float dz = -q.z - lin(sd);' +
-      '    if (dz > 0.0 && dz < 1.5 + tt * 0.08) {' +
-      '     vec2 e = smoothstep(0.0, 0.1, su) * smoothstep(1.0, 0.9, su);' +   // fade at the screen's edges
-      '     refl = mix(refl, texture2D(s, su).rgb, e.x * e.y);' +
-      '     break;' +
-      '    }' +
-      '   }' +
-      '   tt = tt * 1.22 + 0.15;' +
-      '  }' +
-      ' }' +
+      ' if (ssr > 0.5) refl = ssrTrace(pw, r, refl);' +
       ' return mix(under, refl, fres);' +
       '}' +
       'void main(){' +
-      ' vec3 c = texture2D(s, uv).rgb; float d = texture2D(dep, uv).r;' +
+      ' vec4 sc = texture2D(s, uv); vec3 c = sc.rgb; float tag = sc.a;' +
+      ' float d = texture2D(dep, uv).r;' +
       ' if (d < 0.02) { gl_FragColor = vec4(c, 1.0); return; }' +                     // the hand
       ' float wd = waterOn > 0.5 ? texture2D(wat, uv).r : 1.0;' +
-      // Water in front of whatever is behind it, seen from above.
-      // Water where the mask (maskMid) says the water is in front.
-      ' if (wd < 0.99999 && texture2D(wmask, uv).r > 0.02) {' +
+      ' vec4 wm = texture2D(wmask, uv);' +
+      // The water layer, where the mask (maskMid) says it is in front. Its
+      // alpha tells water (baked 0.08) from ice (1).
+      ' if (wd < 0.99999 && wm.r > 0.02) {' +
       '  vec3 pw = viewPos(uv, wd);' +
+      '  if (wm.a > 0.5) {' +
+      // Ice: the game's own ice, polished - a sharp mirror by Fresnel.
+      '   vec3 ni = faceNormal(wat, uv, pw);' +
+      '   vec3 vi = normalize(pw), ri = reflect(vi, ni);' +
+      '   float fi = 0.06 + 0.7 * pow(1.0 - max(dot(-vi, ni), 0.0), 5.0);' +
+      '   vec3 rc = skyRefl(ri); if (ssr > 0.5) rc = ssrTrace(pw + ni * 0.03, ri, rc);' +
+      '   gl_FragColor = vec4(hazed(mix(c * vec3(0.95, 1.0, 1.06), rc, fi), pw), 1.0); return;' +
+      '  }' +
       '  if (dot(normalize(pw), upV) < 0.0) {' +
       '   float sceneDist = d >= 0.99999 ? far * 2.0 : length(viewPos(uv, d));' +
-      '   vec3 cw = water(c, pw, sceneDist);' +
-      '   float dw = length(pw);' +
-      '   float hw = clamp((1.0 - exp(-dw * hazeK)) / 0.95, 0.0, 1.0) * hazeMax;' +
-      '   float tw = max(dot(normalize(pw), sunV), 0.0);' +
-      '   gl_FragColor = vec4(mix(cw, mix(hazeCol, sunsetCol, tw * tw * sunsetK), hw), 1.0); return;' +
+      '   gl_FragColor = vec4(hazed(water(c, pw, sceneDist), pw), 1.0); return;' +
       '  }' +
-      // Seen from below or edge-on (a waterfall, the side of a pool): no
-      // mirror, but still the water's colour, since the game's is clear.
+      // Seen from below or edge-on (a waterfall, a pool's side): no mirror,
+      // but still the water's colour, since the game's is clear.
       '  c = mix(c * vec3(0.72, 0.96, 0.92), vec3(0.05, 0.27, 0.3) * (0.3 + 0.7 * max(dayK, 0.15)), 0.45);' +
       ' }' +
       ' if (d >= 0.99999) {' +
       // The sky: the haze carries on past the last terrain, full at the
-      // horizon and thinning upwards, so the far edge of the world runs
-      // into it instead of stopping in a line.
+      // horizon and thinning upwards, so the world's far edge runs into it.
       '  vec3 dir = normalize(viewPos(uv, 0.999));' +
       '  float hs = (1.0 - smoothstep(0.0, 0.32, dot(dir, upV))) * hazeMax;' +
       '  float tw = max(dot(dir, sunV), 0.0);' +
       '  gl_FragColor = vec4(mix(c, mix(hazeCol, sunsetCol, tw * tw * sunsetK), hs), 1.0); return;' +
       ' }' +
       ' vec3 p = viewPos(uv, d);' +
-      ' vec3 pr = viewPos(uv + vec2(texel.x, 0.0), texture2D(dep, uv + vec2(texel.x, 0.0)).r);' +
-      ' vec3 pl = viewPos(uv - vec2(texel.x, 0.0), texture2D(dep, uv - vec2(texel.x, 0.0)).r);' +
-      ' vec3 pu = viewPos(uv + vec2(0.0, texel.y), texture2D(dep, uv + vec2(0.0, texel.y)).r);' +
-      ' vec3 pd = viewPos(uv - vec2(0.0, texel.y), texture2D(dep, uv - vec2(0.0, texel.y)).r);' +
-      ' vec3 dx = abs(pr.z - p.z) < abs(p.z - pl.z) ? pr - p : p - pl;' +       // the nearer side: no smear over edges
-      ' vec3 dy = abs(pu.z - p.z) < abs(p.z - pd.z) ? pu - p : p - pd;' +
-      ' vec3 n = normalize(cross(dx, dy)); if (dot(n, p) > 0.0) n = -n;' +
-      // Every face here is a block's: snap the rebuilt normal to the nearest
-      // of the world's six axes. A coarse depth (16 bits on many phones)
-      // makes the raw one wander in diagonal bands - lit, then shaded, then
-      // lit - which is what striped the faces.
-      ' vec3 w = vec3(dot(n, xV), dot(n, upV), dot(n, zV)); vec3 aw = abs(w);' +
-      ' if (aw.x > aw.y && aw.x > aw.z) n = xV * sign(w.x);' +
-      ' else if (aw.y > aw.z) n = upV * sign(w.y); else n = zV * sign(w.z);' +
+      ' vec3 n = faceNormal(dep, uv, p);' +
       ' float dist = length(p);' +
       ' if (lightOn > 0.5) {' +
       '  float nl = dot(n, sunV);' +
       '  float lit = clamp(nl * 1.6, 0.0, 1.0) * dayK, shade = clamp(-nl * 1.6, 0.0, 1.0) * dayK;' +
-      '  if (shadows > 0.5 && lit > 0.0 && dist < 64.0) {' +
-      // Margins that grow with distance, as the depth's steps do.
-      '   float o = shadow(p + n * (0.06 + dist * 0.01), 0.08 + dist * 0.015) * (1.0 - smoothstep(40.0, 64.0, dist));' +
+      '  if (lit > 0.0) {' +
+      '   float o = 0.0;' +
+      '   if (shOn > 0.5) o = mapShadow(p, n);' +
+      '   else if (shadows > 0.5 && dist < 64.0)' +
+      '    o = shadow(p + n * (0.06 + dist * 0.01), 0.08 + dist * 0.015) * (1.0 - smoothstep(40.0, 64.0, dist));' +
       '   lit *= 1.0 - o; shade = max(shade, o * dayK * 0.85);' +
       '  }' +
       '  c *= mix(mix(vec3(1.0), warm, lit), cool, shade);' +
       '  c *= mix(vec3(1.0), night, nightK);' +
       ' }' +
-      // Normalised so the haze reaches hazeMax just at the render distance
-      // (hazeK is 3 / far): the same as the sky beyond it at the horizon.
-      ' float h = clamp((1.0 - exp(-dist * hazeK)) / 0.95, 0.0, 1.0) * hazeMax;' +
-      ' float toward = max(dot(normalize(p), sunV), 0.0);' +
-      ' vec3 hc = mix(hazeCol, sunsetCol, toward * toward * sunsetK);' +
-      ' c = mix(c, hc, h);' +
-      ' gl_FragColor = vec4(c, 1.0);' +
+      // Polished blocks, by the tag TileRenderer baked into their alpha:
+      // metals (iron, gold, diamond, netherite) reflect tinted by their own
+      // colour; glossy stone (obsidian, prismarine, the ocean crystal block,
+      // the enchanting table) and glowing blocks (glowstone, sea lantern)
+      // a clear, lighter Fresnel reflection, the glowing ones brighter too.
+      ' if (tag < 0.95) {' +
+      '  vec3 v = normalize(p), r = reflect(v, n);' +
+      '  float F = pow(1.0 - max(dot(-v, n), 0.0), 5.0);' +
+      '  vec3 rc = skyRefl(r); if (ssr > 0.5) rc = ssrTrace(p + n * 0.04, r, rc);' +
+      '  if (tag < 0.81) c = mix(c, rc * (c * 1.5 + 0.12), 0.38 + 0.4 * F);' +
+      '  else if (tag < 0.87) c = mix(c, rc, 0.05 + 0.55 * F);' +
+      '  else c = mix(c * 1.18, rc, 0.04 + 0.45 * F);' +
+      ' }' +
+      ' gl_FragColor = vec4(hazed(c, p), 1.0);' +
       '}';
 
     var RAYS = HEAD + DEPTH + 'uniform sampler2D s; uniform vec2 sunUV;' +
@@ -1404,6 +1437,7 @@
           if (w !== W || h !== H) resize(w, h);
           gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFb);
           waterUsed = false;
+          shadowUsed = false;
           return depthTex ? 2 : 1;	// 2: depth is kept, the hand must not clear it
         } catch (e) {
           broken = true;
@@ -1415,6 +1449,41 @@
 
       // The water layer drawn again, untextured, into waterFb's depth
       // (GameRenderer, after the real water pass, which writes no depth).
+      // The sun's view of the world for cast shadows (High): GameRenderer
+      // draws the solid layers into this depth with an ortho box round the
+      // player, before the scene. Colour writes off: only depth matters.
+      shadowBegin: function (ctx) {
+        if (!depthTex || gl !== ctx || shadowFail) return 0;
+        var g = gl;
+        if (!shadowFb) {
+          try {
+            var t0 = g.getParameter(g.TEXTURE_BINDING_2D);
+            shadowCol = texture(SHADOW, SHADOW);
+            shadowTex = texture(SHADOW, SHADOW, g.DEPTH_COMPONENT, g.UNSIGNED_INT);
+            shadowFb = framebuffer(shadowCol, shadowTex, null);
+            g.bindTexture(g.TEXTURE_2D, t0);
+          } catch (e) { console.warn('[shaders] no cast shadows:', e && e.message); shadowFb = null; shadowFail = true; return 0; }
+        }
+        var sc = g.isEnabled(g.SCISSOR_TEST), dm = g.getParameter(g.DEPTH_WRITEMASK);
+        this._vp = g.getParameter(g.VIEWPORT); this._sc = sc;
+        g.bindFramebuffer(g.FRAMEBUFFER, shadowFb);
+        if (sc) g.disable(g.SCISSOR_TEST);
+        g.viewport(0, 0, SHADOW, SHADOW);
+        g.depthMask(true);
+        g.clear(g.DEPTH_BUFFER_BIT);
+        g.depthMask(dm);
+        g.colorMask(false, false, false, false);
+        shadowUsed = true;
+        return 1;
+      },
+      shadowEnd: function (ctx) {
+        var g = gl, vp = this._vp;
+        g.colorMask(true, true, true, true);
+        g.bindFramebuffer(g.FRAMEBUFFER, sceneFb);
+        g.viewport(vp[0], vp[1], vp[2], vp[3]);
+        if (this._sc) g.enable(g.SCISSOR_TEST);
+      },
+
       maskBegin: function (ctx) {
         if (!waterFb || gl !== ctx) return 0;
         var g = gl;
@@ -1446,8 +1515,10 @@
         gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFb);
       },
 
-      // f: 33 numbers from GameRenderer (18-26: the world's y, x and z axes in
-      // view space; 27-29: the camera in the world, wrapped; 30-32: the sky's colour) -
+      // f: 49 numbers from GameRenderer (18-26: the world's y, x and z axes in
+      // view space; 27-29: the camera in the world, wrapped; 30-32: the sky's
+      // colour; 33-44: the view matrix's rotation columns and translation;
+      // 45-48: the shadow view's turn (cos, sin), half-width and depth) -
       //  0 near, 1 far, 2 tan(fovY/2), 3 aspect, 4-6 the sun's direction in
       //  view space, 7 the sun's height in the world (-1..1), 8-10 the fog
       //  colour, 11 the sunrise colour's strength, 12-14 the sunrise colour,
@@ -1460,7 +1531,7 @@
         var prog = g.getParameter(g.CURRENT_PROGRAM), abuf = g.getParameter(g.ARRAY_BUFFER_BINDING);
         var unit = g.getParameter(g.ACTIVE_TEXTURE), vp = g.getParameter(g.VIEWPORT);
         var texs = [];
-        for (var u = 0; u < 4; u++) { g.activeTexture(g.TEXTURE0 + u); texs[u] = g.getParameter(g.TEXTURE_BINDING_2D); }
+        for (var u = 0; u < 5; u++) { g.activeTexture(g.TEXTURE0 + u); texs[u] = g.getParameter(g.TEXTURE_BINDING_2D); }
         var caps = [g.DEPTH_TEST, g.BLEND, g.CULL_FACE, g.SCISSOR_TEST, g.STENCIL_TEST];
         var on = caps.map(function (c) { return g.isEnabled(c); });
         var a0 = {
@@ -1535,6 +1606,17 @@
           g.uniform3f(p.u('camPos'), f[27], f[28], f[29]);
           g.uniform3f(p.u('skyCol'), f[30], f[31], f[32]);
           g.uniform3fv(p.u('sunCol'), sunCol);
+          g.uniform3f(p.u('m0'), f[33], f[34], f[35]);
+          g.uniform3f(p.u('m1'), f[36], f[37], f[38]);
+          g.uniform3f(p.u('m2'), f[39], f[40], f[41]);
+          g.uniform3f(p.u('mt'), f[42], f[43], f[44]);
+          var shOn = shadowUsed && shadowFb;
+          bind(4, shOn ? shadowTex : depthTex);
+          g.uniform1i(p.u('smap'), 4);
+          g.uniform1f(p.u('shOn'), shOn ? 1 : 0);
+          g.uniform1f(p.u('shCos'), f[45]); g.uniform1f(p.u('shSin'), f[46]);
+          g.uniform1f(p.u('shR'), f[47]); g.uniform1f(p.u('shD'), f[48]);
+          g.uniform2f(p.u('shTexel'), 1 / SHADOW, 1 / SHADOW);
           draw();
           src = litTex;
         }
@@ -1589,7 +1671,7 @@
         draw();
 
         // Back as it was.
-        for (var ub = 3; ub >= 0; ub--) { g.activeTexture(g.TEXTURE0 + ub); g.bindTexture(g.TEXTURE_2D, texs[ub]); }
+        for (var ub = 4; ub >= 0; ub--) { g.activeTexture(g.TEXTURE0 + ub); g.bindTexture(g.TEXTURE_2D, texs[ub]); }
         g.activeTexture(unit);
         g.bindBuffer(g.ARRAY_BUFFER, a0.buf);
         if (a0.buf) g.vertexAttribPointer(0, a0.size, a0.type, a0.norm, a0.stride, a0.off);

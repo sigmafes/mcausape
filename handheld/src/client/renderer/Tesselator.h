@@ -98,6 +98,11 @@ private:
 	float xo, yo, zo;
 	float u, v;
 	unsigned int _color;
+public:
+	/// A material tag for the shaders, written over every vertex's alpha
+	/// while set (TileRenderer::tesselateInWorld); -1 for none.
+	int tagAlpha;
+private:
 	int _normal;
 	float _sx, _sy;
 

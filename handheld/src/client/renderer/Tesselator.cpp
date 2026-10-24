@@ -12,6 +12,7 @@ Tesselator::Tesselator( int size )
 	vertices(0),
 	u(0), v(0),
 	_color(0),
+	tagAlpha(-1),
 	hasColor(false),
 	hasTexture(false),
 	hasNormal(false),
@@ -294,7 +295,7 @@ void Tesselator::vertex( float x, float y, float z )
 		vertex.v = v;
 	}
 	if (hasColor) {
-		vertex.color = _color;
+		vertex.color = tagAlpha >= 0 ? ((_color & 0x00ffffff) | ((unsigned int) tagAlpha << 24)) : _color;
 	}
 	//if (hasNormal) {
 	//	vertex.normal = _normal;

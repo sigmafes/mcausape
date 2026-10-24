@@ -48,6 +48,7 @@ GameRenderer::GameRenderer( Minecraft* mc )
 	fov(1), oFov(1),
 	_setupCameraFov(0),
 	_postKeepsDepth(false),
+	_shadowPass(false),
 	zoom(1), zoom_x(0), zoom_y(0),
 	cameraRoll(0), cameraRollO(0),
 	pickDirection(1, 0, 0),
@@ -280,14 +281,18 @@ void GameRenderer::render(float a) {
 				TileRenderer::shaderWater = post == 2;
 				mc->levelRenderer->allChanged();
 			}
+			// Cast shadows (High): the world from the sun first.
+			_shadowPass = false;
+			if (post == 2 && mc->options.shaderHigh && !mc->level->dimension->foggy && !mc->level->dimension->isAllWater())
+				renderShadowMap(a);
 #endif
 			renderLevel(a);
 #if defined(MC_WASM)
 			_postKeepsDepth = false;
 			if (post) {
-				float f[33];
+				float f[49];
 				shaderParams(a, f);
-				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 33))); },
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 49))); },
 					mc->width, mc->height, f);
 			}
 #endif
@@ -976,6 +981,43 @@ void GameRenderer::tick(int nTick, int maxTick) {
     sky turns as Better Sky draws it (LevelRenderer::renderBetterSky), the
     view as moveCameraToPlayer turns it - its height, the fog colour, the
     sunrise colour and strength, and which look and quality apply. */
+/** The shadow map for the shaders (High): the solid layers drawn from the sun
+    into shell.html's shadow depth, an ortho box ShadowRadius round the
+    player, turned so the sun looks straight down it. The turn is the sky's
+    (Better Sky's sun): the sun stands at (-sin t, cos t, 0) for the day's
+    angle t; turning by -t about z brings it overhead, and a quarter turn
+    about x points it at the viewer. shaderParams passes the same turn. */
+void GameRenderer::renderShadowMap(float a) {
+#if defined(MC_WASM)
+	const float th = mc->level->getTimeOfDay(a) * Mth::PI * 2;
+	if (Mth::cos(th) < 0.03f) return;	// the sun is down
+	if (!EM_ASM_INT({ return window.mcpeShaders.shadowBegin(GLctx); })) return;
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix2();
+	glLoadIdentity2();
+	glOrthof(-ShadowRadius, ShadowRadius, -ShadowRadius, ShadowRadius, -ShadowDepth, ShadowDepth);
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix2();
+	glLoadIdentity2();
+	glRotatef2(90, 1, 0, 0);
+	glRotatef2(-th * Mth::RADDEG, 0, 0, 1);
+	mc->textures->loadAndBindTexture("terrain.png");
+	glDisable2(GL_BLEND);
+	glDisable2(GL_FOG);
+	glDisable2(GL_CULL_FACE);
+	glEnable2(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+	mc->levelRenderer->renderShadowCasters(a, ShadowRadius);
+	glEnable2(GL_CULL_FACE);
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix2();
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix2();
+	EM_ASM({ window.mcpeShaders.shadowEnd(GLctx); });
+	_shadowPass = true;
+#endif
+}
+
 void GameRenderer::shaderParams(float a, float* f) {
 	Level* level = mc->level;
 	Mob* p = mc->cameraTargetPlayer;
@@ -1019,6 +1061,17 @@ void GameRenderer::shaderParams(float a, float* f) {
 	f[29] = camZ - Mth::floor(camZ / 512.0f) * 512.0f;
 	Vec3 sky = level->getSkyColor(p, a);
 	f[30] = (float) sky.x; f[31] = (float) sky.y; f[32] = (float) sky.z;
+	// The view matrix renderLevel set up (saveMatrices): it takes the
+	// player-centred world the chunks are drawn in to the eye. Its rotation
+	// columns and translation let the shaders go back from the eye to that
+	// world, and on into the sun's view for the shadow map.
+	const float* m = lastModelMatrix;
+	f[33] = m[0]; f[34] = m[1]; f[35] = m[2];
+	f[36] = m[4]; f[37] = m[5]; f[38] = m[6];
+	f[39] = m[8]; f[40] = m[9]; f[41] = m[10];
+	f[42] = m[12]; f[43] = m[13]; f[44] = m[14];
+	f[45] = Mth::cos(-th); f[46] = Mth::sin(-th);
+	f[47] = ShadowRadius; f[48] = ShadowDepth;
 }
 
 void GameRenderer::setupClearColor(float a) {

@@ -23,6 +23,7 @@ public:
 
     void tesselateInWorld(Tile* tile, int x, int y, int z, int fixedTexture);
     bool tesselateInWorld(Tile* tt, int x, int y, int z);
+    bool tesselateInWorldUntagged(Tile* tt, int x, int y, int z);
 	void tesselateInWorldNoCulling(Tile* tile, int x, int y, int z);
 
 	bool tesselateTorchInWorld(Tile* tt, int x, int y, int z);

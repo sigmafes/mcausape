@@ -4,6 +4,9 @@
 #include "../client/player/LocalPlayer.h"
 #include "../network/ServerSideNetworkHandler.h"
 #include "../network/packet/ExtPacket.h"
+#include "../network/packet/SetTimePacket.h"
+#include "../network/RakNetInstance.h"
+#include <cstdlib>
 #include "../util/Mth.h"
 #include "../world/item/Item.h"
 #include "../world/item/ItemInstance.h"
@@ -192,6 +195,7 @@ static const HelpEntry HELP[] = {
 	{ "gamemode",  false, "/gamemode <s|c> [jugador] | /gamemode world <s|c>", "Cambia a supervivencia (s) o creativo (c), a ti o a otro jugador. Con world, fija el modo con el que entran los jugadores de ahora en adelante, sin tocar el del anfitrion. Necesita /cheats." },
 	{ "give",      false, "/give <id o nombre> [cantidad] [dato]", "Te da un objeto. Necesita /cheats." },
 	{ "summon",    false, "/summon <mob>", "Invoca una criatura delante de ti. Necesita /cheats." },
+	{ "time",      false, "/time set <ticks|day|noon|night|midnight>", "Cambia la hora del dia (0-24000 como en Java: 1000 dia, 6000 mediodia, 13000 noche, 18000 medianoche). Necesita /cheats." },
 };
 
 static void help(Minecraft* mc, ServerSideNetworkHandler* net, Player* to, bool privileged, const std::string& topic)
@@ -492,6 +496,43 @@ void ServerCommands::run(Minecraft* mc, ServerSideNetworkHandler* net, Player* s
 			ExtPacket give(ExtPacket::Give, id, count, aux);
 			net->sendExt(sender, give);
 		}
+		reply(mc, net, sender, msg.str());
+		return;
+	}
+
+	if (cmd == "time") {
+		const std::string sub = words.size() >= 2 ? lower(words[1]) : "";
+		const std::string v = words.size() >= 3 ? lower(words[2]) : "";
+		long javaTicks = -1;
+		if (v == "day") javaTicks = 1000;
+		else if (v == "noon") javaTicks = 6000;
+		else if (v == "night") javaTicks = 13000;
+		else if (v == "midnight") javaTicks = 18000;
+		else if (!v.empty() && v.find_first_not_of("0123456789") == std::string::npos) javaTicks = atol(v.c_str()) % 24000;
+		if (sub != "set" || javaTicks < 0) {
+			reply(mc, net, sender, "Uso: /time set <ticks|day|noon|night|midnight>");
+			return;
+		}
+		// Java's day is 24000 ticks with 0 at sunrise; this one is
+		// Level::TICKS_PER_DAY long with the same phase. The day count is
+		// kept (the moon's phase follows it).
+		const long tpd = Level::TICKS_PER_DAY;
+		const long into = javaTicks * tpd / 24000;
+		std::vector<Level*> levels;
+		levels.push_back(mc->level);
+		for (unsigned int i = 0; i < mc->otherLevels.size(); ++i) levels.push_back(mc->otherLevels[i]);
+		for (unsigned int i = 0; i < levels.size(); ++i) {
+			Level* l = levels[i];
+			if (!l) continue;
+			const long now = l->getTime();
+			l->setTime(now - now % tpd + into);
+			if (l->raknetInstance) {
+				SetTimePacket packet(l->getTime());
+				l->raknetInstance->send(packet);
+			}
+		}
+		std::ostringstream msg;
+		msg << "Hora fijada en " << javaTicks << ".";
 		reply(mc, net, sender, msg.str());
 		return;
 	}

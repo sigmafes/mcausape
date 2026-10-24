@@ -96,6 +96,9 @@ private:
 	float _setupCameraFov;
 	bool _postKeepsDepth;
 	void shaderParams(float a, float* f);
+	void renderShadowMap(float a);
+	bool _shadowPass;
+	static const int ShadowRadius = 64, ShadowDepth = 128;
 
 	// roll modification
 	float cameraRoll;

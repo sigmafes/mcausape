@@ -672,6 +672,33 @@ void LevelRenderer::render(const AABB& b) const
 //	}
 //}
 
+/** The solid layers again, for the shaders' cast shadows (GameRenderer
+    draws this from the sun): every chunk within `radius` of the player
+    counts, behind the camera or not - what is off screen still casts
+    shadows onto what is on it. The camera's own visibility is put back. */
+void LevelRenderer::renderShadowCasters(float alpha, float radius)
+{
+	Mob* player = mc->cameraTargetPlayer;
+	const float px = player->xOld + (player->x - player->xOld) * alpha;
+	const float pz = player->zOld + (player->z - player->zOld) * alpha;
+	std::vector<char> was(chunksLength * 2);
+	for (int i = 0; i < chunksLength; i++) {
+		Chunk* c = chunks[i];
+		was[i * 2] = c->visible; was[i * 2 + 1] = c->occlusion_visible;
+		const float dx = c->x + 8 - px, dz = c->z + 8 - pz;
+		c->visible = !c->isEmpty() && dx * dx + dz * dz < (radius + 12) * (radius + 12);
+		c->occlusion_visible = true;
+	}
+	glDisable2(GL_ALPHA_TEST);
+	renderChunks(0, chunksLength, 0, alpha);
+	glEnable2(GL_ALPHA_TEST);	// leaves: their holes let the sun through
+	renderChunks(0, chunksLength, 1, alpha);
+	for (int i = 0; i < chunksLength; i++) {
+		chunks[i]->visible = was[i * 2] != 0;
+		chunks[i]->occlusion_visible = was[i * 2 + 1] != 0;
+	}
+}
+
 int LevelRenderer::renderChunks( int from, int to, int layer, float alpha )
 {
 	_renderChunks.clear();
