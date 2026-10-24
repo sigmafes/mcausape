@@ -181,6 +181,7 @@ struct HelpEntry {
 static const HelpEntry HELP[] = {
 	{ "help",      true,  "/help [comando]", "Lista los comandos, o explica uno." },
 	{ "fps",       true,  "/fps", "Muestra u oculta el contador de FPS en la esquina superior izquierda (solo en tu pantalla)." },
+	{ "perf",      true,  "/perf", "Muestra cuanto tarda cada parte del frame en ms (sombras, mundo, agua, shaders) y la escala de render. Mientras esta activo, el juego va algo mas lento por medir." },
 	{ "register",  true,  "/register <contrasena>", "Con /auth activo: crea tu cuenta con ese nombre (minimo 4 caracteres)." },
 	{ "login",     true,  "/login <contrasena>", "Con /auth activo: inicia sesion. Sin hacerlo no puedes moverte, mirar ni abrir el inventario, y a los 30 s te expulsa." },
 	{ "kill",      true,  "/kill [jugador]", "Te mata. Con un nombre mata a ese jugador (solo anfitrion y operadores)." },

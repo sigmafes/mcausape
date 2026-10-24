@@ -51,6 +51,7 @@ void Options::initDefaultValues() {
 	shaders = false;
 	betterSky = false;
 	shaderHigh = false;
+	renderScale = 0;
 	thirdPersonFront = false;
 
 	keyUp	 = KeyMapping("key.forward", Keyboard::KEY_W);
@@ -278,6 +279,10 @@ void Options::update()
 			readBool(value, ambientOcclusion);
 			applyAmbientOcclusion();
 		}
+		if (key == OptionStrings::Graphics_RenderScale) {
+			int v;
+			if (readInt(value, v) && v >= 0 && v <= 3) renderScale = v;
+		}
 		if (key == OptionStrings::Graphics_ShaderHigh) {
 			readBool(value, shaderHigh);
 		}
@@ -389,6 +394,7 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Shaders, shaders);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_BetterSky, betterSky);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_ShaderHigh, shaderHigh);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_RenderScale, renderScale);
 
 	// Sound
 	addOptionToSaveOutput(stringVec, OptionStrings::Sound_Volume, sound);

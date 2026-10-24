@@ -303,6 +303,7 @@ void OptionsScreen::generateOptionScreens() {
 		.addOptionItem(&Options::Option::GRAPHICS, minecraft)
 		.addOptionItem(&Options::Option::AMBIENT_OCCLUSION, minecraft)
 		.addShaderRow(minecraft)
+		.addRenderScaleRow(minecraft)
 		.addOptionItem(&Options::Option::BETTER_SKY, minecraft);
 	// The browser's fullscreen, where the page used to have a button for it.
 	// Not offered where there is none to have: an iPhone gives fullscreen to

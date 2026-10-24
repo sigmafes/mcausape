@@ -45,6 +45,30 @@ private:
 	GuiElement* toggle; GuiElement* quality;
 };
 
+/// Render Scale [100%|75%|50%|Auto]: a press steps to the next.
+class RenderScaleButton: public Touch::TButton
+{
+	typedef Touch::TButton super;
+public:
+	RenderScaleButton() : super(9999997, 0, 0, 40, 14, "100%") {}
+	void render(Minecraft* minecraft, int xm, int ym) {
+		static const char* names[] = { "100%", "75%", "50%", "Auto" };
+		msg = names[minecraft->options.renderScale & 3];
+		super::render(minecraft, xm, ym);
+	}
+	void mouseClicked(Minecraft* minecraft, int x, int y, int buttonNum) {
+		if (buttonNum != MouseAction::ACTION_LEFT || !clicked(minecraft, x, y)) return;
+		minecraft->options.renderScale = (minecraft->options.renderScale + 1) & 3;
+		minecraft->options.save();
+	}
+};
+
+OptionsGroup& OptionsGroup::addRenderScaleRow(Minecraft* minecraft) {
+	addChild(new OptionsItem(I18n::get("options.renderscale"), new RenderScaleButton()));
+	setupPositions();
+	return *this;
+}
+
 OptionsGroup& OptionsGroup::addShaderRow(Minecraft* minecraft) {
 	ImageDef def;
 	def.setSrc(IntRectangle(160, 206, 39, 20));

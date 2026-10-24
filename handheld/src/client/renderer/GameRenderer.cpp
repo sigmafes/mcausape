@@ -50,6 +50,7 @@ GameRenderer::GameRenderer( Minecraft* mc )
 	fov(1), oFov(1),
 	_setupCameraFov(0),
 	_postKeepsDepth(false),
+	_postW(0), _postH(0), _autoScale(1.0f), _perfWater(0), _perf(false),
 	_shadowPass(false),
 	_shadowAt(0), _shTh(0),
 	zoom(1), zoom_x(0), zoom_y(0),
@@ -177,6 +178,7 @@ void GameRenderer::capturePanorama(float a)
 	mc->options.thirdPersonView = false;
 	mc->width = mc->height = n;
 	_panorama = true;
+	_postW = _postH = 0;	// full size: no render scale here
 
 	std::vector<unsigned char> all((size_t) n * n * 4 * 6);
 	std::vector<unsigned char> face((size_t) n * n * 4);
@@ -272,10 +274,21 @@ void GameRenderer::render(float a) {
 #if defined(MC_WASM)
 			// Shaders (Options > Graphics): the world is drawn into shell.html's
 			// texture and comes out graded and bloomed, before the HUD goes on.
+			// Render scale (Options > Graphics): the world drawn smaller and
+			// scaled up at the end - with or without the shaders (without,
+			// the end is a plain copy). Auto follows the frame rate (O8).
+			const double perfT0 = emscripten_get_now();
+			if (_perf) glFinish();
+			updateAutoScale();
+			const float scale = renderScale();
+			_postW = (int) (mc->width * scale); if (_postW < 1) _postW = 1;
+			_postH = (int) (mc->height * scale); if (_postH < 1) _postH = 1;
 			int post = 0;
-			if (mc->options.shaders && mc->level && mc->level->dimension) {
-				post = EM_ASM_INT({ return window.mcpeShaders ? window.mcpeShaders.begin(GLctx, $0, $1) : 0; }, mc->width, mc->height);
+			if ((mc->options.shaders || scale < 0.999f) && mc->level && mc->level->dimension) {
+				post = EM_ASM_INT({ return window.mcpeShaders ? window.mcpeShaders.begin(GLctx, $0, $1, $2) : 0; },
+					_postW, _postH, mc->options.shaders ? 1 : 0);
 			}
+			if (!post) { _postW = mc->width; _postH = mc->height; }
 			// 2: the depth is a texture the shaders read, so the hand must
 			// not clear it (renderLevel).
 			_postKeepsDepth = post == 2;
@@ -308,15 +321,22 @@ void GameRenderer::render(float a) {
 			} else {
 				_shadowPass = false;
 			}
+			if (_perf) glFinish();
+			const double perfT1 = emscripten_get_now();
+			_perfWater = 0;
 #endif
 			renderLevel(a);
 #if defined(MC_WASM)
 			_postKeepsDepth = false;
+			if (_perf) glFinish();
+			const double perfT2 = emscripten_get_now();
 			if (post) {
-				float f[55];
+				static float f[55];
 				shaderParams(a, f);
-				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 55))); },
-					mc->width, mc->height, f);
+				// The heap and an offset, not a copied array: nothing is
+				// allocated per frame (shell.html copies into its own).
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, HEAPF32, $2 >> 2, $3, $4); },
+					mc->width, mc->height, f, _postW, _postH);
 				// The name tags, held back from the scene (MobRenderer), over
 				// the finished picture with the same camera.
 				MobRenderer::deferNameTags = false;
@@ -326,6 +346,9 @@ void GameRenderer::render(float a) {
 				}
 			}
 			MobRenderer::deferNameTags = false;
+			if (_perf) glFinish();
+			const double perfT3 = emscripten_get_now();
+			perfAdd(perfT1 - perfT0, perfT2 - perfT1 - _perfWater, _perfWater, perfT3 - perfT2);
 #endif
 			hasClearedColorBuffer = true;
 
@@ -402,7 +425,8 @@ void GameRenderer::renderLevel(float a) {
         }
 
 		TIMER_POP_PUSH("clear");
-		glViewport(0, 0, mc->width, mc->height);
+		// The render scale's size while the shaders' frame is scaled.
+		glViewport(0, 0, _postW > 0 ? _postW : mc->width, _postH > 0 ? _postH : mc->height);
 		setupClearColor(a);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -499,6 +523,7 @@ void GameRenderer::renderLevel(float a) {
 			// Shaders' water: the same layer again, untextured, into a depth
 			// of its own (the real pass writes none), so the shaders know
 			// where the water's surface is and how deep it is beneath.
+			const double perfW0 = emscripten_get_now();
 			if (_postKeepsDepth && EM_ASM_INT({ return window.mcpeShaders.maskBegin(GLctx); })) {
 				glDisable2(GL_BLEND);
 				glDisable2(GL_FOG);
@@ -512,6 +537,8 @@ void GameRenderer::renderLevel(float a) {
 				glEnable2(GL_FOG);
 				glEnable2(GL_BLEND);
 				EM_ASM({ window.mcpeShaders.maskEnd(GLctx); });
+				if (_perf) glFinish();
+				_perfWater += emscripten_get_now() - perfW0;
 			}
 #endif
 
@@ -1049,6 +1076,52 @@ void GameRenderer::renderShadowMap(float a) {
 	EM_ASM({ window.mcpeShaders.shadowEnd(GLctx); });
 	_shadowPass = true;
 #endif
+}
+
+/// The render scale chosen in Options > Graphics (Auto: updateAutoScale).
+float GameRenderer::renderScale() {
+	switch (mc->options.renderScale) {
+		case 1: return 0.75f;
+		case 2: return 0.5f;
+		case 3: return _autoScale;
+		default: return 1.0f;
+	}
+}
+
+/** Auto render scale (O8): once a second, down a step when the frame rate is
+    under 42, up a little when it is over 55; between 50% and 100%. */
+void GameRenderer::updateAutoScale() {
+	static int frames = 0;
+	static double since = 0;
+	const double now = emscripten_get_now();
+	++frames;
+	if (since == 0) since = now;
+	if (now - since < 1000) return;
+	const double fps = frames * 1000.0 / (now - since);
+	frames = 0; since = now;
+	if (mc->options.renderScale != 3) return;
+	if (fps < 42) _autoScale -= 0.1f;
+	else if (fps > 55) _autoScale += 0.05f;
+	if (_autoScale < 0.5f) _autoScale = 0.5f;
+	if (_autoScale > 1.0f) _autoScale = 1.0f;
+}
+
+/** /perf: each part of the frame timed (with a glFinish before each mark, so
+    the GPU's work is counted where it happens), averaged over a second. */
+GameRenderer::PerfStats GameRenderer::perf = { 0, 0, 0, 0, 0 };
+void GameRenderer::perfAdd(double shadow, double world, double water, double post) {
+	static double acc[4] = { 0, 0, 0, 0 };
+	static int n = 0;
+	static double since = 0;
+	acc[0] += shadow; acc[1] += world; acc[2] += water; acc[3] += post; ++n;
+	const double now = emscripten_get_now();
+	if (since == 0) since = now;
+	if (now - since >= 1000 && n > 0) {
+		perf.shadow = (float) (acc[0] / n); perf.world = (float) (acc[1] / n);
+		perf.water = (float) (acc[2] / n); perf.post = (float) (acc[3] / n);
+		perf.scale = renderScale();
+		acc[0] = acc[1] = acc[2] = acc[3] = 0; n = 0; since = now;
+	}
 }
 
 void GameRenderer::shaderParams(float a, float* f) {

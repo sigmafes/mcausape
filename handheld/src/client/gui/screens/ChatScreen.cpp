@@ -151,6 +151,8 @@ void ChatScreen::send()
 			minecraft->gameRenderer->requestPanorama();
 		else if (line == "/fps")	// this screen's own counter, nobody else's
 			minecraft->showFps = !minecraft->showFps;
+		else if (line == "/perf")	// the frame's parts, timed (GameRenderer::perf)
+			minecraft->gameRenderer->_perf = !minecraft->gameRenderer->_perf;
 		else if (line[0] == '/')
 			runCommand(line.substr(1));
 		else

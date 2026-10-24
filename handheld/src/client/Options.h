@@ -141,6 +141,8 @@ public:
 	/// Shader Quality: on is High (light shafts, screen-space shadows), off
 	/// is Basic. Off by default; saved.
 	bool shaderHigh;
+	/// Render scale: 0 100%, 1 75%, 2 50%, 3 Auto (GameRenderer). Saved.
+	int renderScale;
     //std::string skin;
 
     KeyMapping keyUp;

@@ -96,6 +96,18 @@ private:
 	float _setupCameraFov;
 	bool _postKeepsDepth;
 	void shaderParams(float a, float* f);
+	float renderScale();
+	void updateAutoScale();
+	void perfAdd(double shadow, double world, double water, double post);
+	int _postW, _postH;
+	float _autoScale;
+	double _perfWater;
+public:
+	/// /perf: on, glFinish marks the frame's parts for timing (perf).
+	bool _perf;
+	struct PerfStats { float shadow, world, water, post, scale; };
+	static PerfStats perf;
+private:
 	void renderShadowMap(float a);
 	bool _shadowPass;	///< a shadow map is valid (drawn within 3 s)
 	int _shadowAt;

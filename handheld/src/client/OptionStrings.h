@@ -13,6 +13,7 @@ public:
     static const char* Graphics_Shaders;
     static const char* Graphics_BetterSky;
     static const char* Graphics_ShaderHigh;
+    static const char* Graphics_RenderScale;
     static const char* Graphics_ViewBobbing;
 
     static const char* Sound_Volume;

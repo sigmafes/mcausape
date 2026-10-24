@@ -87,10 +87,20 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 		++frames;
 		if (since == 0) since = now;
 		if (now - since >= 1000) { shown = frames * 1000 / (now - since); frames = 0; since = now; }
-		if (minecraft->showFps) {
+		int line = 2;
+		if (minecraft->showFps || minecraft->gameRenderer->_perf) {
 			char buf[32];
 			snprintf(buf, sizeof buf, "FPS: %d", shown);
-			font->drawShadow(buf, 2, 2, 0xffffffff);
+			font->drawShadow(buf, 2, line, 0xffffffff);
+			line += 10;
+		}
+		if (minecraft->gameRenderer->_perf) {
+			const GameRenderer::PerfStats& p = GameRenderer::perf;
+			char buf[96];
+			snprintf(buf, sizeof buf, "shadow %.1f  world %.1f  water %.1f  post %.1f ms", p.shadow, p.world, p.water, p.post);
+			font->drawShadow(buf, 2, line, 0xffffffff); line += 10;
+			snprintf(buf, sizeof buf, "scale %d%%", (int) (p.scale * 100 + 0.5f));
+			font->drawShadow(buf, 2, line, 0xffffffff);
 		}
 	}
 	renderInk(screenWidth, screenHeight);
