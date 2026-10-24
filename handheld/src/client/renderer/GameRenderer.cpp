@@ -278,9 +278,9 @@ void GameRenderer::render(float a) {
 #if defined(MC_WASM)
 			_postKeepsDepth = false;
 			if (post) {
-				float f[18];
+				float f[21];
 				shaderParams(a, f);
-				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 18))); },
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 21))); },
 					mc->width, mc->height, f);
 			}
 #endif
@@ -980,6 +980,8 @@ void GameRenderer::shaderParams(float a, float* f) {
 	f[15] = sunlit ? 1.0f : 0.0f;
 	f[16] = mc->options.shaderHigh ? 1.0f : 0.0f;
 	f[17] = level->dimension->id == Dimension::NETHER ? 1.0f : level->dimension->isAllWater() ? 2.0f : 0.0f;
+	// The world's up in view space: Ry leaves it alone, Rx tips it.
+	f[18] = 0; f[19] = cp; f[20] = sp;
 }
 
 void GameRenderer::setupClearColor(float a) {

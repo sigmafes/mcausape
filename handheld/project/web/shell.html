@@ -1113,7 +1113,7 @@
       'vec2 toScreen(vec3 v){ return vec2(v.x / (-v.z) / (tanY * aspect), v.y / (-v.z) / tanY) * 0.5 + 0.5; }';
 
     var LIGHT = HEAD + DEPTH +
-      'uniform sampler2D s; uniform vec2 texel; uniform vec3 sunV, warm, cool, night, hazeCol, sunsetCol;' +
+      'uniform sampler2D s; uniform vec2 texel; uniform vec3 sunV, upV, warm, cool, night, hazeCol, sunsetCol;' +
       'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows;' +
       'float shadow(vec3 o){' +
       ' float t = 0.12, occ = 0.0;' +
@@ -1130,7 +1130,16 @@
       '}' +
       'void main(){' +
       ' vec3 c = texture2D(s, uv).rgb; float d = texture2D(dep, uv).r;' +
-      ' if (d >= 0.99999 || d < 0.02) { gl_FragColor = vec4(c, 1.0); return; }' +   // sky, or the hand
+      ' if (d < 0.02) { gl_FragColor = vec4(c, 1.0); return; }' +                     // the hand
+      ' if (d >= 0.99999) {' +
+      // The sky: the haze carries on past the last terrain, full at the
+      // horizon and thinning upwards, so the far edge of the world runs
+      // into it instead of stopping in a line.
+      '  vec3 dir = normalize(viewPos(uv, 0.999));' +
+      '  float hs = (1.0 - smoothstep(0.0, 0.32, dot(dir, upV))) * hazeMax;' +
+      '  float tw = max(dot(dir, sunV), 0.0);' +
+      '  gl_FragColor = vec4(mix(c, mix(hazeCol, sunsetCol, tw * tw * sunsetK), hs), 1.0); return;' +
+      ' }' +
       ' vec3 p = viewPos(uv, d);' +
       ' vec3 pr = viewPos(uv + vec2(texel.x, 0.0), texture2D(dep, uv + vec2(texel.x, 0.0)).r);' +
       ' vec3 pl = viewPos(uv - vec2(texel.x, 0.0), texture2D(dep, uv - vec2(texel.x, 0.0)).r);' +
@@ -1150,7 +1159,9 @@
       '  c *= mix(mix(vec3(1.0), warm, lit), cool, shade);' +
       '  c *= mix(vec3(1.0), night, nightK);' +
       ' }' +
-      ' float h = (1.0 - exp(-dist * hazeK)) * hazeMax;' +
+      // Normalised so the haze reaches hazeMax just at the render distance
+      // (hazeK is 3 / far): the same as the sky beyond it at the horizon.
+      ' float h = clamp((1.0 - exp(-dist * hazeK)) / 0.95, 0.0, 1.0) * hazeMax;' +
       ' float toward = max(dot(normalize(p), sunV), 0.0);' +
       ' vec3 hc = mix(hazeCol, sunsetCol, toward * toward * sunsetK);' +
       ' c = mix(c, hc, h);' +
@@ -1294,7 +1305,7 @@
         }
       },
 
-      // f: 18 numbers from GameRenderer -
+      // f: 21 numbers from GameRenderer (18-20: the world's up in view space) -
       //  0 near, 1 far, 2 tan(fovY/2), 3 aspect, 4-6 the sun's direction in
       //  view space, 7 the sun's height in the world (-1..1), 8-10 the fog
       //  colour, 11 the sunrise colour's strength, 12-14 the sunrise colour,
@@ -1364,7 +1375,8 @@
           g.uniform3f(p.u('hazeCol'), f[8], f[9], f[10]);
           g.uniform3fv(p.u('sunsetCol'), sunsetCol);
           g.uniform1f(p.u('dayK'), dayK); g.uniform1f(p.u('nightK'), nightK); g.uniform1f(p.u('sunsetK'), sunsetK);
-          g.uniform1f(p.u('hazeK'), 3.2 / Math.max(32, f[1]));
+          g.uniform1f(p.u('hazeK'), 3.0 / Math.max(32, f[1]));
+          g.uniform3f(p.u('upV'), f[18], f[19], f[20]);
           g.uniform1f(p.u('hazeMax'), 0.55 * L[8]);
           g.uniform1f(p.u('lightOn'), sunlit ? 1 : 0);
           g.uniform1f(p.u('shadows'), high ? 1 : 0);
