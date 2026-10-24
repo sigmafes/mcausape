@@ -149,6 +149,8 @@ void ChatScreen::send()
 		// Not a command anyone else sees or the host runs: taken here, quietly.
 		if (line == "/panorama")
 			minecraft->gameRenderer->requestPanorama();
+		else if (line == "/fps")	// this screen's own counter, nobody else's
+			minecraft->showFps = !minecraft->showFps;
 		else if (line[0] == '/')
 			runCommand(line.substr(1));
 		else

@@ -1272,6 +1272,8 @@
       '   else if (shadows > 0.5 && dist < 64.0)' +
       '    o = shadow(p + n * (0.06 + dist * 0.01), 0.08 + dist * 0.015) * (1.0 - smoothstep(40.0, 64.0, dist));' +
       '   lit *= 1.0 - o; shade = max(shade, o * dayK * 0.85);' +
+      // A cast shadow is deep, not just cool: the sun's light taken away.
+      '   c *= 1.0 - o * dayK * 0.45;' +
       '  }' +
       '  c *= mix(mix(vec3(1.0), warm, lit), cool, shade);' +
       '  c *= mix(vec3(1.0), night, nightK);' +
@@ -1281,7 +1283,10 @@
       // colour; glossy stone (obsidian, prismarine, the ocean crystal block,
       // the enchanting table) and glowing blocks (glowstone, sea lantern)
       // a clear, lighter Fresnel reflection, the glowing ones brighter too.
-      ' if (tag < 0.95) {' +
+      // Only the exact tags (200, 215, 230 of 255): anything else that left a
+      // stray alpha (a blended flash, a particle) is not a material.
+      ' float tg = tag * 255.0;' +
+      ' if (abs(tg - 200.0) < 2.5 || abs(tg - 215.0) < 2.5 || abs(tg - 230.0) < 2.5) {' +
       '  vec3 v = normalize(p), r = reflect(v, n);' +
       '  float F = pow(1.0 - max(dot(-v, n), 0.0), 5.0);' +
       '  vec3 rc = skyRefl(r); if (ssr > 0.5) rc = ssrTrace(p + n * 0.04, r, rc);' +

@@ -1,6 +1,7 @@
 #include "../../world/effect/MobEffect.h"
 #include <cstdio>
 #include "Gui.h"
+#include "../../platform/time.h"
 #include "Font.h"
 #include "screens/IngameBlockSelectionScreen.h"
 #include "../Minecraft.h"
@@ -78,6 +79,20 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	const int screenHeight = (int)(minecraft->height * InvGuiScale);
 	blitOffset = -90;
 	renderProgressIndicator(isTouchInterface, screenWidth, screenHeight, a);
+
+	// /fps: frames counted over each second, shown in the top left.
+	{
+		static int frames = 0, shown = 0, since = 0;
+		const int now = getTimeMs();
+		++frames;
+		if (since == 0) since = now;
+		if (now - since >= 1000) { shown = frames * 1000 / (now - since); frames = 0; since = now; }
+		if (minecraft->showFps) {
+			char buf[32];
+			snprintf(buf, sizeof buf, "FPS: %d", shown);
+			font->drawShadow(buf, 2, 2, 0xffffffff);
+		}
+	}
 	renderInk(screenWidth, screenHeight);
 
 	// A phone has no T: this opens the chat (TouchscreenInput handles the tap).

@@ -54,6 +54,8 @@ class Minecraft: public App
 protected:
 	Minecraft();
 public:
+	/// /fps: the frame counter in the top left corner (Gui::render).
+	bool showFps;
 	virtual ~Minecraft();
 
 	void init();

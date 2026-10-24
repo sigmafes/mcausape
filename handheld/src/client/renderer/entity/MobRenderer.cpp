@@ -95,6 +95,9 @@ void MobRenderer::render(Entity* e, float x, float y, float z, float rot, float 
 		glEnable2(GL_BLEND);
 		glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthFunc(GL_EQUAL);
+		// The red flash leaves the frame's alpha alone: the shaders read
+		// material tags from it, and a hurt mob would turn shiny.
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
 
 		if (renderHurt) {
 			glEnable(GL_COLOR_MATERIAL);
@@ -125,6 +128,7 @@ void MobRenderer::render(Entity* e, float x, float y, float z, float rot, float 
 			}
 		}
 
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthFunc(GL_LEQUAL);
 		glDisable2(GL_BLEND);
 		glEnable2(GL_ALPHA_TEST);

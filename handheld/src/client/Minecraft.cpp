@@ -176,6 +176,7 @@ Minecraft::Minecraft()
 	gameMode(NULL),
 	mouseGrabbed(true),
 	_musicOn(0),
+	showFps(false),
 	_musicVolume(-1.0f),
 	missTime(0),
 	pause(false),
