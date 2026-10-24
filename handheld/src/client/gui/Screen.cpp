@@ -115,7 +115,9 @@ void Screen::renderBackground()
 void Screen::renderBackground( int vo )
 {
 	if (minecraft->isLevelGenerated()) {
-		fillGradient(0, 0, width, height, 0xc0101010, 0xd0101010);
+		// A light veil over the game, darker towards the bottom: the old 75-80%
+		// black hid the world behind a slab.
+		fillGradient(0, 0, width, height, 0x48080810, 0x90080810);
 	} else {
 		renderDirtBackground(vo);
 	}

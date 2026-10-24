@@ -22,6 +22,9 @@ public:
 	~MobRenderer();
 
 	virtual int prepareArmor(Mob* mob, int layer, float a);
+	// The shaders' material tag for a worn armour layer (-1: none), as
+	// TileRenderer tags blocks: 200 metal, 215 polished (PlayerRenderer).
+	virtual int armorTag(Mob* mob, int layer) { return -1; }
 
 	virtual void setupPosition(Entity* mob, float x, float y, float z);
     virtual void setupRotations(Entity* mob_, float bob, float bodyRot, float a);

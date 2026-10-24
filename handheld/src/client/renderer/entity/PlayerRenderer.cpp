@@ -170,6 +170,19 @@ int PlayerRenderer::prepareArmor(Mob* mob, int layer, float a) {
 	return 1;
 }
 
+// Iron, gold and netherite reflect as metal (tinted by their colour);
+// diamond and coral as polished stone (a clear reflection). Leather and
+// chain stay matt.
+int PlayerRenderer::armorTag(Mob* mob, int layer) {
+	ItemInstance* it = ((Player*) mob)->getArmor(layer);
+	if (!ItemInstance::isArmorItem(it)) return -1;
+	ArmorItem* armor = (ArmorItem*) it->getItem();
+	if (&armor->armorType == &ArmorItem::IRON && armor->modelIndex != 5) return 200;	// coral is on IRON's material
+	if (&armor->armorType == &ArmorItem::GOLD || &armor->armorType == &ArmorItem::NETHERITE) return 200;
+	if (&armor->armorType == &ArmorItem::DIAMOND || armor->modelIndex == 5) return 215;
+	return -1;
+}
+
 void PlayerRenderer::onGraphicsReset() {
 	super::onGraphicsReset();
 

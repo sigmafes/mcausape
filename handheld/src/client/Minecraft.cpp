@@ -232,6 +232,7 @@ _pendingDim = 0;
 _warmLevel = NULL;
 _warmIndex = 0;
 _pendingDimFrames = 0;
+_pendingRespawn = false;
 _prepNether = false;
 _netherPrep = NULL;
 _netherPrepIndex = 0;
@@ -1111,7 +1112,9 @@ void Minecraft::update() {
 				_pendingDimFrames = 1;	// more of it next frame
 			} else {
 				_pendingDim = 0;
-				changeDimension(dst);
+				const bool respawn = _pendingRespawn;
+				_pendingRespawn = false;
+				changeDimension(dst, respawn);
 			}
 		}
 	#else
@@ -2400,7 +2403,14 @@ void Minecraft::respawnPlayer() {
 	if (level && player && !level->isClientSide && level->dimension
 		&& !Dimension::isOverworld(level->dimension->id)) {
 		player->reset();	// creative keeps its inventory (LocalPlayer::die)
-		changeDimension(Dimension::NORMAL, true);
+		// Through the loading screen, as a portal trip: it is drawn first,
+		// and stays until the terrain round him is built (ProgressScreen).
+		if (_pendingDim == 0) {
+			_pendingDim = Dimension::NORMAL + 1;
+			_pendingDimFrames = 2;
+			_pendingRespawn = true;
+			setScreen(new ProgressScreen());
+		}
 		return;
 	}
 

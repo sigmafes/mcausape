@@ -2,6 +2,7 @@
 #include "EntityRenderDispatcher.h"
 #include "../../gui/Font.h"
 #include "../Tesselator.h"
+#include "../TileRenderer.h"
 #include "../../Minecraft.h"
 #include "../../model/Model.h"
 #include "../../../world/entity/Mob.h"
@@ -76,8 +77,14 @@ void MobRenderer::render(Entity* e, float x, float y, float z, float rot, float 
 	for (int i = 0; i < MAX_ARMOR_LAYERS; i++) {
 		if (prepareArmor(mob, i, a) < 0) continue;
 
+		// Shiny armour carries its tag in the alpha (blending off, so it
+		// stays opaque and the light pass reads it): it reflects.
+		const int tag = TileRenderer::shaderWater ? armorTag(mob, i) : -1;
+		const float tbr = tag >= 0 ? mob->getBrightness(a) : 1.0f;
+		if (tag >= 0) { glDisable2(GL_BLEND); glColor4f2(tbr, tbr, tbr, tag / 255.0f); }
 		armor->prepareMobModel(mob, wp, ws, a);
 		armor->render(e, wp, ws, bob, headRot - bodyRot, headRotx, ascale);
+		if (tag >= 0) glColor4f2(tbr, tbr, tbr, 1);
 		glDisable2(GL_BLEND);
 		glEnable2(GL_ALPHA_TEST);
 	}

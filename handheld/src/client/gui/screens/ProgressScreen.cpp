@@ -6,17 +6,34 @@
 #include "../../renderer/Tesselator.h"
 #include "../../../SharedConstants.h"
 #include "../../renderer/Textures.h"
+#include "../../renderer/LevelRenderer.h"
+#include "../../../platform/time.h"
 
 ProgressScreen::ProgressScreen()
-:	ticks(0)
+:	ticks(0),
+	holdStart(-1)
 {
 }
 
 void ProgressScreen::render( int xm, int ym, float a )
 {
+	// The level is ready, but its chunks are only meshed as frames go by:
+	// stay up while the ones round the player are built (a few frames'
+	// worth at a time, at most five seconds), so nobody watches the world
+	// pop in around them.
+	bool building = false;
 	if (minecraft->isLevelGenerated()) {
-		minecraft->setScreen(NULL);
-		return;
+		LevelRenderer* lr = minecraft->levelRenderer;
+		Mob* p = minecraft->cameraTargetPlayer;
+		if (holdStart < 0) holdStart = getTimeMs();
+		if (!lr || !p || getTimeMs() - holdStart > 5000 || lr->dirtyNear(p, 40) == 0) {
+			minecraft->setScreen(NULL);
+			return;
+		}
+		const int t0 = getTimeMs();
+		while (getTimeMs() - t0 < 30 && lr->dirtyNear(p, 40) > 0)
+			lr->updateDirtyChunks(p, false);
+		building = true;
 	}
 
 	Tesselator& t = Tesselator::instance;
@@ -65,7 +82,7 @@ void ProgressScreen::render( int xm, int ym, float a )
 	const char* title = "Generating world";
 	minecraft->font->drawShadow(title, (float)((width - minecraft->font->width(title)) / 2), (float)(height / 2 - 4 - 16), 0xffffff);
 
-	const char* status = minecraft->getProgressMessage();
+	const char* status = building ? "Building terrain" : minecraft->getProgressMessage();
 	const int progressWidth = minecraft->font->width(status);
 	const int progressLeft  = (width - progressWidth) / 2;
 	const int progressY = height / 2 - 4 + 8;

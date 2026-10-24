@@ -755,6 +755,14 @@ void LevelRenderer::tick()
 	ticks++;
 }
 
+int LevelRenderer::dirtyNear(Mob* player, float dist)
+{
+	int n = 0;
+	for (unsigned int i = 0; i < dirtyChunks.size(); i++)
+		if (dirtyChunks[i]->distanceToSqr(player) < dist * dist) n++;
+	return n;
+}
+
 bool LevelRenderer::updateDirtyChunks( Mob* player, bool force )
 {
 	bool slow = false;

@@ -14,6 +14,7 @@ public:
 	~PlayerRenderer();
 
 	virtual int prepareArmor(Mob* mob, int layer, float a);
+	virtual int armorTag(Mob* mob, int layer);
 
 	virtual void setupPosition(Entity* mob, float x, float y, float z);
 	virtual void setupRotations(Entity* mob, float bob, float bodyRot, float a);

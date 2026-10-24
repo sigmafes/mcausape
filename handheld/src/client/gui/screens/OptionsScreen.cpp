@@ -29,7 +29,8 @@ OptionsScreen::OptionsScreen(ScreenId returnTo)
   awaitingName(false),
   ticks(0),
   nameX(0), nameY(0), nameW(0), nameH(0),
-  skinY(0) {
+  skinY(0),
+  scrollY(0), pressActive(false), pressMode(0), pressX(0), pressY(0), pressScroll(0) {
 }
 
 OptionsScreen::~OptionsScreen() {
@@ -123,7 +124,7 @@ void OptionsScreen::setupPositions() {
 	for(std::vector<OptionsPane*>::iterator it = optionPanes.begin(); it != optionPanes.end(); ++it) {
 		if(categoryButtons.size() > 0 && categoryButtons[0] != NULL) {
 			(*it)->x = categoryButtons[0]->width;
-			(*it)->y = bHeader->height;
+			(*it)->y = bHeader->height - (*it == currentOptionPane ? scrollY : 0);
 			(*it)->width = width - categoryButtons[0]->width;
 			(*it)->setupPositions();
 		}
@@ -159,8 +160,35 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 	super::render(xm, ym, a);
 	int xmm = xm * width / minecraft->width;
 	int ymm = ym * height / minecraft->height - 1;
-	if(currentOptionPane != NULL)
+	if (pressActive && currentOptionPane) {
+		const int dx = xmm - pressX, dy = ymm - pressY;
+		const int ax = dx < 0 ? -dx : dx, ay = dy < 0 ? -dy : dy;
+		if (pressMode == 0) {
+			if (ay > 6 && ay >= ax && maxScroll() > 0) pressMode = 1;
+			else if (ax > 6 || ay > 6) {
+				pressMode = 2;
+				currentOptionPane->mouseClicked(minecraft, pressX, pressY, MouseAction::ACTION_LEFT);
+			}
+		}
+		if (pressMode == 1) scrollTo(pressScroll - dy);
+	}
+	if(currentOptionPane != NULL) {
+		// Clipped under the header: what scrolls up goes behind it.
+		const int clipH = (height - bHeader->height) * minecraft->height / height;
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(0, 0, minecraft->width, clipH);
 		currentOptionPane->render(minecraft, xmm, ymm);
+		glDisable(GL_SCISSOR_TEST);
+		// Where in the tab the view is, when it is taller than the screen.
+		const int m = maxScroll();
+		if (m > 0) {
+			const int top = bHeader->height, viewH = height - top;
+			const int barH = Mth::Max(16, viewH * viewH / (viewH + m));
+			const int barY = top + (viewH - barH) * scrollY / m;
+			fill(width - 3, top, width, height, 0x40000000);
+			fill(width - 3, barY, width, barY + barH, 0xa0ffffff);
+		}
+	}
 	if (profileShown())
 		renderProfile();
 }
@@ -272,8 +300,32 @@ void OptionsScreen::selectCategory( int index ) {
 		}
 		currentIndex++;
 	}
-	if(index < (int)optionPanes.size())
+	if(index < (int)optionPanes.size() && currentOptionPane != optionPanes[index]) {
 		currentOptionPane = optionPanes[index];
+		scrollY = -1;
+		scrollTo(0);	// each tab opens at its top
+	}
+}
+
+int OptionsScreen::maxScroll() {
+	if (!currentOptionPane || !bHeader) return 0;
+	const int m = currentOptionPane->height + 8 - (height - bHeader->height);
+	return m > 0 ? m : 0;
+}
+
+void OptionsScreen::scrollTo(int s) {
+	if (!currentOptionPane || !bHeader) return;
+	const int m = maxScroll();
+	if (s > m) s = m;
+	if (s < 0) s = 0;
+	if (s == scrollY) return;
+	scrollY = s;
+	currentOptionPane->y = bHeader->height - scrollY;
+	currentOptionPane->setupPositions();
+}
+
+void OptionsScreen::mouseWheel(int dy) {
+	scrollTo(scrollY - dy * 24);	// dy > 0: wheel up, towards the top
 }
 
 void OptionsScreen::generateOptionScreens() {
@@ -321,8 +373,14 @@ void OptionsScreen::generateOptionScreens() {
 }
 
 void OptionsScreen::mouseClicked( int x, int y, int buttonNum ) {
-	if(currentOptionPane != NULL)
-		currentOptionPane->mouseClicked(minecraft, x, y, buttonNum);
+	if (currentOptionPane != NULL && y >= bHeader->height && x >= currentOptionPane->x) {
+		if (buttonNum == MouseAction::ACTION_LEFT) {
+			pressActive = true; pressMode = 0;
+			pressX = x; pressY = y; pressScroll = scrollY;
+		} else {
+			currentOptionPane->mouseClicked(minecraft, x, y, buttonNum);
+		}
+	}
 	super::mouseClicked(x, y, buttonNum);
 
 	if (!profileShown() || buttonNum != MouseAction::ACTION_LEFT)
@@ -390,7 +448,14 @@ bool OptionsScreen::handleBackEvent(bool isDown) {
 }
 
 void OptionsScreen::mouseReleased( int x, int y, int buttonNum ) {
-	if(currentOptionPane != NULL)
+	if (pressActive && buttonNum == MouseAction::ACTION_LEFT) {
+		pressActive = false;
+		if (currentOptionPane) {
+			if (pressMode == 0) currentOptionPane->mouseClicked(minecraft, pressX, pressY, buttonNum);	// a tap
+			if (pressMode != 1) currentOptionPane->mouseReleased(minecraft, x, y, buttonNum);
+		}
+		pressMode = 0;
+	} else if(currentOptionPane != NULL)
 		currentOptionPane->mouseReleased(minecraft, x, y, buttonNum);
 	super::mouseReleased(x, y, buttonNum);
 }

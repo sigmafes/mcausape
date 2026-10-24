@@ -223,6 +223,7 @@ private:
 	// The target dimension + 1; 0 = none pending.
 	int _pendingDim;
 	int _pendingDimFrames;
+	bool _pendingRespawn;	// the trip is a respawn in the Overworld
 	// A trip into a Level made just for it loads that Level's chunks over
 	// several frames behind the loading screen first, nearest the arrival
 	// first, rather than all on the frame the host steps through.

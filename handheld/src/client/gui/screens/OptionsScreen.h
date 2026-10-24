@@ -33,8 +33,19 @@ public:
 	virtual void keyPressed(int eventKey);
 	virtual void keyboardNewChar(char inputChar);
 	virtual bool handleBackEvent(bool isDown);
+	virtual void mouseWheel(int dy);
 private:
 	void close();
+	// A tab taller than the screen scrolls: the wheel, or a vertical drag
+	// (a finger, or the mouse). A press in the pane is held back until it is
+	// clear what it is: a drag up or down scrolls, a sideways one is a
+	// slider's (handed over then), and a tap is passed on at release.
+	void scrollTo(int s);
+	int maxScroll();
+	int scrollY;
+	bool pressActive;
+	int pressMode;	// 0 undecided, 1 scrolling, 2 handed to the pane
+	int pressX, pressY, pressScroll;
 
 	// The Profile tab is drawn by this screen rather than built from an
 	// OptionsGroup: a text box and two action buttons are not options, and

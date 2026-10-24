@@ -53,6 +53,8 @@ public:
 
 	void tick();
 	bool updateDirtyChunks(Mob* player, bool force);
+	// How many chunks within dist of the player still wait to be built.
+	int dirtyNear(Mob* player, float dist);
 	void setDirty(int x0, int y0, int z0, int x1, int y1, int z1);
     void tileChanged(int x, int y, int z);
     void setTilesDirty(int x0, int y0, int z0, int x1, int y1, int z1);
