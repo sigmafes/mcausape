@@ -6,6 +6,8 @@
 #include "TileRenderer.h"
 #include "../Minecraft.h"
 #include "../../util/Mth.h"
+#include "../../util/Random.h"
+#include <cmath>
 #include "../../world/entity/player/Player.h"
 #include "../../world/level/tile/LevelEvent.h"
 #include "../../world/level/tile/LeafTile.h"
@@ -83,6 +85,8 @@ LevelRenderer::LevelRenderer( Minecraft* mc)
 
 	glGenBuffers2(1, &skyBuffer);
 	generateSky();
+	glGenBuffers2(1, &starBuffer);
+	generateStars();
 #else
 	int maxChunksWidth = 1024 / CHUNK_SIZE;
 	numListsOrBuffers = maxChunksWidth * maxChunksWidth * maxChunksWidth * 3;
@@ -100,6 +104,7 @@ LevelRenderer::~LevelRenderer()
 #ifdef USE_VBO
 	glDeleteBuffers(numListsOrBuffers, chunkBuffers);
 	glDeleteBuffers(1, &skyBuffer);
+	glDeleteBuffers(1, &starBuffer);
 	delete[] chunkBuffers;
 #else
 	glDeleteLists(numListsOrBuffers, chunkLists);
@@ -129,6 +134,114 @@ void LevelRenderer::generateSky() {
 	t.end(true, skyBuffer);
 	//LOGI("skyvertexcount: %d\n", skyVertexCount);
 	//glEndList();
+}
+
+/** Java's star field: 1500 small quads scattered over a sphere 100 out, each
+    turned at random about the line to it, from one fixed seed so every
+    world has the same sky. Built once into a buffer, drawn in one call. */
+void LevelRenderer::generateStars() {
+	Random random(10842);
+	Tesselator& t = Tesselator::instance;
+	t.begin();
+	for (int i = 0; i < 1500; i++) {
+		float x = random.nextFloat() * 2 - 1, y = random.nextFloat() * 2 - 1, z = random.nextFloat() * 2 - 1;
+		const float ss = 0.15f + random.nextFloat() * 0.1f;
+		float d = x * x + y * y + z * z;
+		if (d >= 1 || d <= 0.01f) continue;
+		d = 1 / Mth::sqrt(d);
+		x *= d; y *= d; z *= d;
+		const float xp = x * 100, yp = y * 100, zp = z * 100;
+		const float yRot = std::atan2(x, z), ySin = Mth::sin(yRot), yCos = Mth::cos(yRot);
+		const float xRot = std::atan2(Mth::sqrt(x * x + z * z), y), xSin = Mth::sin(xRot), xCos = Mth::cos(xRot);
+		const float zRot = random.nextFloat() * Mth::PI * 2, zSin = Mth::sin(zRot), zCos = Mth::cos(zRot);
+		for (int c = 0; c < 4; c++) {
+			const float ___xo = 0, ___yo = ((c & 2) - 1) * ss, ___zo = ((c + 1 & 2) - 1) * ss;
+			const float __xo = ___xo, __yo = ___yo * zCos - ___zo * zSin, __zo = ___zo * zCos + ___yo * zSin;
+			const float _zo = __zo, _yo = __yo * xSin + __xo * xCos, _xo = __xo * xSin - __yo * xCos;
+			const float xo = _xo * ySin - _zo * yCos, yo = _yo, zo = _zo * ySin + _xo * yCos;
+			t.vertexUV(xp + xo, yp + yo, zp + zo, 0, 0);
+		}
+	}
+	starVertexCount = t.end(true, starBuffer).vertexCount;
+}
+
+/** Better Sky (Options > Graphics): what Java and the console editions put
+    in the sky over the flat colour 0.6.1 draws - the sunrise or sunset fan
+    on the horizon on the sun's side, the sun and the moon in its phase
+    turning with the time of day, and the stars as night falls. Textures
+    from the Legacy Console Edition (environment/sun.png, moon_phases.png). */
+void LevelRenderer::renderBetterSky(float alpha) {
+	Tesselator& t = Tesselator::instance;
+	const float td = level->getTimeOfDay(alpha);
+
+	glDisable2(GL_FOG);
+	glDisable2(GL_ALPHA_TEST);
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// The sunrise/sunset: a fan bright at the horizon, fading up and out.
+	if (float* c = level->dimension->getSunriseColor(td, alpha)) {
+		glDisable2(GL_TEXTURE_2D);
+		glPushMatrix2();
+		glRotatef2(90, 1, 0, 0);
+		glRotatef2(Mth::sin(level->getSunAngle(alpha)) < 0 ? 180.0f : 0.0f, 0, 0, 1);
+		glRotatef2(90, 0, 0, 1);
+		t.begin(GL_TRIANGLE_FAN);
+		t.color(c[0], c[1], c[2], c[3]);
+		t.vertex(0, 100, 0);
+		t.color(c[0], c[1], c[2], 0.0f);
+		const int steps = 16;
+		for (int i = 0; i <= steps; i++) {
+			const float a = i * Mth::PI * 2 / steps;
+			t.vertex(Mth::sin(a) * 120, Mth::cos(a) * 120, -Mth::cos(a) * 40 * c[3]);
+		}
+		t.draw();
+		glPopMatrix2();
+		glEnable2(GL_TEXTURE_2D);
+	}
+
+	// Sun, moon and stars turn together with the day; added, so they glow.
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE);
+	glPushMatrix2();
+	glColor4f2(1, 1, 1, 1);
+	glRotatef2(-90, 0, 1, 0);
+	glRotatef2(td * 360, 1, 0, 0);
+
+	float ss = 30;
+	mc->textures->loadAndBindTexture("environment/sun.png");
+	t.begin();
+	t.vertexUV(-ss, 100, -ss, 0, 0);
+	t.vertexUV(+ss, 100, -ss, 1, 0);
+	t.vertexUV(+ss, 100, +ss, 1, 1);
+	t.vertexUV(-ss, 100, +ss, 0, 1);
+	t.draw();
+
+	ss = 20;
+	mc->textures->loadAndBindTexture("environment/moon_phases.png");
+	const int phase = (int) ((level->getTime() / Level::TICKS_PER_DAY) % 8);
+	const int u = phase % 4, v = phase / 4 % 2;
+	const float u0 = u / 4.0f, v0 = v / 2.0f, u1 = (u + 1) / 4.0f, v1 = (v + 1) / 2.0f;
+	t.begin();
+	t.vertexUV(-ss, -100, +ss, u1, v1);
+	t.vertexUV(+ss, -100, +ss, u0, v1);
+	t.vertexUV(+ss, -100, -ss, u0, v0);
+	t.vertexUV(-ss, -100, -ss, u1, v0);
+	t.draw();
+
+	const float br = level->getStarBrightness(alpha);
+	if (br > 0) {
+		glDisable2(GL_TEXTURE_2D);
+		glColor4f2(br, br, br, br);
+		drawArrayVT(starBuffer, starVertexCount);
+		glEnable2(GL_TEXTURE_2D);
+	}
+	glColor4f2(1, 1, 1, 1);
+	glPopMatrix2();
+
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable2(GL_BLEND);
+	glEnable2(GL_ALPHA_TEST);
+	glEnable2(GL_FOG);
 }
 
 void LevelRenderer::setLevel( Level* level )
@@ -1025,6 +1138,10 @@ void LevelRenderer::renderSky(float alpha) {
 	drawArrayVT(skyBuffer, skyVertexCount);
 #endif
     glEnable2(GL_TEXTURE_2D);
+
+    // The Aquarium's water and the Nether's roof have no sky (foggy, above).
+    if (mc->options.betterSky && !mc->level->dimension->isAllWater())
+        renderBetterSky(alpha);
 }
 
 void LevelRenderer::renderClouds( float alpha ) {

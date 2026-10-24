@@ -141,12 +141,13 @@ Dimension* DimensionFactory::createDefaultDimension(LevelData* data )
 {
 	int dimensionId = Dimension::NORMAL;
 
+	// Day and night in creative too (it used to stand at noon forever): the
+	// sky's sun, moon and stars (Better Sky) are nothing without them.
 	switch(data->getGameType()) {
-	case GameType::Survival: dimensionId = Dimension::NORMAL_DAYCYCLE;
-		break;
+	case GameType::Survival:
 	case GameType::Creative:
 	default:
-		dimensionId = Dimension::NORMAL;
+		dimensionId = Dimension::NORMAL_DAYCYCLE;
 		break;
 	}
 

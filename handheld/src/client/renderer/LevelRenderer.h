@@ -72,6 +72,8 @@ public:
 	void onGraphicsReset();
 private:
 	void generateSky();
+	void generateStars();
+	void renderBetterSky(float alpha);
 
 	int  renderChunks(int from, int to, int layer, float alpha);
 	void resortChunks(int xc, int yc, int zc);
@@ -120,6 +122,8 @@ private:
 	GLuint* chunkBuffers;
 	GLuint skyBuffer;
 	int skyVertexCount;
+	GLuint starBuffer;
+	int starVertexCount;
 
 //    /*public*/ std::vector<TileEntity*> renderableTileEntities;
     Textures* textures;

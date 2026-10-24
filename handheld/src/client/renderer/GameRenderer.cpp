@@ -949,6 +949,22 @@ void GameRenderer::setupClearColor(float a) {
     fr = (float) fogColor.x;
     fg = (float) fogColor.y;
     fb = (float) fogColor.z;
+    // Better Sky: looking towards a rising or setting sun, the fog takes its
+    // colour, so the horizon runs into the sunrise fan (Java 1.16).
+    if (mc->options.betterSky && !level->dimension->foggy && !level->dimension->isAllWater()) {
+        const float td = level->getTimeOfDay(a);
+        if (float* c = level->dimension->getSunriseColor(td, a)) {
+            const float side = Mth::sin(level->getSunAngle(a)) > 0 ? -1.0f : 1.0f;
+            const float yr = player->yRot * Mth::DEGRAD, xr = player->xRot * Mth::DEGRAD;
+            float d = (-Mth::sin(yr) * Mth::cos(xr)) * side;	// the view's x against the sun's side
+            if (d > 0) {
+                d *= c[3];
+                fr = fr * (1 - d) + c[0] * d;
+                fg = fg * (1 - d) + c[1] * d;
+                fb = fb * (1 - d) + c[2] * d;
+            }
+        }
+    }
     // A new world's Nether: the fog of the biomes round the camera, averaged
     // over a few blocks and eased towards, so crossing a border fades.
     if (level->dimension->id == Dimension::NETHER && level->getLevelData()->getGeneratorVersion() >= LGV_NETHER_BIOMES) {

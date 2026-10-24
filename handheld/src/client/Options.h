@@ -51,6 +51,7 @@ public:
 		static const Option PIXELS_PER_MILLIMETER;
 		static const Option FULLSCREEN;
 		static const Option SHADERS;
+		static const Option BETTER_SKY;
 
 		/*
         static Option* getItem(int id) {
@@ -133,6 +134,9 @@ public:
 	/// Our post-processing (shell.html's mcpeShaders): colour grade and bloom.
 	/// Off by default everywhere; saved.
 	bool shaders;
+	/// Sun, moon and its phases, stars, sunrise and sunset (LevelRenderer::
+	/// renderBetterSky). Off by default; saved.
+	bool betterSky;
     //std::string skin;
 
     KeyMapping keyUp;
@@ -277,6 +281,7 @@ public:
 		if (option == &Option::USE_TOUCH_JOYPAD) isJoyTouchArea = !isJoyTouchArea;
 		if (option == &Option::DESTROY_VIBRATION) destroyVibration = !destroyVibration;
 		if (option == &Option::SHADERS) shaders = !shaders;
+		if (option == &Option::BETTER_SKY) betterSky = !betterSky;
 		if (option == &Option::FULLSCREEN) {
 			fullscreen = !fullscreen;
 			WebBridge::setFullscreen(fullscreen);
@@ -349,6 +354,8 @@ public:
 			return fullscreen;
 		if (item == &Option::SHADERS)
 			return shaders;
+		if (item == &Option::BETTER_SKY)
+			return betterSky;
 		return false;
 	}
 

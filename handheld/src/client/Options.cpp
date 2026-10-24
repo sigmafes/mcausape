@@ -49,6 +49,7 @@ void Options::initDefaultValues() {
 	serverVisible = true;
 	fullscreen = false;
 	shaders = false;
+	betterSky = false;
 	thirdPersonFront = false;
 
 	keyUp	 = KeyMapping("key.forward", Keyboard::KEY_W);
@@ -179,7 +180,8 @@ const Options::Option
 	Options::Option::DESTROY_VIBRATION   (18, "options.destroyvibration", false, true),
 	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false),
 	Options::Option::FULLSCREEN			 (20, "options.fullscreen", false, true),
-	Options::Option::SHADERS			 (21, "options.shaders", false, true);
+	Options::Option::SHADERS			 (21, "options.shaders", false, true),
+	Options::Option::BETTER_SKY			 (22, "options.bettersky", false, true);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -273,6 +275,9 @@ void Options::update()
 		if (key == OptionStrings::Graphics_AmbientOcclusion) {
 			readBool(value, ambientOcclusion);
 			applyAmbientOcclusion();
+		}
+		if (key == OptionStrings::Graphics_BetterSky) {
+			readBool(value, betterSky);
 		}
 		if (key == OptionStrings::Graphics_Shaders) {
 			readBool(value, shaders);
@@ -377,6 +382,7 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_AmbientOcclusion, ambientOcclusion);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_ViewBobbing, bobView);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Shaders, shaders);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_BetterSky, betterSky);
 
 	// Sound
 	addOptionToSaveOutput(stringVec, OptionStrings::Sound_Volume, sound);
