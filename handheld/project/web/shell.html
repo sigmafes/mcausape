@@ -1107,7 +1107,7 @@
     var sceneFb, sceneTex, depthTex = null, depthRb = null, litFb, litTex;
     var waterFb = null, waterTex = null, waterDepth = null, waterUsed = false, maskFb = null;
     var SHADOW = 2048, shadowFail = false, shadowFb = null, shadowTex = null, shadowCol = null, shadowUsed = false;
-    var qFb = [], qTex = [];
+    var qFb = [], qTex = [], fxFb = [null, null], fxTex = [null, null], deepDepth = false;
     var quad, P = {};
 
     var VS = 'attribute vec2 p; varying vec2 uv;' +
@@ -1143,8 +1143,9 @@
       'uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol, skyCol, sunCol, camPos;' +
       'uniform vec3 m0, m1, m2, mt;' +
       'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows, time, waterOn, ssr;' +
-      'uniform float shOn, shR, shD, shCos, shSin, uw, aqua; uniform vec3 shDelta;' +
-      'float shadow(vec3 o, float bias){' +
+      'uniform float shOn, shR, shD, shCos, shSin, uw, aqua, wTest; uniform vec3 shDelta;' +
+      'uniform sampler2D fxA, fxB; vec4 OUTC = vec4(0.0), FXO = vec4(0.0);' +
+      'float shadowRaw(vec3 o, float bias){' +
       ' float t = 0.25, occ = 0.0;' +
       ' for (int i = 0; i < 14; i++) {' +
       '  vec3 q = o + sunV * t;' +
@@ -1161,7 +1162,7 @@
       // shadow map GameRenderer drew from the sun, an ortho box shR round
       // the player, shD deep) and tested against what the sun sees there,
       // nine taps for soft edges, fading out at the box's rim.
-      'float mapShadow(vec3 p, vec3 n){' +
+      'float mapShadowRaw(vec3 p, vec3 n){' +
       ' vec3 e = p + n * (0.05 + length(p) * 0.002) - mt;' +
       ' vec3 w = vec3(dot(e, m0), dot(e, m1), dot(e, m2)) + shDelta;' +
       ' vec3 q = vec3(w.x * shCos - w.y * shSin, -w.z, w.x * shSin + w.y * shCos);' +
@@ -1208,7 +1209,7 @@
       'vec3 worldOf(vec3 p){ return vec3(dot(p, xV), dot(p, upV), dot(p, zV)) + camPos; }' +
       // A reflected ray marched through the depth (High): what it meets on
       // screen, faded at the screen's edges; the fallback where it leaves it.
-      'vec3 ssrTrace(vec3 o, vec3 r, vec3 fallback){' +
+      'vec4 ssrHit(vec3 o, vec3 r){' +
       ' float tt = 0.3; vec3 q;' +
       ' for (int i = 0; i < 24; i++) {' +
       '  q = o + r * tt;' +
@@ -1220,12 +1221,32 @@
       '   float dz = -q.z - lin(sd);' +
       '   if (dz > 0.0 && dz < 1.5 + tt * 0.08) {' +
       '    vec2 e = smoothstep(0.0, 0.1, su) * smoothstep(1.0, 0.9, su);' +
-      '    return mix(fallback, texture2D(s, su).rgb, e.x * e.y);' +
+      '    return vec4(texture2D(s, su).rgb, e.x * e.y);' +
       '   }' +
       '  }' +
       '  tt = tt * 1.22 + 0.15;' +
       ' }' +
-      ' return fallback;' +
+      ' return vec4(0.0);' +
+      '}' +
+      // MODE (O2/O4, set per program, so each drops what it never runs):
+      // 0 Basic (no marching at all), 1 High reading the half-size results,
+      // 2 and 3 the half-size passes (reflections, shadows) that write them,
+      // 4 High doing it all at full size (if the half-size targets failed).
+      'float shadow(vec3 o, float bias){' +
+      ' if (MODE == 0 || MODE == 2) return 0.0;' +
+      ' if (MODE == 1) return texture2D(fxB, uv).r;' +
+      ' float v = shadowRaw(o, bias); FXO = vec4(v); return v;' +
+      '}' +
+      'float mapShadow(vec3 p, vec3 n){' +
+      ' if (MODE == 0 || MODE == 2) return 0.0;' +
+      ' if (MODE == 1) return texture2D(fxB, uv).r;' +
+      ' float v = mapShadowRaw(p, n); FXO = vec4(v); return v;' +
+      '}' +
+      'vec3 ssrTrace(vec3 o, vec3 r, vec3 fallback){' +
+      ' if (MODE == 0 || MODE == 3) return fallback;' +
+      ' vec4 h = MODE == 1 ? texture2D(fxA, uv) : ssrHit(o, r);' +
+      ' FXO = h;' +
+      ' return mix(fallback, h.rgb, h.a);' +
       '}' +
       // A block face's normal from a depth texture, snapped to the world's
       // axes (every face here is a block's; coarse depths wander).
@@ -1274,6 +1295,9 @@
       ' if (d < 0.02) { gl_FragColor = vec4(c, 1.0); return; }' +                     // the hand
       ' float wd = waterOn > 0.5 ? texture2D(wat, uv).r : 1.0;' +
       ' vec4 wm = texture2D(wmask, uv);' +
+      // In front of the scene: the mask drawn against the scene's depth says
+      // so, or (one water pass, deep depth buffers only - O7) the two depths.
+      ' bool wvis = wd < 0.99999 && wm.r > 0.02 && (wTest < 0.5 || d >= 0.99999 || lin(wd) < lin(d) + 0.02 + lin(wd) * 0.002);' +
       // Under water (the camera's eye in it, or the Aquarium): caustics on
       // what is down there, the surface seen from below, and the water's
       // own thick teal by distance instead of the air's haze.
@@ -1282,7 +1306,7 @@
       '  float dist = length(p);' +
       '  float lightK = max(dayK, aqua * 0.7) + nightK * 0.25;' +
       '  vec3 uwCol = (aqua > 0.5 ? vec3(0.04, 0.22, 0.32) : vec3(0.06, 0.32, 0.4)) * (0.3 + 0.7 * lightK);' +
-      '  if (aqua < 0.5 && wd < 0.99999 && wm.r > 0.02 && wm.a < 0.5 && dot(normalize(viewPos(uv, wd)), upV) > 0.0) {' +
+      '  if (aqua < 0.5 && wvis && wm.a < 0.5 && dot(normalize(viewPos(uv, wd)), upV) > 0.0) {' +
       // The surface from below: inside the window (about 48 degrees round
       // the vertical) the sky shows through, bright and rippled; outside it,
       // total internal reflection gives back the water and the bed.
@@ -1308,7 +1332,7 @@
       ' }' +
       // The water layer, where the mask (maskMid) says it is in front. Its
       // alpha tells water (baked 0.08) from ice (1).
-      ' if (wd < 0.99999 && wm.r > 0.02) {' +
+      ' if (wvis) {' +
       '  vec3 pw = viewPos(uv, wd);' +
       '  if (wm.a > 0.5) {' +
       // Ice: the game's own ice, polished - a sharp mirror by Fresnel.
@@ -1381,6 +1405,13 @@
       ' }' +
       ' gl_FragColor = vec4(hazed(c, p), glow ? 0.0 : 1.0);' +
       '}';
+    // One program per MODE: main() becomes body(), its results kept in
+    // OUTC; the half-size passes hand on FXO (what the marching found).
+    function lightSrc(mode) {
+      var b = LIGHT.replace(/gl_FragColor/g, 'OUTC').replace('void main(){', 'void body(){');
+      return b.replace(HEAD, HEAD + 'const int MODE = ' + mode + ';') +
+        'void main(){ body(); gl_FragColor = ' + (mode === 2 || mode === 3 ? 'FXO' : 'OUTC') + '; }';
+    }
 
     var RAYS = HEAD + DEPTH + 'uniform sampler2D s; uniform vec2 sunUV;' +
       'void main(){' +
@@ -1491,6 +1522,7 @@
         if (maskFb) gl.deleteFramebuffer(maskFb);
         waterFb = maskFb = null;
         for (var i = 0; i < 4; i++) { gl.deleteFramebuffer(qFb[i]); gl.deleteTexture(qTex[i]); }
+        for (var j = 0; j < 2; j++) if (fxFb[j]) { gl.deleteFramebuffer(fxFb[j]); gl.deleteTexture(fxTex[j]); fxFb[j] = null; }
       }
       depthTex = depthRb = null;
       sceneTex = texture(w, h);
@@ -1519,10 +1551,19 @@
           // depth test, it lights exactly the water that is in front of the
           // scene - no comparing of two coarse depths in the shader.
           maskFb = framebuffer(waterTex, depthTex, null);
+          // 24 bits or more: the water's depth and the scene's can be told
+          // apart in the shader, so one water pass does (O7). Phones with 16
+          // bits striped doing that, so they keep the depth-tested mask.
+          gl.bindFramebuffer(gl.FRAMEBUFFER, waterFb);
+          deepDepth = gl.getParameter(gl.DEPTH_BITS) >= 24;
         } catch (e) { waterFb = maskFb = null; }
       }
       var bw = Math.max(1, w >> 2), bh = Math.max(1, h >> 2);
       for (var k = 0; k < 4; k++) { qTex[k] = texture(bw, bh); qFb[k] = framebuffer(qTex[k], null, null); }
+      // Half size: what the reflections and the shadows found (O4).
+      try {
+        for (var m = 0; m < 2; m++) { fxTex[m] = texture(Math.max(1, w >> 1), Math.max(1, h >> 1)); fxFb[m] = framebuffer(fxTex[m], null, null); }
+      } catch (e) { fxFb = [null, null]; }
       gl.bindTexture(gl.TEXTURE_2D, tex0);
       gl.bindRenderbuffer(gl.RENDERBUFFER, rb0);
       W = w; H = h;
@@ -1533,8 +1574,12 @@
       depthExt = gl.getExtension('WEBGL_depth_texture') || gl.getExtension('WEBKIT_WEBGL_depth_texture');
       P.bright = compile(BRIGHT); P.blur = compile(BLUR); P.grade = compile(GRADE); P.copy = compile(COPY);
       if (depthExt) {
-        try { P.light = compile(LIGHT); P.rays = compile(RAYS); P.uwrays = compile(UWRAYS); }
+        try { P.light = compile(lightSrc(0)); P.lightFull = compile(lightSrc(4)); P.rays = compile(RAYS); P.uwrays = compile(UWRAYS); }
         catch (e) { console.warn('[shaders] no depth effects:', e && e.message); depthExt = null; }
+      }
+      if (P.light) {
+        try { P.lightHalf = compile(lightSrc(1)); P.fxRefl = compile(lightSrc(2)); P.fxShadow = compile(lightSrc(3)); }
+        catch (e) { console.warn('[shaders] full-size reflections:', e && e.message); P.lightHalf = null; }
       }
       var buf0 = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
       quad = gl.createBuffer();
@@ -1569,7 +1614,7 @@
     }
     // The emulation's state, to be put back exactly (end()). Only what
     // changes can be read; the viewport is the screen's, known.
-    var S = { prog: null, abuf: null, unit: 0, texs: [null, null, null, null, null], on: [false, false, false, false, false],
+    var S = { prog: null, abuf: null, unit: 0, texs: [null, null, null, null, null, null, null], on: [false, false, false, false, false],
               a0en: false, a0buf: null, a0size: 0, a0type: 0, a0norm: false, a0stride: 0, a0off: 0, mask: true,
               nAttr: 0, attrOn: [] };
     var CAPS = null;
@@ -1580,7 +1625,7 @@
       }
       S.prog = g.getParameter(g.CURRENT_PROGRAM); S.abuf = g.getParameter(g.ARRAY_BUFFER_BINDING);
       S.unit = g.getParameter(g.ACTIVE_TEXTURE);
-      for (var u = 0; u < 5; u++) { g.activeTexture(g.TEXTURE0 + u); S.texs[u] = g.getParameter(g.TEXTURE_BINDING_2D); }
+      for (var u = 0; u < 7; u++) { g.activeTexture(g.TEXTURE0 + u); S.texs[u] = g.getParameter(g.TEXTURE_BINDING_2D); }
       for (var c = 0; c < 5; c++) { S.on[c] = g.isEnabled(CAPS[c]); g.disable(CAPS[c]); }
       S.a0en = g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_ENABLED);
       S.a0buf = g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
@@ -1600,7 +1645,7 @@
       g.vertexAttribPointer(0, 2, g.FLOAT, false, 0, 0);
     }
     function restoreState(g, w, h) {
-      for (var ub = 4; ub >= 0; ub--) { g.activeTexture(g.TEXTURE0 + ub); g.bindTexture(g.TEXTURE_2D, S.texs[ub]); }
+      for (var ub = 6; ub >= 0; ub--) { g.activeTexture(g.TEXTURE0 + ub); g.bindTexture(g.TEXTURE_2D, S.texs[ub]); }
       g.activeTexture(S.unit);
       g.bindBuffer(g.ARRAY_BUFFER, S.a0buf);
       if (S.a0buf) g.vertexAttribPointer(0, S.a0size, S.a0type, S.a0norm, S.a0stride, S.a0off);
@@ -1611,6 +1656,51 @@
       g.depthMask(S.mask);
       for (var c = 0; c < 5; c++) if (S.on[c]) g.enable(CAPS[c]);
       for (var aj = 1; aj < S.nAttr; aj++) if (S.attrOn[aj]) g.enableVertexAttribArray(aj);
+    }
+    // The light pass's uniforms, the same for each of its programs.
+    function lightUniforms(p, sw, sh, L, sunlit, high, dayK, nightK, sunsetK, warm, cool, sunsetCol, sunCol) {
+      var g = gl, f = F;
+      bind(0, sceneTex); bind(1, depthTex);
+      g.uniform1i(p.u('s'), 0); depthUniforms(p);
+      g.uniform2f(p.u('texel'), 1 / sw, 1 / sh);
+      g.uniform3f(p.u('sunV'), f[4], f[5], f[6]);
+      g.uniform3fv(p.u('warm'), warm); g.uniform3fv(p.u('cool'), cool);
+      g.uniform3f(p.u('night'), 0.82, 0.9, 1.18);
+      g.uniform3f(p.u('hazeCol'), f[8], f[9], f[10]);
+      g.uniform3fv(p.u('sunsetCol'), sunsetCol);
+      g.uniform1f(p.u('dayK'), dayK); g.uniform1f(p.u('nightK'), nightK); g.uniform1f(p.u('sunsetK'), sunsetK);
+      g.uniform1f(p.u('hazeK'), 3.0 / Math.max(32, f[1]));
+      g.uniform3f(p.u('upV'), f[18], f[19], f[20]);
+      g.uniform3f(p.u('xV'), f[21], f[22], f[23]);
+      g.uniform3f(p.u('zV'), f[24], f[25], f[26]);
+      g.uniform1f(p.u('hazeMax'), 0.55 * L[8]);
+      g.uniform1f(p.u('lightOn'), sunlit ? 1 : 0);
+      g.uniform1f(p.u('shadows'), high ? 1 : 0);
+      var wOn = waterUsed && waterFb;
+      bind(2, wOn ? waterDepth : depthTex);
+      g.uniform1i(p.u('wat'), 2);
+      bind(3, wOn ? waterTex : sceneTex);
+      g.uniform1i(p.u('wmask'), 3);
+      g.uniform1f(p.u('waterOn'), wOn ? 1 : 0);
+      g.uniform1f(p.u('ssr'), high ? 1 : 0);
+      g.uniform1f(p.u('time'), (performance.now() / 1000) % 1000);
+      g.uniform3f(p.u('camPos'), f[27], f[28], f[29]);
+      g.uniform3f(p.u('skyCol'), f[30], f[31], f[32]);
+      g.uniform3fv(p.u('sunCol'), sunCol);
+      g.uniform3f(p.u('m0'), f[33], f[34], f[35]);
+      g.uniform3f(p.u('m1'), f[36], f[37], f[38]);
+      g.uniform3f(p.u('m2'), f[39], f[40], f[41]);
+      g.uniform3f(p.u('mt'), f[42], f[43], f[44]);
+      var shOn = f[52] > 0.5 && shadowFb;	// drawn within the last 3 s
+      g.uniform3f(p.u('shDelta'), f[49], f[50], f[51]);
+      g.uniform1f(p.u('uw'), f[53]); g.uniform1f(p.u('aqua'), f[54]);
+      bind(4, shOn ? shadowTex : depthTex);
+      g.uniform1i(p.u('smap'), 4);
+      g.uniform1f(p.u('shOn'), shOn ? 1 : 0);
+      g.uniform1f(p.u('shCos'), f[45]); g.uniform1f(p.u('shSin'), f[46]);
+      g.uniform1f(p.u('shR'), f[47]); g.uniform1f(p.u('shD'), f[48]);
+      g.uniform2f(p.u('shTexel'), 1 / SHADOW, 1 / SHADOW);
+      g.uniform1f(p.u('wTest'), waterUsed && waterFb && deepDepth ? 1 : 0);
     }
     function smooth(e0, e1, x) { var t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); }
 
@@ -1688,7 +1778,7 @@
         g.depthMask(dm);
         if (sc) g.enable(g.SCISSOR_TEST);
         waterUsed = true;
-        return 1;
+        return deepDepth ? 2 : 1;	// 2: one pass, no maskMid (O7)
       },
       // Between the two water draws: from the water's own depth to the
       // visibility mask (colour only, the scene's depth tested, not written).
@@ -1742,48 +1832,19 @@
         // 1. Light and haze, into litTex (or the scene as it is, without depth).
         var src = sceneTex;
         if (depthTex && P.light) {
-          var p = P.light;
+          var halfFx = high && P.lightHalf && fxFb[0];
+          var p = halfFx ? P.lightHalf : (high ? P.lightFull : P.light);
+          if (halfFx) {
+            // Reflections, then shadows, marched at half size (O4).
+            var hw = Math.max(1, sw >> 1), hh = Math.max(1, sh >> 1);
+            bind(5, null); bind(6, null);
+            pass(P.fxRefl, fxFb[0], hw, hh); lightUniforms(P.fxRefl, sw, sh, L, sunlit, high, dayK, nightK, sunsetK, warm, cool, sunsetCol, sunCol); draw();
+            pass(P.fxShadow, fxFb[1], hw, hh); lightUniforms(P.fxShadow, sw, sh, L, sunlit, high, dayK, nightK, sunsetK, warm, cool, sunsetCol, sunCol); draw();
+            bind(5, fxTex[0]); bind(6, fxTex[1]);
+          }
           pass(p, litFb, sw, sh);
-          bind(0, sceneTex); bind(1, depthTex);
-          g.uniform1i(p.u('s'), 0); depthUniforms(p);
-          g.uniform2f(p.u('texel'), 1 / sw, 1 / sh);
-          g.uniform3f(p.u('sunV'), f[4], f[5], f[6]);
-          g.uniform3fv(p.u('warm'), warm); g.uniform3fv(p.u('cool'), cool);
-          g.uniform3f(p.u('night'), 0.82, 0.9, 1.18);
-          g.uniform3f(p.u('hazeCol'), f[8], f[9], f[10]);
-          g.uniform3fv(p.u('sunsetCol'), sunsetCol);
-          g.uniform1f(p.u('dayK'), dayK); g.uniform1f(p.u('nightK'), nightK); g.uniform1f(p.u('sunsetK'), sunsetK);
-          g.uniform1f(p.u('hazeK'), 3.0 / Math.max(32, f[1]));
-          g.uniform3f(p.u('upV'), f[18], f[19], f[20]);
-          g.uniform3f(p.u('xV'), f[21], f[22], f[23]);
-          g.uniform3f(p.u('zV'), f[24], f[25], f[26]);
-          g.uniform1f(p.u('hazeMax'), 0.55 * L[8]);
-          g.uniform1f(p.u('lightOn'), sunlit ? 1 : 0);
-          g.uniform1f(p.u('shadows'), high ? 1 : 0);
-          var wOn = waterUsed && waterFb;
-          bind(2, wOn ? waterDepth : depthTex);
-          g.uniform1i(p.u('wat'), 2);
-          bind(3, wOn ? waterTex : sceneTex);
-          g.uniform1i(p.u('wmask'), 3);
-          g.uniform1f(p.u('waterOn'), wOn ? 1 : 0);
-          g.uniform1f(p.u('ssr'), high ? 1 : 0);
-          g.uniform1f(p.u('time'), (performance.now() / 1000) % 1000);
-          g.uniform3f(p.u('camPos'), f[27], f[28], f[29]);
-          g.uniform3f(p.u('skyCol'), f[30], f[31], f[32]);
-          g.uniform3fv(p.u('sunCol'), sunCol);
-          g.uniform3f(p.u('m0'), f[33], f[34], f[35]);
-          g.uniform3f(p.u('m1'), f[36], f[37], f[38]);
-          g.uniform3f(p.u('m2'), f[39], f[40], f[41]);
-          g.uniform3f(p.u('mt'), f[42], f[43], f[44]);
-          var shOn = f[52] > 0.5 && shadowFb;	// drawn within the last 3 s
-          g.uniform3f(p.u('shDelta'), f[49], f[50], f[51]);
-          g.uniform1f(p.u('uw'), f[53]); g.uniform1f(p.u('aqua'), f[54]);
-          bind(4, shOn ? shadowTex : depthTex);
-          g.uniform1i(p.u('smap'), 4);
-          g.uniform1f(p.u('shOn'), shOn ? 1 : 0);
-          g.uniform1f(p.u('shCos'), f[45]); g.uniform1f(p.u('shSin'), f[46]);
-          g.uniform1f(p.u('shR'), f[47]); g.uniform1f(p.u('shD'), f[48]);
-          g.uniform2f(p.u('shTexel'), 1 / SHADOW, 1 / SHADOW);
+          lightUniforms(p, sw, sh, L, sunlit, high, dayK, nightK, sunsetK, warm, cool, sunsetCol, sunCol);
+          if (halfFx) { g.uniform1i(p.u('fxA'), 5); g.uniform1i(p.u('fxB'), 6); }
           draw();
           src = litTex;
         }

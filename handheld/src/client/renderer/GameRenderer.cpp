@@ -524,15 +524,21 @@ void GameRenderer::renderLevel(float a) {
 			// of its own (the real pass writes none), so the shaders know
 			// where the water's surface is and how deep it is beneath.
 			const double perfW0 = emscripten_get_now();
-			if (_postKeepsDepth && EM_ASM_INT({ return window.mcpeShaders.maskBegin(GLctx); })) {
+			const int mask = _postKeepsDepth ? EM_ASM_INT({ return window.mcpeShaders.maskBegin(GLctx); }) : 0;
+			if (mask) {
 				glDisable2(GL_BLEND);
 				glDisable2(GL_FOG);
 				glDisable2(GL_TEXTURE_2D);
 				glDepthMask(GL_TRUE);
 				levelRenderer->render(cameraEntity, 2, a);	// its own depth
 				glDepthMask(GL_FALSE);
-				EM_ASM({ window.mcpeShaders.maskMid(GLctx); });
-				levelRenderer->render(cameraEntity, 2, a);	// where it is seen
+				// 2: a deep depth buffer, the shader compares the two depths and
+				// this one pass is enough. 1 (16-bit phones): the mask again,
+				// depth-tested against the scene, where it is seen.
+				if (mask == 1) {
+					EM_ASM({ window.mcpeShaders.maskMid(GLctx); });
+					levelRenderer->render(cameraEntity, 2, a);
+				}
 				glEnable2(GL_TEXTURE_2D);
 				glEnable2(GL_FOG);
 				glEnable2(GL_BLEND);
