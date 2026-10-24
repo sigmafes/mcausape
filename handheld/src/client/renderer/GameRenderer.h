@@ -94,6 +94,8 @@ private:
 	float fovOffset;
 	float fovOffsetO;
 	float _setupCameraFov;
+	bool _postKeepsDepth;
+	void shaderParams(float a, float* f);
 
 	// roll modification
 	float cameraRoll;

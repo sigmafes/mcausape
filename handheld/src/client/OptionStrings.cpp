@@ -9,6 +9,7 @@ const char* OptionStrings::Graphics_RenderDistance     = "gfx_renderdistance";
 const char* OptionStrings::Graphics_AmbientOcclusion   = "gfx_ambientocclusion";
 const char* OptionStrings::Graphics_Shaders            = "gfx_shaders";
 const char* OptionStrings::Graphics_BetterSky          = "gfx_bettersky";
+const char* OptionStrings::Graphics_ShaderHigh         = "gfx_shaderhigh";
 const char* OptionStrings::Graphics_ViewBobbing        = "gfx_viewbobbing";
 
 const char* OptionStrings::Sound_Volume                = "sound_volume";

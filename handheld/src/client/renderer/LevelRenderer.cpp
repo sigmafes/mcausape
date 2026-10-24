@@ -207,6 +207,22 @@ void LevelRenderer::renderBetterSky(float alpha) {
 	glRotatef2(-90, 0, 1, 0);
 	glRotatef2(td * 360, 1, 0, 0);
 
+	// A soft round glow under the sun: Java's sun is a square, but seen
+	// through air it reads as a disc - and with shaders, the bloom and the
+	// lens streak take it from there.
+	{
+		const float gs = 48;
+		mc->textures->loadAndBindTexture("environment/sun_glow.png");
+		glColor4f2(1.0f, 0.93f, 0.8f, 0.85f);
+		t.begin();
+		t.vertexUV(-gs, 100, -gs, 0, 0);
+		t.vertexUV(+gs, 100, -gs, 1, 0);
+		t.vertexUV(+gs, 100, +gs, 1, 1);
+		t.vertexUV(-gs, 100, +gs, 0, 1);
+		t.draw();
+		glColor4f2(1, 1, 1, 1);
+	}
+
 	float ss = 30;
 	mc->textures->loadAndBindTexture("environment/sun.png");
 	t.begin();

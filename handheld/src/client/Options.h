@@ -52,6 +52,7 @@ public:
 		static const Option FULLSCREEN;
 		static const Option SHADERS;
 		static const Option BETTER_SKY;
+		static const Option SHADER_HIGH;
 
 		/*
         static Option* getItem(int id) {
@@ -137,6 +138,9 @@ public:
 	/// Sun, moon and its phases, stars, sunrise and sunset (LevelRenderer::
 	/// renderBetterSky). Off by default; saved.
 	bool betterSky;
+	/// Shader Quality: on is High (light shafts, screen-space shadows), off
+	/// is Basic. Off by default; saved.
+	bool shaderHigh;
     //std::string skin;
 
     KeyMapping keyUp;
@@ -282,6 +286,7 @@ public:
 		if (option == &Option::DESTROY_VIBRATION) destroyVibration = !destroyVibration;
 		if (option == &Option::SHADERS) shaders = !shaders;
 		if (option == &Option::BETTER_SKY) betterSky = !betterSky;
+		if (option == &Option::SHADER_HIGH) shaderHigh = !shaderHigh;
 		if (option == &Option::FULLSCREEN) {
 			fullscreen = !fullscreen;
 			WebBridge::setFullscreen(fullscreen);
@@ -356,6 +361,8 @@ public:
 			return shaders;
 		if (item == &Option::BETTER_SKY)
 			return betterSky;
+		if (item == &Option::SHADER_HIGH)
+			return shaderHigh;
 		return false;
 	}
 

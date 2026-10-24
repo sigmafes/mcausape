@@ -155,6 +155,7 @@ options.group.camera=Camera
 options.group.volume=Volume
 options.fullscreen=Fullscreen
 options.shaders=Shaders
+options.shaderhigh=Shader Quality: High
 options.bettersky=Better Sky
 options.renderDistance=Render Distance
 options.renderDistance.tiny=Tiny

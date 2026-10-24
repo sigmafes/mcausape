@@ -46,6 +46,7 @@ GameRenderer::GameRenderer( Minecraft* mc )
 	fovOffsetO(0),
 	fov(1), oFov(1),
 	_setupCameraFov(0),
+	_postKeepsDepth(false),
 	zoom(1), zoom_x(0), zoom_y(0),
 	cameraRoll(0), cameraRollO(0),
 	pickDirection(1, 0, 0),
@@ -269,12 +270,18 @@ void GameRenderer::render(float a) {
 			if (mc->options.shaders && mc->level && mc->level->dimension) {
 				post = EM_ASM_INT({ return window.mcpeShaders ? window.mcpeShaders.begin(GLctx, $0, $1) : 0; }, mc->width, mc->height);
 			}
+			// 2: the depth is a texture the shaders read, so the hand must
+			// not clear it (renderLevel).
+			_postKeepsDepth = post == 2;
 #endif
 			renderLevel(a);
 #if defined(MC_WASM)
+			_postKeepsDepth = false;
 			if (post) {
-				const int look = mc->level->dimension->id == Dimension::NETHER ? 1 : mc->level->dimension->isAllWater() ? 2 : 0;
-				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, $2); }, mc->width, mc->height, look);
+				float f[18];
+				shaderParams(a, f);
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 18))); },
+					mc->width, mc->height, f);
 			}
 #endif
 			hasClearedColorBuffer = true;
@@ -474,8 +481,13 @@ void GameRenderer::renderLevel(float a) {
 
         if (zoom == 1 && !_panorama) {
 			TIMER_POP_PUSH("hand");
-            glClear(GL_DEPTH_BUFFER_BIT);
+            // With shaders reading the depth, the hand keeps it and is drawn
+            // in the front 2% of the range instead (shell.html reads below
+            // 0.02 as the hand and leaves it alone).
+            if (_postKeepsDepth) glDepthRangef(0.0f, 0.02f);
+            else glClear(GL_DEPTH_BUFFER_BIT);
             renderItemInHand(a, i);
+            if (_postKeepsDepth) glDepthRangef(0.0f, 1.0f);
         }
 
         if (!mc->options.anaglyph3d) {
@@ -933,6 +945,43 @@ void GameRenderer::tick(int nTick, int maxTick) {
 }
 
 /*private*/
+/** What the shaders need to know of this frame (shell.html, mcpeShaders.end):
+    the projection renderLevel used, the sun's direction in view space - its
+    sky turns as Better Sky draws it (LevelRenderer::renderBetterSky), the
+    view as moveCameraToPlayer turns it - its height, the fog colour, the
+    sunrise colour and strength, and which look and quality apply. */
+void GameRenderer::shaderParams(float a, float* f) {
+	Level* level = mc->level;
+	Mob* p = mc->cameraTargetPlayer;
+	f[0] = 0.05f;
+	f[1] = renderDistance;
+	f[2] = Mth::sin(_setupCameraFov * 0.5f * Mth::DEGRAD) / Mth::cos(_setupCameraFov * 0.5f * Mth::DEGRAD);
+	f[3] = mc->width / (float) mc->height;
+
+	const float td = level->getTimeOfDay(a), th = td * Mth::PI * 2;
+	float sx = -Mth::sin(th), sy = Mth::cos(th), sz = 0;
+	const bool front = mc->options.thirdPersonView && mc->options.thirdPersonFront;
+	const float pitch = (p->xRotO + (p->xRot - p->xRotO) * a) * (front ? -1.0f : 1.0f);
+	const float yaw = p->yRotO + (p->yRot - p->yRotO) * a + (front ? 0.0f : 180.0f);
+	// Ry(yaw) then Rx(pitch), as glRotatef applies them to the world.
+	const float cy = Mth::cos(yaw * Mth::DEGRAD), sny = Mth::sin(yaw * Mth::DEGRAD);
+	float x1 = sx * cy + sz * sny, z1 = -sx * sny + sz * cy, y1 = sy;
+	const float cp = Mth::cos(pitch * Mth::DEGRAD), sp = Mth::sin(pitch * Mth::DEGRAD);
+	f[4] = x1;
+	f[5] = y1 * cp - z1 * sp;
+	f[6] = y1 * sp + z1 * cp;
+	f[7] = sy;
+
+	f[8] = fr; f[9] = fg; f[10] = fb;
+	const bool sunlit = !level->dimension->foggy && !level->dimension->isAllWater();
+	float* c = sunlit ? level->dimension->getSunriseColor(td, a) : NULL;
+	f[11] = c ? c[3] : 0;
+	f[12] = c ? c[0] : 1; f[13] = c ? c[1] : 0.6f; f[14] = c ? c[2] : 0.4f;
+	f[15] = sunlit ? 1.0f : 0.0f;
+	f[16] = mc->options.shaderHigh ? 1.0f : 0.0f;
+	f[17] = level->dimension->id == Dimension::NETHER ? 1.0f : level->dimension->isAllWater() ? 2.0f : 0.0f;
+}
+
 void GameRenderer::setupClearColor(float a) {
     Level* level = mc->level;
     Mob* player = mc->cameraTargetPlayer;
