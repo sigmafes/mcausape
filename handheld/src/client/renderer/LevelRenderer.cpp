@@ -1033,8 +1033,11 @@ void LevelRenderer::setDirty( int x0, int y0, int z0, int x1, int y1, int z1 )
 	}
 }
 
+bool LevelRenderer::blocksChanged = false;
+
 void LevelRenderer::tileChanged( int x, int y, int z)
 {
+	blocksChanged = true;	// the shaders' shadow map is out of date
 	setDirty(x - 1, y - 1, z - 1, x + 1, y + 1, z + 1);
 }
 

@@ -294,7 +294,11 @@ void GameRenderer::render(float a) {
 				const float px = sp->xOld + (sp->x - sp->xOld) * a, py = sp->yOld + (sp->y - sp->yOld) * a, pz = sp->zOld + (sp->z - sp->zOld) * a;
 				const float mx = px - _shOrigin[0], my = py - _shOrigin[1], mz = pz - _shOrigin[2];
 				const int now = getTimeMs();
-				if (!_shadowPass || now - _shadowAt > 3000 || mx * mx + my * my + mz * mz > 12 * 12) {
+				// A block placed or broken redraws it at once (at most four
+				// times a second: flowing water and growing crops change too).
+				const bool changed = LevelRenderer::blocksChanged && now - _shadowAt > 250;
+				if (!_shadowPass || changed || now - _shadowAt > 3000 || mx * mx + my * my + mz * mz > 12 * 12) {
+					LevelRenderer::blocksChanged = false;
 					renderShadowMap(a);
 					_shadowAt = now;
 					_shOrigin[0] = px; _shOrigin[1] = py; _shOrigin[2] = pz;
@@ -307,9 +311,9 @@ void GameRenderer::render(float a) {
 #if defined(MC_WASM)
 			_postKeepsDepth = false;
 			if (post) {
-				float f[53];
+				float f[55];
 				shaderParams(a, f);
-				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 53))); },
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 55))); },
 					mc->width, mc->height, f);
 				// The name tags, held back from the scene (MobRenderer), over
 				// the finished picture with the same camera.
@@ -1104,6 +1108,10 @@ void GameRenderer::shaderParams(float a, float* f) {
 	const float npx = p->xOld + (p->x - p->xOld) * a, npy = p->yOld + (p->y - p->yOld) * a, npz = p->zOld + (p->z - p->zOld) * a;
 	f[49] = npx - _shOrigin[0]; f[50] = npy - _shOrigin[1]; f[51] = npz - _shOrigin[2];
 	f[52] = _shadowPass ? 1.0f : 0.0f;
+	// Under water: the camera's eye in water, or anywhere in the Aquarium.
+	const bool aqua = level->dimension->isAllWater();
+	f[53] = (aqua || p->isUnderLiquid(Material::water)) ? 1.0f : 0.0f;
+	f[54] = aqua ? 1.0f : 0.0f;
 }
 
 void GameRenderer::setupClearColor(float a) {

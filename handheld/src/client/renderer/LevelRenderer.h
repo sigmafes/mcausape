@@ -76,6 +76,8 @@ private:
 	void renderBetterSky(float alpha);
 public:
 	void renderShadowCasters(float alpha, float radius);
+	/// A block changed since the shadow map was drawn (GameRenderer).
+	static bool blocksChanged;
 private:
 
 	int  renderChunks(int from, int to, int layer, float alpha);

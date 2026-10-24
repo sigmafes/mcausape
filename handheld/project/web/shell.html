@@ -1122,7 +1122,7 @@
       'uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol, skyCol, sunCol, camPos;' +
       'uniform vec3 m0, m1, m2, mt;' +
       'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows, time, waterOn, ssr;' +
-      'uniform float shOn, shR, shD, shCos, shSin; uniform vec3 shDelta;' +
+      'uniform float shOn, shR, shD, shCos, shSin, uw, aqua; uniform vec3 shDelta;' +
       'float shadow(vec3 o, float bias){' +
       ' float t = 0.25, occ = 0.0;' +
       ' for (int i = 0; i < 14; i++) {' +
@@ -1172,6 +1172,19 @@
       ' return c + sunCol * pow(tw, 220.0) * 6.0 * dayK' +            // the sun's glint
       '  + vec3(0.72, 0.8, 1.0) * pow(tm, 260.0) * 2.5 * nightK / 0.55;' +   // and the moon's
       '}' +
+      // Caustics: the net of light a wavy surface focuses on what lies
+      // under it. Three warped sine layers; bright where their troughs meet.
+      // Taken in world blocks (camPos), so it stays put as the camera moves.
+      'float caustic(vec2 q){' +
+      ' vec2 p = q * 0.9; float v = 0.0;' +
+      ' for (int i = 0; i < 3; i++) {' +
+      '  float fi = float(i);' +
+      '  p += vec2(sin(p.y * 1.7 + time * 0.9 + fi), sin(p.x * 1.5 - time * 0.8 + fi * 1.3)) * 0.45;' +
+      '  v += 1.0 / (1.0 + 28.0 * abs(sin(p.x * 2.1) * sin(p.y * 2.1)));' +
+      ' }' +
+      ' return v / 3.0;' +
+      '}' +
+      'vec3 worldOf(vec3 p){ return vec3(dot(p, xV), dot(p, upV), dot(p, zV)) + camPos; }' +
       // A reflected ray marched through the depth (High): what it meets on
       // screen, faded at the screen's edges; the fallback where it leaves it.
       'vec3 ssrTrace(vec3 o, vec3 r, vec3 fallback){' +
@@ -1213,7 +1226,7 @@
       ' float tw = max(dot(normalize(p), sunV), 0.0);' +
       ' return mix(c, mix(hazeCol, sunsetCol, tw * tw * sunsetK), h);' +
       '}' +
-      'vec3 water(vec3 c, vec3 pw, float sceneDist){' +
+      'vec3 water(vec3 c, vec3 pw, float sceneDist, vec3 pb){' +
       ' vec3 v = normalize(pw);' +
       ' vec3 wp = vec3(dot(pw, xV), dot(pw, upV), dot(pw, zV)) + camPos;' +
       ' vec3 nw = waveNormal(wp.xz);' +
@@ -1226,7 +1239,10 @@
       // is the bed, tinted green-blue, giving way to deep teal with depth.
       ' float absorb = 1.0 - exp(-max(sceneDist - length(pw), 0.0) * 0.22);' +
       ' vec3 deep = vec3(0.05, 0.27, 0.3) * (0.3 + 0.7 * max(dayK, 0.15));' +
-      ' vec3 under = mix(c * vec3(0.72, 0.96, 0.92), deep, clamp(absorb * 0.95, 0.0, 1.0));' +
+      ' float thick = max(sceneDist - length(pw), 0.0);' +
+      // Shallow beds catch the caustics, seen from above too.
+      ' vec3 bed = c * (1.0 + caustic(worldOf(pb).xz) * 0.7 * dayK * (1.0 - smoothstep(1.0, 6.0, thick)));' +
+      ' vec3 under = mix(bed * vec3(0.72, 0.96, 0.92), deep, clamp(absorb * 0.95, 0.0, 1.0));' +
       ' vec3 refl = skyRefl(r);' +
       ' if (ssr > 0.5) refl = ssrTrace(pw, r, refl);' +
       ' return mix(under, refl, fres);' +
@@ -1237,6 +1253,37 @@
       ' if (d < 0.02) { gl_FragColor = vec4(c, 1.0); return; }' +                     // the hand
       ' float wd = waterOn > 0.5 ? texture2D(wat, uv).r : 1.0;' +
       ' vec4 wm = texture2D(wmask, uv);' +
+      // Under water (the camera's eye in it, or the Aquarium): caustics on
+      // what is down there, the surface seen from below, and the water's
+      // own thick teal by distance instead of the air's haze.
+      ' if (uw > 0.5) {' +
+      '  vec3 p = viewPos(uv, d >= 0.99999 ? 0.9995 : d);' +
+      '  float dist = length(p);' +
+      '  float lightK = max(dayK, aqua * 0.7) + nightK * 0.25;' +
+      '  vec3 uwCol = (aqua > 0.5 ? vec3(0.04, 0.22, 0.32) : vec3(0.06, 0.32, 0.4)) * (0.3 + 0.7 * lightK);' +
+      '  if (aqua < 0.5 && wd < 0.99999 && wm.r > 0.02 && wm.a < 0.5 && dot(normalize(viewPos(uv, wd)), upV) > 0.0) {' +
+      // The surface from below: inside the window (about 48 degrees round
+      // the vertical) the sky shows through, bright and rippled; outside it,
+      // total internal reflection gives back the water and the bed.
+      '   vec3 pw = viewPos(uv, wd), v = normalize(pw);' +
+      '   vec3 nw = waveNormal(worldOf(pw).xz);' +
+      '   vec3 n = -normalize(xV * nw.x + upV * nw.y + zV * nw.z);' +
+      '   float up = dot(v, -n);' +
+      '   float win = smoothstep(0.62, 0.78, up);' +
+      '   vec3 sky = mix(skyCol, vec3(1.0), 0.3) * (0.5 + 0.7 * lightK) + sunCol * pow(max(dot(v, sunV), 0.0), 24.0) * 1.5 * dayK;' +
+      '   vec3 back = uwCol * 0.85;' +
+      '   if (ssr > 0.5) back = ssrTrace(pw, reflect(v, n), back);' +
+      '   c = mix(back, sky, win);' +
+      '   dist = length(pw);' +
+      '  } else if (d < 0.99999) {' +
+      '   vec3 n = faceNormal(dep, uv, p);' +
+      '   float ca = caustic(worldOf(p).xz + worldOf(p).y * 0.25);' +
+      '   float face = max(dot(n, upV), 0.0) * 0.9 + 0.25;' +
+      '   c *= (1.0 + ca * face * 1.2 * lightK) * vec3(0.85, 1.0, 1.0);' +
+      '  }' +
+      '  c = mix(c, uwCol, 1.0 - exp(-dist * (aqua > 0.5 ? 0.05 : 0.07)));' +
+      '  gl_FragColor = vec4(c, 1.0); return;' +
+      ' }' +
       // The water layer, where the mask (maskMid) says it is in front. Its
       // alpha tells water (baked 0.08) from ice (1).
       ' if (wd < 0.99999 && wm.r > 0.02) {' +
@@ -1251,7 +1298,8 @@
       '  }' +
       '  if (dot(normalize(pw), upV) < 0.0) {' +
       '   float sceneDist = d >= 0.99999 ? far * 2.0 : length(viewPos(uv, d));' +
-      '   gl_FragColor = vec4(hazed(water(c, pw, sceneDist), pw), 1.0); return;' +
+      '   vec3 pb = d >= 0.99999 ? pw : viewPos(uv, d);' +
+      '   gl_FragColor = vec4(hazed(water(c, pw, sceneDist, pb), pw), 1.0); return;' +
       '  }' +
       // Seen from below or edge-on (a waterfall, a pool's side): no mirror,
       // but still the water's colour, since the game's is clear.
@@ -1323,6 +1371,38 @@
       '  decay *= 0.95;' +
       ' }' +
       ' gl_FragColor = vec4(vec3(acc / 10.0), 1.0);' +
+      '}';
+
+    // Light shafts under water (High): along each view ray, samples the sun
+    // can see (the shadow map, so blocks and kelp cut them) add light,
+    // shaped into slanting columns and fading with distance. Without a map
+    // (the Aquarium, the sun down) the columns alone.
+    var UWRAYS = HEAD + DEPTH + 'uniform sampler2D smap; uniform vec3 m0, m1, m2, mt, shDelta, xV, upV, zV, sunV, camPos;' +
+      'uniform float shOn, shR, shD, shCos, shSin, time;' +
+      'float lit(vec3 p){' +
+      ' if (shOn < 0.5) return 1.0;' +
+      ' vec3 e = p - mt; vec3 w = vec3(dot(e, m0), dot(e, m1), dot(e, m2)) + shDelta;' +
+      ' vec3 q = vec3(w.x * shCos - w.y * shSin, -w.z, w.x * shSin + w.y * shCos);' +
+      ' vec2 su = q.xy / shR * 0.5 + 0.5; float dz = -q.z / shD * 0.5 + 0.5;' +
+      ' if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) return 1.0;' +
+      ' return step(dz, texture2D(smap, su).r + 0.002);' +
+      '}' +
+      'void main(){' +
+      ' float d = texture2D(dep, uv).r;' +
+      ' float L = min(d >= 0.99999 ? 28.0 : lin(d), 28.0);' +
+      ' vec3 dir = normalize(viewPos(uv, 0.5));' +
+      ' float acc = 0.0;' +
+      ' for (int i = 0; i < 12; i++) {' +
+      '  float t = (float(i) + 0.5) / 12.0 * L;' +
+      '  vec3 p = dir * t;' +
+      '  vec3 w = vec3(dot(p, xV), dot(p, upV), dot(p, zV)) + camPos;' +
+      // Columns slanting with the sun, slowly drifting.
+      '  vec3 sw = vec3(dot(sunV, xV), dot(sunV, upV), dot(sunV, zV));' +
+      '  vec2 sl = w.xz - sw.xz / max(sw.y, 0.25) * w.y;' +
+      '  float col = 0.5 + 0.5 * sin(sl.x * 0.9 + sin(sl.y * 0.37 + time * 0.2) * 2.0 + time * 0.15);' +
+      '  acc += lit(p) * col * col * exp(-t * 0.07);' +
+      ' }' +
+      ' gl_FragColor = vec4(vec3(acc / 12.0), 1.0);' +
       '}';
 
     var GRADE = HEADM + 'uniform sampler2D s, b, k, r;' +
@@ -1429,7 +1509,7 @@
       depthExt = gl.getExtension('WEBGL_depth_texture') || gl.getExtension('WEBKIT_WEBGL_depth_texture');
       P.bright = compile(BRIGHT); P.blur = compile(BLUR); P.grade = compile(GRADE);
       if (depthExt) {
-        try { P.light = compile(LIGHT); P.rays = compile(RAYS); }
+        try { P.light = compile(LIGHT); P.rays = compile(RAYS); P.uwrays = compile(UWRAYS); }
         catch (e) { console.warn('[shaders] no depth effects:', e && e.message); depthExt = null; }
       }
       var buf0 = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
@@ -1631,6 +1711,7 @@
           g.uniform3f(p.u('mt'), f[42], f[43], f[44]);
           var shOn = f[52] > 0.5 && shadowFb;	// drawn within the last 3 s
           g.uniform3f(p.u('shDelta'), f[49], f[50], f[51]);
+          g.uniform1f(p.u('uw'), f[53]); g.uniform1f(p.u('aqua'), f[54]);
           bind(4, shOn ? shadowTex : depthTex);
           g.uniform1i(p.u('smap'), 4);
           g.uniform1f(p.u('shOn'), shOn ? 1 : 0);
@@ -1664,9 +1745,29 @@
         bind(0, qTex[3]); g.uniform2f(P.blur.u('d'), 12 / bw, 0); draw();
 
         // 4. Rays (High): from the sun's place on screen, when it is ahead -> q3.
-        var raysK = 0;
-        var sunAhead = f[6] < -0.05;
-        if (high && depthTex && P.rays && sunlit && dayK > 0 && sunAhead) {
+        // Under water, the shafts down through it instead.
+        var raysK = 0, raysCol = sunCol;
+        if (high && depthTex && P.uwrays && f[53] > 0.5) {
+          var pu = P.uwrays;
+          pass(pu, qFb[3], bw, bh);
+          bind(1, depthTex); bind(4, f[52] > 0.5 && shadowFb ? shadowTex : depthTex);
+          depthUniforms(pu);
+          g.uniform1i(pu.u('smap'), 4);
+          g.uniform1f(pu.u('shOn'), f[52] > 0.5 && shadowFb ? 1 : 0);
+          g.uniform3f(pu.u('m0'), f[33], f[34], f[35]); g.uniform3f(pu.u('m1'), f[36], f[37], f[38]);
+          g.uniform3f(pu.u('m2'), f[39], f[40], f[41]); g.uniform3f(pu.u('mt'), f[42], f[43], f[44]);
+          g.uniform3f(pu.u('shDelta'), f[49], f[50], f[51]);
+          g.uniform1f(pu.u('shCos'), f[45]); g.uniform1f(pu.u('shSin'), f[46]);
+          g.uniform1f(pu.u('shR'), f[47]); g.uniform1f(pu.u('shD'), f[48]);
+          g.uniform3f(pu.u('xV'), f[21], f[22], f[23]); g.uniform3f(pu.u('upV'), f[18], f[19], f[20]);
+          g.uniform3f(pu.u('zV'), f[24], f[25], f[26]);
+          g.uniform3f(pu.u('sunV'), f[54] > 0.5 ? f[18] : f[4], f[54] > 0.5 ? f[19] : f[5], f[54] > 0.5 ? f[20] : f[6]);
+          g.uniform3f(pu.u('camPos'), f[27], f[28], f[29]);
+          g.uniform1f(pu.u('time'), (performance.now() / 1000) % 1000);
+          draw();
+          raysK = f[54] > 0.5 ? 0.35 : 0.85 * Math.max(dayK, 0.1);
+          raysCol = [0.55, 0.9, 1.0];
+        } else if (high && depthTex && P.rays && sunlit && dayK > 0 && f[6] < -0.05) {
           var sx = f[4] / (-f[6]) / (f[2] * f[3]) * 0.5 + 0.5, sy = f[5] / (-f[6]) / f[2] * 0.5 + 0.5;
           var pr = P.rays;
           pass(pr, qFb[3], bw, bh);
@@ -1689,7 +1790,7 @@
         g.uniform1f(pg.u('streak'), sunlit ? 0.9 : 0.35);
         g.uniform1f(pg.u('rays'), raysK);
         g.uniform3f(pg.u('tint'), L[5], L[6], L[7]);
-        g.uniform3fv(pg.u('sunCol'), sunCol);
+        g.uniform3fv(pg.u('sunCol'), raysCol);
         draw();
 
         // Back as it was.
