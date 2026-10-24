@@ -20,6 +20,8 @@ BlackSquid::BlackSquid(Level* level)
 
 int BlackSquid::getEntityTypeId() const { return MobTypes::BlackSquid; }
 
+bool BlackSquid::canSpawn() { return level->isUnobstructed(bb); }
+
 void BlackSquid::updateAi()
 {
 	if (fleeTicks > 0) --fleeTicks;

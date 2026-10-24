@@ -210,7 +210,9 @@ public:
     bool containsLiquid(const AABB& box, const Material* material);
 
 	bool checkAndHandleWater(const AABB& box, const Material* material, Entity* e);
-    void extinguishFire(int x, int y, int z, int face);
+    // Like getNearestPlayer, skipping creative players: hostile mobs leave them be.
+    Player* getNearestAttackablePlayer(Entity* source, float maxDist);
+    bool extinguishFire(int x, int y, int z, int face);
 
 	//void addEntities(const EntityList& list);
 	//void removeEntities(const EntityList& list);

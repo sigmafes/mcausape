@@ -29,12 +29,8 @@ void CreativeMode::startDestroyBlock(int x, int y, int z, int face) {
 }
 
 void CreativeMode::creativeDestroyBlock(int x, int y, int z, int face) {
-	//if (!
-	minecraft->level->extinguishFire(x, y, z, face)
-	//{
-		;
+	if (!minecraft->level->extinguishFire(x, y, z, face))
 		destroyBlock(x, y, z, face);
-	//}
 }
 
 void CreativeMode::continueDestroyBlock(int x, int y, int z, int face) {

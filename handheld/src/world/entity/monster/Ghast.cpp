@@ -82,7 +82,7 @@ void Ghast::aiStep() {
 		}
 	}
 
-	Player* target = level->getNearestPlayer(this, 64);
+	Player* target = level->getNearestAttackablePlayer(this, 64);
 	if (target != NULL) {
 		float xdd = target->x - x;
 		float ydd = (target->bb.y0 + target->bbHeight / 2) - (y + bbHeight / 2);

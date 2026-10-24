@@ -445,7 +445,7 @@ void Tile::initTiles() {
 	stairs_quartz = (new StairTile(156, Tile::quartzBlock))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsQuartz");//->sendTileData();
 
 	// The Nether's second wave of blocks (fortress material and farming).
-	mobSpawner    = (new MobSpawnerTile(52, 8 + 5 * 16))->init()->setDestroyTime(5.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("mobSpawner");
+	mobSpawner    = (new MobSpawnerTile(52, 264))->init()->setDestroyTime(5.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("mobSpawner");
 	netherFence   = (new FenceTile(113, 0 + 14 * 16, Material::stone))->init()->setDestroyTime(2.0f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("netherFence");
 	netherStalk   = (new NetherWartTile(115, 2 + 14 * 16))->init()->setDestroyTime(0.0f)->setSoundType(SOUND_GRASS)->setCategory(ItemCategory::Decorations)->setDescriptionId("netherStalk");
 	quartzOre     = (new OreTile(153, 15 + 11 * 16))->init()->setDestroyTime(3.0f)->setExplodeable(5)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Decorations)->setDescriptionId("netherQuartz");

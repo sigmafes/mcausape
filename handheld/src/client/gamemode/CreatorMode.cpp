@@ -60,12 +60,8 @@ void CreatorMode::startDestroyBlock(int x, int y, int z, int face) {
 }
 
 void CreatorMode::CreatorDestroyBlock(int x, int y, int z, int face) {
-	//if (!
-	minecraft->level->extinguishFire(x, y, z, face)
-	//{
-		;
+	if (!minecraft->level->extinguishFire(x, y, z, face))
 		destroyBlock(x, y, z, face);
-	//}
 }
 
 void CreatorMode::continueDestroyBlock(int x, int y, int z, int face) {

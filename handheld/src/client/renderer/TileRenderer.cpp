@@ -159,6 +159,12 @@ static int materialTag(Tile* tt)
 		return 215;	// glossy stone
 	if (Tile::lightEmission[tt->id] > 0)
 		return 245;	// gives light (torches, lava, fire, portals...): it glows
+	// Plants and leaves sway (shell.html patches the emulation's vertex
+	// shader): 185 a crossed plant, which tesselateCrossTexture splits into
+	// 190 for its top corners (they sway) and 180 for its foot (still); a
+	// tall plant's lower half is 180 throughout. 170: leaves, all of them.
+	if (tt->getRenderShape() == Tile::SHAPE_CROSS_TEXTURE) return 185;
+	if (tt->material == Material::leaves) return 170;
 	return -1;
 }
 
@@ -337,8 +343,13 @@ bool TileRenderer::tesselateCrossInWorld( Tile* tt, int x, int y, int z )
 	// A plant standing in snow: the layer first, the plant over it.
 	const bool snowy = (tt == Tile::tallgrass && (data & TallGrass::SnowyBit))
 		|| (tt == Tile::doubleGrass && !(data & DoublePlantTile::TopBit) && (data & DoublePlantTile::SnowyBit));
+	const int tag = t.tagAlpha;
+	if (tag >= 0 && tt == Tile::doubleGrass && !(data & DoublePlantTile::TopBit)) t.tagAlpha = 180;
 	if (snowy) {
+		const int plantTag = t.tagAlpha;
+		t.tagAlpha = -1;	// the snow under it does not sway
 		tesselateBlockInWorld(Tile::topSnow, x, y, z, 1, 1, 1);
+		t.tagAlpha = plantTag;
 		t.color(br * r, br * g, br * b);
 		data &= ~(tt == Tile::tallgrass ? TallGrass::SnowyBit : DoublePlantTile::SnowyBit);
 	}
@@ -348,6 +359,7 @@ bool TileRenderer::tesselateCrossInWorld( Tile* tt, int x, int y, int z )
 	if (tt == Tile::weepingVines) data = level->getTile(x, y - 1, z) == tt->id ? 1 : 0;
 	if (tt == Tile::twistingVines) data = level->getTile(x, y + 1, z) == tt->id ? 1 : 0;
 	tesselateCrossTexture(tt, data, xt, yt, zt);
+	t.tagAlpha = tag;
 	return true;
 	//return true;
 	/*Tesselator& t = Tesselator::instance;
@@ -454,25 +466,32 @@ void TileRenderer::tesselateCrossTexture( Tile* tt, int data, float x, float y, 
 	float z0 = z + 0.5f - 0.45f;
 	float z1 = z + 0.5f + 0.45f;
 
-	t.vertexUV(x0, y + 1, z0, u0, v0);
-	t.vertexUV(x0, y + 0, z0, u0, v1);
-	t.vertexUV(x1, y + 0, z1, u1, v1);
-	t.vertexUV(x1, y + 1, z1, u1, v0);
+	// A swaying plant (tag 185, materialTag): its top corners 190, which the
+	// vertex shader moves, its foot 180, which stays in the ground.
+	const int tag = t.tagAlpha;
+	const bool sway = tag == 185;
+#define V(X, TOP, Z, U, VV) do { if (sway) t.tagAlpha = (TOP) ? 190 : 180; t.vertexUV(X, y + TOP, Z, U, VV); } while (0)
+	V(x0, 1, z0, u0, v0);
+	V(x0, 0, z0, u0, v1);
+	V(x1, 0, z1, u1, v1);
+	V(x1, 1, z1, u1, v0);
 
-	t.vertexUV(x1, y + 1, z1, u0, v0);
-	t.vertexUV(x1, y + 0, z1, u0, v1);
-	t.vertexUV(x0, y + 0, z0, u1, v1);
-	t.vertexUV(x0, y + 1, z0, u1, v0);
+	V(x1, 1, z1, u0, v0);
+	V(x1, 0, z1, u0, v1);
+	V(x0, 0, z0, u1, v1);
+	V(x0, 1, z0, u1, v0);
 
-	t.vertexUV(x0, y + 1, z1, u0, v0);
-	t.vertexUV(x0, y + 0, z1, u0, v1);
-	t.vertexUV(x1, y + 0, z0, u1, v1);
-	t.vertexUV(x1, y + 1, z0, u1, v0);
+	V(x0, 1, z1, u0, v0);
+	V(x0, 0, z1, u0, v1);
+	V(x1, 0, z0, u1, v1);
+	V(x1, 1, z0, u1, v0);
 
-	t.vertexUV(x1, y + 1, z0, u0, v0);
-	t.vertexUV(x1, y + 0, z0, u0, v1);
-	t.vertexUV(x0, y + 0, z1, u1, v1);
-	t.vertexUV(x0, y + 1, z1, u1, v0);
+	V(x1, 1, z0, u0, v0);
+	V(x1, 0, z0, u0, v1);
+	V(x0, 0, z1, u1, v1);
+	V(x0, 1, z1, u1, v0);
+#undef V
+	t.tagAlpha = tag;
 }
 void TileRenderer::tesselateStemTexture( Tile* tt, int data, float h, float x, float y, float z ) {
 	Tesselator& t = Tesselator::instance;

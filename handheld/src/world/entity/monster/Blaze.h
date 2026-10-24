@@ -22,6 +22,9 @@ public:
 	// Spawns whatever the light: the fortress is lit by glowstone.
 	bool canSpawn();
 
+	// Lit by its own fire: full bright whatever the light around (as Java's).
+	float getBrightness(float a) { return 1.0f; }
+
 protected:
 	const char* getAmbientSound();
 	std::string getHurtSound();

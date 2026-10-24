@@ -39,7 +39,7 @@ TileEntity* MobSpawnerTile::newTileEntity()
 int MobSpawnerTile::getTexture(int face, int data)
 {
 	int kind = data & 7;
-	if (kind == 0) return 8 + 5 * 16;
+	if (kind == 0) return 264;	// the zombie cage (8 + 5 * 16 is the crops)
 	return (3 + kind) + 11 * 16;
 }
 

@@ -1842,8 +1842,9 @@ void Minecraft::handleBuildAction(BuildActionIntention* action) {
 				return;
 
 			//LOGI("tile: %s - %d, %d, %d. b: %f - %f\n", oldTile->getDescriptionId().c_str(), x, y, z, oldTile->getBrightness(level, x, y, z), oldTile->getBrightness(level, x, y+1, z));
-            level->extinguishFire(x, y, z, hitResult.f);
-			gameMode->startDestroyBlock(x, y, z, hitResult.f);
+			// Putting a fire out is the whole click: the block it sat on stays.
+			if (!level->extinguishFire(x, y, z, hitResult.f))
+				gameMode->startDestroyBlock(x, y, z, hitResult.f);
         }
 		else {
 			ItemInstance* item = player->inventory->getSelected();

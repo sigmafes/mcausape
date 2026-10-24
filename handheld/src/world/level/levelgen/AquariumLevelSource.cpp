@@ -98,6 +98,17 @@ LevelChunk* AquariumLevelSource::getChunk(int cx, int cz)
 						blocks[column | y] = (unsigned char) Tile::sand->id;
 				}
 			}
+			// Patches of dark prismarine on its underside, one to three deep: a
+			// darker ceiling over the depths.
+			if (shelfTop >= shelfBottom) {
+				const float s = unit(sandNoise->getValue((cx * 16 + x) / 3.0f + 517.0f, (cz * 16 + z) / 3.0f - 211.0f), 3);
+				if (s > 0.1f) {
+					const int depth = s > 0.5f ? 3 : (s > 0.3f ? 2 : 1);
+					for (int y = shelfBottom; y < shelfBottom + depth && y <= shelfTop; ++y)
+						if (blocks[column | y] == Tile::prismarine->id)
+							blocks[column | y] = (unsigned char) Tile::darkPrismarine->id;
+				}
+			}
 			blocks[column | CeilingY] = (unsigned char) Tile::invisible_bedrock->id;
 		}
 	}

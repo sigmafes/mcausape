@@ -14,6 +14,9 @@ public:
 	BlackSquid(Level* level);
 	int getEntityTypeId() const;
 	void aiStep();
+	// Down by the sand floor: not the squid's band of 45 to 63, which no
+	// black squid ever spawned in (MobSpawner::spawnFloorFauna).
+	bool canSpawn();
 protected:
 	void updateAi();
 private:

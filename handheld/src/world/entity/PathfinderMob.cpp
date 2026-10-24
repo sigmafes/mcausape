@@ -1,5 +1,6 @@
 #include "PathfinderMob.h"
 #include "../level/Level.h"
+#include "player/Player.h"
 #include "../phys/Vec3.h"
 #include "../../util/Mth.h"
 #include "../../util/PerfTimer.h"
@@ -74,6 +75,9 @@ void PathfinderMob::updateAi()
 		}
 	} else {
 		attackTarget = level->getEntity(attackTargetId);
+		// A player who went creative is dropped as a target.
+		if (attackTarget && attackTarget->isPlayer() && (((Player*) attackTarget)->abilities.instabuild || ((Player*) attackTarget)->abilities.invulnerable))
+			attackTarget = NULL;
 		if (!attackTarget || !attackTarget->isAlive()) {
 			attackTargetId = 0;
 			attackTarget = NULL;

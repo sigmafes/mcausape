@@ -35,6 +35,47 @@
 })();
 </script>
 <script>
+// ---------------------------------------------------------------------------
+// Swaying plants and leaves (shaders on). TileRenderer tags their vertices in
+// the alpha (190: a plant's top corners, 170: leaves); the GL emulation makes
+// its own vertex shaders, so the one line where it places a vertex is patched
+// to move tagged ones by a breeze, and each program that has the uniform gets
+// the time (mcpeWave, from mcpeShaders.begin). Untagged geometry is untouched.
+// ---------------------------------------------------------------------------
+(function () {
+  var P = WebGLRenderingContext.prototype, ss = P.shaderSource, lp = P.linkProgram;
+  var KEY = '  vec4 ecPosition = u_modelView * a_position;';
+  var progs = [];
+  P.shaderSource = function (sh, src) {
+    if (typeof src === 'string' && src.indexOf(KEY) >= 0 && src.indexOf('attribute vec4 a_color;') >= 0) {
+      src = 'uniform float u_waveT;\n' + src.replace(KEY,
+        '  vec4 wpos = a_position; float wtg = a_color.a * 255.0;\n' +
+        '  float amp = abs(wtg - 190.0) < 2.5 ? 0.09 : (abs(wtg - 170.0) < 2.5 ? 0.035 : 0.0);\n' +
+        '  if (u_waveT > 0.0 && amp > 0.0) {\n' +
+        '    float ph = wpos.x * 0.6 + wpos.z * 0.45 + wpos.y * 0.3;\n' +
+        '    float gust = 0.75 + 0.25 * sin(u_waveT * 0.45 + wpos.x * 0.05);\n' +
+        '    wpos.x += (sin(u_waveT * 1.9 + ph) + sin(u_waveT * 3.7 + ph * 1.7) * 0.35) * amp * gust;\n' +
+        '    wpos.z += cos(u_waveT * 1.6 + ph * 1.2) * amp * 0.7 * gust;\n' +
+        '    if (amp < 0.05) wpos.y += sin(u_waveT * 2.3 + ph) * amp * 0.4;\n' +
+        '  }\n' +
+        '  vec4 ecPosition = u_modelView * wpos;');
+    }
+    return ss.call(this, sh, src);
+  };
+  P.linkProgram = function (p) {
+    lp.call(this, p);
+    var loc = this.getUniformLocation(p, 'u_waveT');
+    if (loc) progs.push(p, loc);
+  };
+  window.mcpeWave = function (g, t) {
+    if (!progs.length) return;
+    var cur = g.getParameter(g.CURRENT_PROGRAM);
+    for (var i = 0; i < progs.length; i += 2) { g.useProgram(progs[i]); g.uniform1f(progs[i + 1], t); }
+    g.useProgram(cur);
+  };
+})();
+</script>
+<script>
   // Which controls the game builds, decided before anything else on the page so
   // that the layout and the game agree. main_sdl.h reads this back out.
   //
@@ -1123,6 +1164,28 @@
       'void main(){ vec4 t = texture2D(s, uv); vec3 c = t.rgb; float l = dot(c, LUMA);' +
       ' float k = max(smoothstep(thr, 1.0, l), (1.0 - t.a) * glowK);' +
       ' gl_FragColor = vec4(c * tint * k, 1.0); }';
+    // Bloom and streak together (O5), an eighth of the frame: the bloom's
+    // bright parts in rgb, the streak's (only the brightest) in alpha. Four
+    // taps, so a small bright thing is not missed by the coarse grid.
+    var BRIGHT2 = HEADM + 'uniform sampler2D s; uniform float thr, glowK; uniform vec2 st;' +
+      'vec4 tap(vec2 q){ vec4 t = texture2D(s, q); float l = dot(t.rgb, LUMA);' +
+      ' float k = max(smoothstep(thr, 1.0, l), (1.0 - t.a) * glowK);' +
+      ' return vec4(t.rgb * k, smoothstep(0.88, 1.0, l)); }' +
+      'void main(){ gl_FragColor = (tap(uv + st * vec2(-1.0, -1.0)) + tap(uv + st * vec2(1.0, -1.0))' +
+      ' + tap(uv + st * vec2(-1.0, 1.0)) + tap(uv + st * vec2(1.0, 1.0))) * 0.25; }';
+    // rgb blurred along d, alpha (the streak) along da: the streak is always
+    // smeared sideways, the bloom one way then the other.
+    var BLUR2 = HEADM + 'uniform sampler2D s; uniform vec2 d, da;' +
+      'void main(){ vec3 c = texture2D(s, uv).rgb * 0.227; float a = texture2D(s, uv).a * 0.227;' +
+      ' c += (texture2D(s, uv + d).rgb + texture2D(s, uv - d).rgb) * 0.195;' +
+      ' c += (texture2D(s, uv + d * 2.0).rgb + texture2D(s, uv - d * 2.0).rgb) * 0.122;' +
+      ' c += (texture2D(s, uv + d * 3.0).rgb + texture2D(s, uv - d * 3.0).rgb) * 0.054;' +
+      ' c += (texture2D(s, uv + d * 4.0).rgb + texture2D(s, uv - d * 4.0).rgb) * 0.016;' +
+      ' a += (texture2D(s, uv + da).a + texture2D(s, uv - da).a) * 0.195;' +
+      ' a += (texture2D(s, uv + da * 2.0).a + texture2D(s, uv - da * 2.0).a) * 0.122;' +
+      ' a += (texture2D(s, uv + da * 3.0).a + texture2D(s, uv - da * 3.0).a) * 0.054;' +
+      ' a += (texture2D(s, uv + da * 4.0).a + texture2D(s, uv - da * 4.0).a) * 0.016;' +
+      ' gl_FragColor = vec4(c, a); }';
     var BLUR = HEADM + 'uniform sampler2D s; uniform vec2 d;' +
       'void main(){ vec3 c = texture2D(s, uv).rgb * 0.227;' +
       ' c += (texture2D(s, uv + d).rgb + texture2D(s, uv - d).rgb) * 0.195;' +
@@ -1198,6 +1261,7 @@
       // under it. Three warped sine layers; bright where their troughs meet.
       // Taken in world blocks (camPos), so it stays put as the camera moves.
       'float caustic(vec2 q){' +
+      ' q = (floor(q * 16.0) + 0.5) / 16.0;' +                          // a texel's step: blocky, like the game's own textures
       ' vec2 p = q * 0.9; float v = 0.0;' +
       ' for (int i = 0; i < 3; i++) {' +
       '  float fi = float(i);' +
@@ -1323,7 +1387,8 @@
       '  } else if (d < 0.99999) {' +
       '   vec3 n = faceNormal(dep, uv, p);' +
       '   float ca = caustic(worldOf(p).xz + worldOf(p).y * 0.25);' +
-      '   if (shOn > 0.5) ca *= 1.0 - mapShadow(p, n);' +       // none in caves or under overhangs
+      '   if (shOn > 0.5) ca *= 1.0 - mapShadow(p, n);' +
+      '   if (aqua > 0.5) ca *= mix(0.25, 1.0, smoothstep(40.0, 105.0, worldOf(p).y));' +   // faint in the depths       // none in caves or under overhangs
       '   float face = max(dot(n, upV), 0.0) * 0.9 + 0.25;' +
       '   c *= (1.0 + ca * face * 1.2 * lightK) * vec3(0.85, 1.0, 1.0);' +
       '  }' +
@@ -1334,6 +1399,8 @@
       // alpha tells water (baked 0.08) from ice (1).
       ' if (wvis) {' +
       '  vec3 pw = viewPos(uv, wd);' +
+      // Portals share the water's layer, tagged 245 (gives light): they glow.
+      '  if (abs(wm.a * 255.0 - 245.0) < 2.5) { gl_FragColor = vec4(c * 1.15, 0.0); return; }' +
       '  if (wm.a > 0.5) {' +
       // Ice: the game's own ice, polished - a sharp mirror by Fresnel.
       '   vec3 ni = faceNormal(wat, uv, pw);' +
@@ -1365,6 +1432,11 @@
       // them, and they bloom whatever their brightness (alpha 0 out).
       ' float tg = tag * 255.0;' +
       ' bool glow = abs(tg - 230.0) < 2.5 || abs(tg - 245.0) < 2.5;' +
+      // Crossed plants (180, 190): thin crossed planes whose snapped normal
+      // flipped from pixel to pixel - lit as the ground they stand on, and
+      // their shadow looked up a step towards the sun, out of their own shape.
+      ' bool leafy = abs(tg - 180.0) < 2.5 || abs(tg - 190.0) < 2.5;' +
+      ' if (leafy) n = upV;' +
       ' float dist = length(p);' +
       ' if (lightOn > 0.5) {' +
       '  float nl = dot(n, sunV);' +
@@ -1374,7 +1446,7 @@
       // when nl wobbled round zero is what made their shadows flicker.
       '  if (nl > -0.1 && dayK > 0.0) {' +
       '   float o = 0.0;' +
-      '   if (shOn > 0.5) o = mapShadow(p + n * (abs(nl) < 0.2 ? 0.12 : 0.0), n);' +
+      '   if (shOn > 0.5) o = mapShadow(leafy ? p + sunV * 0.7 : p + n * (abs(nl) < 0.2 ? 0.12 : 0.0), n);' +
       '   else if (shadows > 0.5 && dist < 64.0)' +
       '    o = shadow(p + n * (0.06 + dist * 0.01), 0.08 + dist * 0.015) * (1.0 - smoothstep(40.0, 64.0, dist));' +
       '   if (!glow) {' +
@@ -1386,6 +1458,12 @@
       '  if (!glow) {' +
       '   c *= mix(mix(vec3(1.0), warm, lit), cool, shade);' +
       '   c *= mix(vec3(1.0), night, nightK);' +
+      // Ground in the sun towards it glows warm (not a mirror): light
+      // scattered forward off grass and leaves, strongest low in the sky.
+      '   if (dot(n, upV) > 0.9) {' +
+      '    float fw = pow(max(dot(reflect(normalize(p), n), sunV), 0.0), 5.0);' +
+      '    c += c * warm * fw * lit * (0.45 + 0.5 * sunsetK);' +
+      '   }' +
       '  }' +
       ' }' +
       // Polished blocks, by the tag TileRenderer baked into their alpha:
@@ -1461,9 +1539,9 @@
     var COPY = HEADM + 'uniform sampler2D s; void main(){ gl_FragColor = vec4(texture2D(s, uv).rgb, 1.0); }';
 
     var GRADE = HEADM + 'uniform sampler2D s, b, k, r;' +
-      'uniform float bloom, streak, rays, exposure, contrast, saturation, vignette; uniform vec3 tint, sunCol;' +
-      'void main(){ vec3 c = texture2D(s, uv).rgb + texture2D(b, uv).rgb * bloom;' +
-      ' c += texture2D(k, uv).rgb * streak + texture2D(r, uv).rgb * rays * sunCol;' +
+      'uniform float bloom, streak, rays, exposure, contrast, saturation, vignette; uniform vec3 tint, sunCol, streakCol;' +
+      'void main(){ vec4 bl = texture2D(b, uv); vec3 c = texture2D(s, uv).rgb + bl.rgb * bloom;' +
+      ' c += streakCol * (bl.a * streak) + texture2D(r, uv).rgb * rays * sunCol;' +
       ' c *= exposure * tint;' +
       ' c = c / (1.0 + c * 0.15) * 1.15;' +
       ' c = (c - 0.5) * contrast + 0.5;' +
@@ -1558,8 +1636,12 @@
           deepDepth = gl.getParameter(gl.DEPTH_BITS) >= 24;
         } catch (e) { waterFb = maskFb = null; }
       }
+      // q0, q1: bloom and streak, an eighth (O5); q3: the rays, a quarter.
       var bw = Math.max(1, w >> 2), bh = Math.max(1, h >> 2);
-      for (var k = 0; k < 4; k++) { qTex[k] = texture(bw, bh); qFb[k] = framebuffer(qTex[k], null, null); }
+      for (var k = 0; k < 4; k++) {
+        var e = k < 2 ? 1 : 0;
+        qTex[k] = texture(Math.max(1, bw >> e), Math.max(1, bh >> e)); qFb[k] = framebuffer(qTex[k], null, null);
+      }
       // Half size: what the reflections and the shadows found (O4).
       try {
         for (var m = 0; m < 2; m++) { fxTex[m] = texture(Math.max(1, w >> 1), Math.max(1, h >> 1)); fxFb[m] = framebuffer(fxTex[m], null, null); }
@@ -1572,7 +1654,7 @@
     function setup(ctx) {
       gl = ctx;
       depthExt = gl.getExtension('WEBGL_depth_texture') || gl.getExtension('WEBKIT_WEBGL_depth_texture');
-      P.bright = compile(BRIGHT); P.blur = compile(BLUR); P.grade = compile(GRADE); P.copy = compile(COPY);
+      P.bright = compile(BRIGHT2); P.blur = compile(BLUR2); P.grade = compile(GRADE); P.copy = compile(COPY);
       if (depthExt) {
         try { P.light = compile(lightSrc(0)); P.lightFull = compile(lightSrc(4)); P.rays = compile(RAYS); P.uwrays = compile(UWRAYS); }
         catch (e) { console.warn('[shaders] no depth effects:', e && e.message); depthExt = null; }
@@ -1713,6 +1795,7 @@
           if (gl !== ctx) setup(ctx);
           if (w !== W || h !== H) resize(w, h);
           gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFb);
+          if (window.mcpeWave) window.mcpeWave(gl, full ? (performance.now() / 1000) % 1000 + 1 : 0);
           waterUsed = false;
           fullMode = !!full;
           return full && depthTex ? 2 : 1;	// 2: depth is kept, the hand must not clear it
@@ -1729,9 +1812,14 @@
       // The sun's view of the world for cast shadows (High): GameRenderer
       // draws the solid layers into this depth with an ortho box round the
       // player, before the scene. Colour writes off: only depth matters.
-      shadowBegin: function (ctx) {
+      // size (O6): 2048, or 1024 on a phone or a struggling frame rate.
+      shadowBegin: function (ctx, size) {
         if (!depthTex || gl !== ctx || shadowFail) return 0;
         var g = gl;
+        if (size && size !== SHADOW) {
+          if (shadowFb) { g.deleteFramebuffer(shadowFb); g.deleteTexture(shadowTex); g.deleteTexture(shadowCol); shadowFb = null; }
+          SHADOW = size;
+        }
         if (!shadowFb) {
           try {
             var t0 = g.getParameter(g.TEXTURE_BINDING_2D);
@@ -1849,27 +1937,20 @@
           src = litTex;
         }
 
-        // 2. Bloom: bright parts, a quarter size, blurred both ways -> q0.
-        pass(P.bright, qFb[0], bw, bh);
+        // 2. Bloom and streak in one go (O5), an eighth size -> q0: the
+        // bright parts, then sideways, then up and down (the streak sideways
+        // again, wider).
+        var ew = Math.max(1, bw >> 1), eh = Math.max(1, bh >> 1);
+        pass(P.bright, qFb[0], ew, eh);
         bind(0, src); g.uniform1i(P.bright.u('s'), 0);
-        g.uniform1f(P.bright.u('thr'), 0.62); g.uniform3f(P.bright.u('tint'), 1, 1, 1);
+        g.uniform1f(P.bright.u('thr'), 0.62);
         g.uniform1f(P.bright.u('glowK'), src === litTex ? 0.9 : 0.0);
+        g.uniform2f(P.bright.u('st'), 2 / sw, 2 / sh);
         draw();
-        pass(P.blur, qFb[1], bw, bh); g.uniform1i(P.blur.u('s'), 0);
-        bind(0, qTex[0]); g.uniform2f(P.blur.u('d'), 1.5 / bw, 0); draw();
+        pass(P.blur, qFb[1], ew, eh); g.uniform1i(P.blur.u('s'), 0);
+        bind(0, qTex[0]); g.uniform2f(P.blur.u('d'), 0.75 / ew, 0); g.uniform2f(P.blur.u('da'), 2.5 / ew, 0); draw();
         g.bindFramebuffer(g.FRAMEBUFFER, qFb[0]);
-        bind(0, qTex[1]); g.uniform2f(P.blur.u('d'), 0, 1.5 / bh); draw();
-
-        // 3. Streak: only the brightest, smeared wide sideways -> q2.
-        pass(P.bright, qFb[2], bw, bh);
-        bind(0, src); g.uniform1i(P.bright.u('s'), 0);
-        g.uniform1f(P.bright.u('thr'), 0.9); g.uniform3fv(P.bright.u('tint'), sunCol);
-        g.uniform1f(P.bright.u('glowK'), 0.0);
-        draw();
-        pass(P.blur, qFb[3], bw, bh); g.uniform1i(P.blur.u('s'), 0);
-        bind(0, qTex[2]); g.uniform2f(P.blur.u('d'), 5 / bw, 0); draw();
-        g.bindFramebuffer(g.FRAMEBUFFER, qFb[2]);
-        bind(0, qTex[3]); g.uniform2f(P.blur.u('d'), 12 / bw, 0); draw();
+        bind(0, qTex[1]); g.uniform2f(P.blur.u('d'), 0, 0.75 / eh); g.uniform2f(P.blur.u('da'), 6 / ew, 0); draw();
 
         // 4. Rays (High): from the sun's place on screen, when it is ahead -> q3.
         // Under water, the shafts down through it instead.
@@ -1909,8 +1990,9 @@
         // 5. The grade, onto the screen.
         var pg = P.grade;
         pass(pg, null, w, h);
-        bind(0, src); bind(1, qTex[0]); bind(2, qTex[2]); bind(3, qTex[3]);
-        g.uniform1i(pg.u('s'), 0); g.uniform1i(pg.u('b'), 1); g.uniform1i(pg.u('k'), 2); g.uniform1i(pg.u('r'), 3);
+        bind(0, src); bind(1, qTex[0]); bind(3, qTex[3]);
+        g.uniform1i(pg.u('s'), 0); g.uniform1i(pg.u('b'), 1); g.uniform1i(pg.u('r'), 3);
+        g.uniform3fv(pg.u('streakCol'), sunCol);
         g.uniform1f(pg.u('exposure'), L[0]); g.uniform1f(pg.u('contrast'), L[1]);
         g.uniform1f(pg.u('saturation'), L[2]); g.uniform1f(pg.u('vignette'), L[3]);
         g.uniform1f(pg.u('bloom'), L[4]);

@@ -57,7 +57,7 @@ bool Monster::canSpawn()
 Entity* Monster::findAttackTarget()
 {
 	//Player* player = level->getNearestAttackablePlayer(this, 16);
-	Player* player = level->getNearestPlayer(this, 16);
+	Player* player = level->getNearestAttackablePlayer(this, 16);
 	//LOGI("playuer: %p\n", player);
 	if (player != NULL && canSee(player)) return player;
 	return NULL;

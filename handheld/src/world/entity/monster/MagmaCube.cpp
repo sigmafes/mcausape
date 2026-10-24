@@ -57,7 +57,7 @@ void MagmaCube::updateAi() {
 	Player* nearest = level->getNearestPlayer(this, -1);
 	checkDespawn(nearest);
 
-	Player* player = level->getNearestPlayer(this, 16);
+	Player* player = level->getNearestAttackablePlayer(this, 16);
 	if (player != NULL)
 		lookAt(player, 10, 20);
 

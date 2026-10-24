@@ -179,6 +179,18 @@ Player* Level::getNearestPlayer(Entity* source, float maxDist) {
     return getNearestPlayer(source->x, source->y, source->z, maxDist);
 }
 
+Player* Level::getNearestAttackablePlayer(Entity* source, float maxDist) {
+    float maxDistSqr = maxDist * maxDist, best = -1;
+    Player* result = NULL;
+    for (unsigned int i = 0; i < players.size(); i++) {
+        Player* p = players[i];
+        if (p->removed || p->abilities.instabuild || p->abilities.invulnerable) continue;
+        float dist = p->distanceToSqr(source);
+        if ((maxDist < 0 || dist < maxDistSqr) && (best == -1 || dist < best)) { best = dist; result = p; }
+    }
+    return result;
+}
+
 /*public*/
 Player* Level::getNearestPlayer(float x, float y, float z, float maxDist) {
     float maxDistSqr = maxDist * maxDist;
@@ -1840,7 +1852,7 @@ bool Level::isSolidRenderTile(int x, int y, int z) {
 	return tile->isSolidRender();
 }
 
-void Level::extinguishFire(int x, int y, int z, int face) {
+bool Level::extinguishFire(int x, int y, int z, int face) {
 	switch (face) {
 		case Facing::DOWN : y--; break;
 		case Facing::UP   : y++; break;
@@ -1853,7 +1865,9 @@ void Level::extinguishFire(int x, int y, int z, int face) {
     if (getTile(x, y, z) == ((Tile*)Tile::fire)->id) {
         //playSound(x + 0.5f, y + 0.5f, z + 0.5f, "random.fizz", 0.5f, 2.6f + (random.nextFloat() - random.nextFloat()) * 0.8f);
         setTile(x, y, z, 0);
+        return true;
     }
+    return false;
 }
 //    String gatherStats() {
 //        return "All: " + this.entities.size();

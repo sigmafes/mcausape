@@ -300,11 +300,12 @@ void GameRenderer::render(float a) {
 				mc->levelRenderer->allChanged();
 			}
 			// Cast shadows (High): the world from the sun, redrawn only every
-			// three seconds (or after a walk of 12 blocks): the shaders shift
+			// second (or after a walk of 12 blocks): the shaders shift
 			// the old map by how far the player has moved since.
 			// In the Aquarium too, with the light straight down: its shafts and
 			// caustics stop where blocks overhead would shade them.
-			if (post == 2 && mc->options.shaderHigh && !mc->level->dimension->foggy) {
+			// The Aquarium is foggy too, but its shafts need the map: not the Nether.
+			if (post == 2 && mc->options.shaderHigh && (!mc->level->dimension->foggy || mc->level->dimension->isAllWater())) {
 				Mob* sp = mc->cameraTargetPlayer;
 				const float px = sp->xOld + (sp->x - sp->xOld) * a, py = sp->yOld + (sp->y - sp->yOld) * a, pz = sp->zOld + (sp->z - sp->zOld) * a;
 				const float mx = px - _shOrigin[0], my = py - _shOrigin[1], mz = pz - _shOrigin[2];
@@ -312,7 +313,7 @@ void GameRenderer::render(float a) {
 				// A block placed or broken redraws it at once (at most four
 				// times a second: flowing water and growing crops change too).
 				const bool changed = LevelRenderer::blocksChanged && now - _shadowAt > 250;
-				if (!_shadowPass || changed || now - _shadowAt > 3000 || mx * mx + my * my + mz * mz > 12 * 12) {
+				if (!_shadowPass || changed || now - _shadowAt > (mc->options.renderScale == 3 && _autoScale < 0.75f ? 2000 : 1000) || mx * mx + my * my + mz * mz > 12 * 12) {
 					LevelRenderer::blocksChanged = false;
 					renderShadowMap(a);
 					_shadowAt = now;
@@ -1057,7 +1058,10 @@ void GameRenderer::renderShadowMap(float a) {
 	_shadowPass = false;
 	if (Mth::cos(th) < 0.03f) return;	// the sun is down
 	_shTh = th;
-	if (!EM_ASM_INT({ return window.mcpeShaders.shadowBegin(GLctx); })) return;
+	// O6: half the map's resolution (a quarter of its texels to draw and
+	// sample) on a phone, or when the auto render scale has had to step down.
+	const int mapSize = (mc->useTouchscreen() || (mc->options.renderScale == 3 && _autoScale < 0.8f)) ? 1024 : 2048;
+	if (!EM_ASM_INT({ return window.mcpeShaders.shadowBegin(GLctx, $0); }, mapSize)) return;
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix2();
 	glLoadIdentity2();
