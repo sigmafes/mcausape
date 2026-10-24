@@ -1084,7 +1084,7 @@
     var gl = null, broken = false, depthExt = null;
     var W = 0, H = 0;
     var sceneFb, sceneTex, depthTex = null, depthRb = null, litFb, litTex;
-    var waterFb = null, waterTex = null, waterDepth = null, waterUsed = false;
+    var waterFb = null, waterTex = null, waterDepth = null, waterUsed = false, maskFb = null;
     var qFb = [], qTex = [];
     var quad, P = {};
 
@@ -1114,7 +1114,7 @@
       'vec2 toScreen(vec3 v){ return vec2(v.x / (-v.z) / (tanY * aspect), v.y / (-v.z) / tanY) * 0.5 + 0.5; }';
 
     var LIGHT = HEAD + DEPTH +
-      'uniform sampler2D s, wat; uniform vec2 texel; uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol, skyCol, sunCol, camPos;' +
+      'uniform sampler2D s, wat, wmask; uniform vec2 texel; uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol, skyCol, sunCol, camPos;' +
       'uniform float time, waterOn, ssr;' +
       'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows;' +
       'float shadow(vec3 o, float bias){' +
@@ -1199,9 +1199,8 @@
       ' if (d < 0.02) { gl_FragColor = vec4(c, 1.0); return; }' +                     // the hand
       ' float wd = waterOn > 0.5 ? texture2D(wat, uv).r : 1.0;' +
       // Water in front of whatever is behind it, seen from above.
-      // Compared in blocks, with room for coarse depths: in raw depth the
-      // far water and its bed differ by less than the depth can tell.
-      ' if (wd < 0.99999 && (d >= 0.99999 || lin(wd) < lin(d) + 0.05 + lin(d) * 0.004)) {' +
+      // Water where the mask (maskMid) says the water is in front.
+      ' if (wd < 0.99999 && texture2D(wmask, uv).r > 0.02) {' +
       '  vec3 pw = viewPos(uv, wd);' +
       '  if (dot(normalize(pw), upV) < 0.0) {' +
       '   float sceneDist = d >= 0.99999 ? far * 2.0 : length(viewPos(uv, d));' +
@@ -1332,7 +1331,8 @@
         if (depthTex) gl.deleteTexture(depthTex);
         if (depthRb) gl.deleteRenderbuffer(depthRb);
         if (waterFb) { gl.deleteFramebuffer(waterFb); gl.deleteTexture(waterTex); gl.deleteTexture(waterDepth); }
-        waterFb = null;
+        if (maskFb) gl.deleteFramebuffer(maskFb);
+        waterFb = maskFb = null;
         for (var i = 0; i < 4; i++) { gl.deleteFramebuffer(qFb[i]); gl.deleteTexture(qTex[i]); }
       }
       depthTex = depthRb = null;
@@ -1358,7 +1358,11 @@
           waterTex = texture(w, h);
           waterDepth = texture(w, h, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT);
           waterFb = framebuffer(waterTex, waterDepth, null);
-        } catch (e) { waterFb = null; }
+          // The same colour target over the scene's own depth: drawn with the
+          // depth test, it lights exactly the water that is in front of the
+          // scene - no comparing of two coarse depths in the shader.
+          maskFb = framebuffer(waterTex, depthTex, null);
+        } catch (e) { waterFb = maskFb = null; }
       }
       var bw = Math.max(1, w >> 2), bh = Math.max(1, h >> 2);
       for (var k = 0; k < 4; k++) { qTex[k] = texture(bw, bh); qFb[k] = framebuffer(qTex[k], null, null); }
@@ -1426,6 +1430,17 @@
         if (sc) g.enable(g.SCISSOR_TEST);
         waterUsed = true;
         return 1;
+      },
+      // Between the two water draws: from the water's own depth to the
+      // visibility mask (colour only, the scene's depth tested, not written).
+      maskMid: function (ctx) {
+        var g = gl, cc = g.getParameter(g.COLOR_CLEAR_VALUE), sc = g.isEnabled(g.SCISSOR_TEST);
+        g.bindFramebuffer(g.FRAMEBUFFER, maskFb);
+        if (sc) g.disable(g.SCISSOR_TEST);
+        g.clearColor(0, 0, 0, 0);
+        g.clear(g.COLOR_BUFFER_BIT);
+        g.clearColor(cc[0], cc[1], cc[2], cc[3]);
+        if (sc) g.enable(g.SCISSOR_TEST);
       },
       maskEnd: function (ctx) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFb);
@@ -1512,6 +1527,8 @@
           var wOn = waterUsed && waterFb;
           bind(2, wOn ? waterDepth : depthTex);
           g.uniform1i(p.u('wat'), 2);
+          bind(3, wOn ? waterTex : sceneTex);
+          g.uniform1i(p.u('wmask'), 3);
           g.uniform1f(p.u('waterOn'), wOn ? 1 : 0);
           g.uniform1f(p.u('ssr'), high ? 1 : 0);
           g.uniform1f(p.u('time'), (performance.now() / 1000) % 1000);

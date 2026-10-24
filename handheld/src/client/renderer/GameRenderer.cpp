@@ -468,8 +468,10 @@ void GameRenderer::renderLevel(float a) {
 				glDisable2(GL_FOG);
 				glDisable2(GL_TEXTURE_2D);
 				glDepthMask(GL_TRUE);
-				levelRenderer->render(cameraEntity, 2, a);
+				levelRenderer->render(cameraEntity, 2, a);	// its own depth
 				glDepthMask(GL_FALSE);
+				EM_ASM({ window.mcpeShaders.maskMid(GLctx); });
+				levelRenderer->render(cameraEntity, 2, a);	// where it is seen
 				glEnable2(GL_TEXTURE_2D);
 				glEnable2(GL_FOG);
 				glEnable2(GL_BLEND);
