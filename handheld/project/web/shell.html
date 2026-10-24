@@ -16,18 +16,17 @@
 <script>
 // ---------------------------------------------------------------------------
 // Input latency. The game's WebGL context is asked for low latency:
-// desynchronized lets the browser show a frame without waiting on the page
-// compositor (the queue that, when the GPU is the bottleneck, holds two or
-// three finished frames - felt as the mouse and buttons lagging even at a
-// steady 40 fps), and antialias off spares a multisampled copy of every frame
-// (the shaders draw their own picture anyway). Only WebGL contexts are touched.
+// antialias off spares a multisampled copy of every frame (the shaders draw
+// their own picture anyway). desynchronized is NOT used: on Windows it puts the
+// canvas on the front buffer, so every intermediate draw the game makes into
+// the default framebuffer (the menu's blurred background, the clear before the
+// world) shows on screen and the whole GUI flickers. Only WebGL contexts are touched.
 // ---------------------------------------------------------------------------
 (function () {
   var get = HTMLCanvasElement.prototype.getContext;
   HTMLCanvasElement.prototype.getContext = function (type, attrs) {
     if (type === 'webgl' || type === 'experimental-webgl' || type === 'webgl2') {
       attrs = attrs || {};
-      if (attrs.desynchronized === undefined) attrs.desynchronized = true;
       attrs.antialias = false;
       if (!attrs.powerPreference) attrs.powerPreference = 'high-performance';
     }
