@@ -1,4 +1,6 @@
 #include "GameRenderer.h"
+#include "../../platform/time.h"
+#include "entity/MobRenderer.h"
 #include "TileRenderer.h"
 #include "../../world/level/dimension/Dimension.h"
 #include "../../SharedConstants.h"
@@ -49,6 +51,7 @@ GameRenderer::GameRenderer( Minecraft* mc )
 	_setupCameraFov(0),
 	_postKeepsDepth(false),
 	_shadowPass(false),
+	_shadowAt(0), _shTh(0),
 	zoom(1), zoom_x(0), zoom_y(0),
 	cameraRoll(0), cameraRollO(0),
 	pickDirection(1, 0, 0),
@@ -65,6 +68,7 @@ GameRenderer::GameRenderer( Minecraft* mc )
 	_rotXlast(0), _rotYlast(0),
 	useScreenScissor(false)
 {
+	_shOrigin[0] = _shOrigin[1] = _shOrigin[2] = 0;
 	saveMatrices();
 
 	itemInHandRenderer = new ItemInHandRenderer(mc);
@@ -275,26 +279,47 @@ void GameRenderer::render(float a) {
 			// 2: the depth is a texture the shaders read, so the hand must
 			// not clear it (renderLevel).
 			_postKeepsDepth = post == 2;
+			MobRenderer::deferNameTags = post != 0;
 			// The shaders' water needs the depth; when it comes or goes,
 			// the chunks are rebuilt with the game's water clear or blue.
 			if (TileRenderer::shaderWater != (post == 2)) {
 				TileRenderer::shaderWater = post == 2;
 				mc->levelRenderer->allChanged();
 			}
-			// Cast shadows (High): the world from the sun first.
-			_shadowPass = false;
-			if (post == 2 && mc->options.shaderHigh && !mc->level->dimension->foggy && !mc->level->dimension->isAllWater())
-				renderShadowMap(a);
+			// Cast shadows (High): the world from the sun, redrawn only every
+			// three seconds (or after a walk of 12 blocks): the shaders shift
+			// the old map by how far the player has moved since.
+			if (post == 2 && mc->options.shaderHigh && !mc->level->dimension->foggy && !mc->level->dimension->isAllWater()) {
+				Mob* sp = mc->cameraTargetPlayer;
+				const float px = sp->xOld + (sp->x - sp->xOld) * a, py = sp->yOld + (sp->y - sp->yOld) * a, pz = sp->zOld + (sp->z - sp->zOld) * a;
+				const float mx = px - _shOrigin[0], my = py - _shOrigin[1], mz = pz - _shOrigin[2];
+				const int now = getTimeMs();
+				if (!_shadowPass || now - _shadowAt > 3000 || mx * mx + my * my + mz * mz > 12 * 12) {
+					renderShadowMap(a);
+					_shadowAt = now;
+					_shOrigin[0] = px; _shOrigin[1] = py; _shOrigin[2] = pz;
+				}
+			} else {
+				_shadowPass = false;
+			}
 #endif
 			renderLevel(a);
 #if defined(MC_WASM)
 			_postKeepsDepth = false;
 			if (post) {
-				float f[49];
+				float f[53];
 				shaderParams(a, f);
-				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 49))); },
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 53))); },
 					mc->width, mc->height, f);
+				// The name tags, held back from the scene (MobRenderer), over
+				// the finished picture with the same camera.
+				MobRenderer::deferNameTags = false;
+				if (!MobRenderer::pendingTags.empty()) {
+					setupCamera(a, 0);
+					MobRenderer::flushNameTags();
+				}
 			}
+			MobRenderer::deferNameTags = false;
 #endif
 			hasClearedColorBuffer = true;
 
@@ -990,7 +1015,9 @@ void GameRenderer::tick(int nTick, int maxTick) {
 void GameRenderer::renderShadowMap(float a) {
 #if defined(MC_WASM)
 	const float th = mc->level->getTimeOfDay(a) * Mth::PI * 2;
+	_shadowPass = false;
 	if (Mth::cos(th) < 0.03f) return;	// the sun is down
+	_shTh = th;
 	if (!EM_ASM_INT({ return window.mcpeShaders.shadowBegin(GLctx); })) return;
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix2();
@@ -1070,8 +1097,13 @@ void GameRenderer::shaderParams(float a, float* f) {
 	f[36] = m[4]; f[37] = m[5]; f[38] = m[6];
 	f[39] = m[8]; f[40] = m[9]; f[41] = m[10];
 	f[42] = m[12]; f[43] = m[13]; f[44] = m[14];
-	f[45] = Mth::cos(-th); f[46] = Mth::sin(-th);
+	// The shadow map's turn is the sun's when it was drawn (every 3 s), and
+	// how far the player has moved since (the map is centred where it was).
+	f[45] = Mth::cos(-_shTh); f[46] = Mth::sin(-_shTh);
 	f[47] = ShadowRadius; f[48] = ShadowDepth;
+	const float npx = p->xOld + (p->x - p->xOld) * a, npy = p->yOld + (p->y - p->yOld) * a, npz = p->zOld + (p->z - p->zOld) * a;
+	f[49] = npx - _shOrigin[0]; f[50] = npy - _shOrigin[1]; f[51] = npz - _shOrigin[2];
+	f[52] = _shadowPass ? 1.0f : 0.0f;
 }
 
 void GameRenderer::setupClearColor(float a) {

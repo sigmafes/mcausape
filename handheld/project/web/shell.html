@@ -1096,9 +1096,12 @@
     // mediump, which every phone has (a highp failure only drops those two).
     var HEADM = 'precision mediump float; varying vec2 uv; const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);';
 
-    var BRIGHT = HEADM + 'uniform sampler2D s; uniform float thr; uniform vec3 tint;' +
-      'void main(){ vec3 c = texture2D(s, uv).rgb; float l = dot(c, LUMA);' +
-      ' gl_FragColor = vec4(c * tint * smoothstep(thr, 1.0, l), 1.0); }';
+    // Bright parts, plus anything the light pass marked as giving light
+    // (alpha 0: torches, lava, fire, glowstone, portals...), however dim.
+    var BRIGHT = HEADM + 'uniform sampler2D s; uniform float thr, glowK; uniform vec3 tint;' +
+      'void main(){ vec4 t = texture2D(s, uv); vec3 c = t.rgb; float l = dot(c, LUMA);' +
+      ' float k = max(smoothstep(thr, 1.0, l), (1.0 - t.a) * glowK);' +
+      ' gl_FragColor = vec4(c * tint * k, 1.0); }';
     var BLUR = HEADM + 'uniform sampler2D s; uniform vec2 d;' +
       'void main(){ vec3 c = texture2D(s, uv).rgb * 0.227;' +
       ' c += (texture2D(s, uv + d).rgb + texture2D(s, uv - d).rgb) * 0.195;' +
@@ -1119,7 +1122,7 @@
       'uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol, skyCol, sunCol, camPos;' +
       'uniform vec3 m0, m1, m2, mt;' +
       'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows, time, waterOn, ssr;' +
-      'uniform float shOn, shR, shD, shCos, shSin;' +
+      'uniform float shOn, shR, shD, shCos, shSin; uniform vec3 shDelta;' +
       'float shadow(vec3 o, float bias){' +
       ' float t = 0.25, occ = 0.0;' +
       ' for (int i = 0; i < 14; i++) {' +
@@ -1139,7 +1142,7 @@
       // nine taps for soft edges, fading out at the box's rim.
       'float mapShadow(vec3 p, vec3 n){' +
       ' vec3 e = p + n * (0.05 + length(p) * 0.002) - mt;' +
-      ' vec3 w = vec3(dot(e, m0), dot(e, m1), dot(e, m2));' +
+      ' vec3 w = vec3(dot(e, m0), dot(e, m1), dot(e, m2)) + shDelta;' +
       ' vec3 q = vec3(w.x * shCos - w.y * shSin, -w.z, w.x * shSin + w.y * shCos);' +
       ' vec2 su = q.xy / shR * 0.5 + 0.5; float dz = -q.z / shD * 0.5 + 0.5;' +
       ' if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) return 0.0;' +
@@ -1165,7 +1168,9 @@
       ' vec3 c = mix(hazeCol, skyCol, smoothstep(0.0, 0.45, up));' +
       ' float tw = max(dot(r, sunV), 0.0);' +
       ' c = mix(c, sunsetCol, tw * tw * sunsetK);' +
-      ' return c + sunCol * pow(tw, 220.0) * 6.0 * dayK;' +            // the sun's glint
+      ' float tm = max(dot(r, -sunV), 0.0);' +                         // the moon stands opposite the sun
+      ' return c + sunCol * pow(tw, 220.0) * 6.0 * dayK' +            // the sun's glint
+      '  + vec3(0.72, 0.8, 1.0) * pow(tm, 260.0) * 2.5 * nightK / 0.55;' +   // and the moon's
       '}' +
       // A reflected ray marched through the depth (High): what it meets on
       // screen, faded at the screen's edges; the fallback where it leaves it.
@@ -1262,21 +1267,32 @@
       ' }' +
       ' vec3 p = viewPos(uv, d);' +
       ' vec3 n = faceNormal(dep, uv, p);' +
+      // Blocks that give light (tagged 230 or 245): no shade or shadow on
+      // them, and they bloom whatever their brightness (alpha 0 out).
+      ' float tg = tag * 255.0;' +
+      ' bool glow = abs(tg - 230.0) < 2.5 || abs(tg - 245.0) < 2.5;' +
       ' float dist = length(p);' +
       ' if (lightOn > 0.5) {' +
       '  float nl = dot(n, sunV);' +
       '  float lit = clamp(nl * 1.6, 0.0, 1.0) * dayK, shade = clamp(-nl * 1.6, 0.0, 1.0) * dayK;' +
-      '  if (lit > 0.0) {' +
+      // Faces edge-on to the sun (the sun runs east to west, so the north
+      // and south faces) are tested too, with a deeper offset: skipping them
+      // when nl wobbled round zero is what made their shadows flicker.
+      '  if (nl > -0.1 && dayK > 0.0) {' +
       '   float o = 0.0;' +
-      '   if (shOn > 0.5) o = mapShadow(p, n);' +
+      '   if (shOn > 0.5) o = mapShadow(p + n * (abs(nl) < 0.2 ? 0.12 : 0.0), n);' +
       '   else if (shadows > 0.5 && dist < 64.0)' +
       '    o = shadow(p + n * (0.06 + dist * 0.01), 0.08 + dist * 0.015) * (1.0 - smoothstep(40.0, 64.0, dist));' +
-      '   lit *= 1.0 - o; shade = max(shade, o * dayK * 0.85);' +
+      '   if (!glow) {' +
+      '    lit *= 1.0 - o; shade = max(shade, o * dayK * 0.85);' +
       // A cast shadow is deep, not just cool: the sun's light taken away.
-      '   c *= 1.0 - o * dayK * 0.45;' +
+      '    c *= 1.0 - o * dayK * 0.45;' +
+      '   }' +
       '  }' +
-      '  c *= mix(mix(vec3(1.0), warm, lit), cool, shade);' +
-      '  c *= mix(vec3(1.0), night, nightK);' +
+      '  if (!glow) {' +
+      '   c *= mix(mix(vec3(1.0), warm, lit), cool, shade);' +
+      '   c *= mix(vec3(1.0), night, nightK);' +
+      '  }' +
       ' }' +
       // Polished blocks, by the tag TileRenderer baked into their alpha:
       // metals (iron, gold, diamond, netherite) reflect tinted by their own
@@ -1285,7 +1301,6 @@
       // a clear, lighter Fresnel reflection, the glowing ones brighter too.
       // Only the exact tags (200, 215, 230 of 255): anything else that left a
       // stray alpha (a blended flash, a particle) is not a material.
-      ' float tg = tag * 255.0;' +
       ' if (abs(tg - 200.0) < 2.5 || abs(tg - 215.0) < 2.5 || abs(tg - 230.0) < 2.5) {' +
       '  vec3 v = normalize(p), r = reflect(v, n);' +
       '  float F = pow(1.0 - max(dot(-v, n), 0.0), 5.0);' +
@@ -1294,7 +1309,7 @@
       '  else if (tag < 0.87) c = mix(c, rc, 0.05 + 0.55 * F);' +
       '  else c = mix(c * 1.18, rc, 0.04 + 0.45 * F);' +
       ' }' +
-      ' gl_FragColor = vec4(hazed(c, p), 1.0);' +
+      ' gl_FragColor = vec4(hazed(c, p), glow ? 0.0 : 1.0);' +
       '}';
 
     var RAYS = HEAD + DEPTH + 'uniform sampler2D s; uniform vec2 sunUV;' +
@@ -1426,9 +1441,9 @@
 
     // Per dimension: [exposure, contrast, saturation, vignette, bloom, tint r, g, b, haze].
     var LOOK = {
-      0: [1.02, 1.08, 1.1, 0.32, 0.55, 1.02, 1.0, 0.97, 1.0],
-      1: [1.0, 1.12, 1.08, 0.42, 0.75, 1.08, 0.96, 0.9, 0.6],
-      2: [1.0, 1.06, 1.1, 0.38, 0.6, 0.92, 1.0, 1.1, 0.5]
+      0: [1.02, 1.08, 1.1, 0.32, 0.75, 1.02, 1.0, 0.97, 1.0],
+      1: [1.0, 1.12, 1.08, 0.42, 0.95, 1.08, 0.96, 0.9, 0.6],
+      2: [1.0, 1.06, 1.1, 0.38, 0.8, 0.92, 1.0, 1.1, 0.5]
     };
 
     function mix3(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
@@ -1442,7 +1457,6 @@
           if (w !== W || h !== H) resize(w, h);
           gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFb);
           waterUsed = false;
-          shadowUsed = false;
           return depthTex ? 2 : 1;	// 2: depth is kept, the hand must not clear it
         } catch (e) {
           broken = true;
@@ -1615,7 +1629,8 @@
           g.uniform3f(p.u('m1'), f[36], f[37], f[38]);
           g.uniform3f(p.u('m2'), f[39], f[40], f[41]);
           g.uniform3f(p.u('mt'), f[42], f[43], f[44]);
-          var shOn = shadowUsed && shadowFb;
+          var shOn = f[52] > 0.5 && shadowFb;	// drawn within the last 3 s
+          g.uniform3f(p.u('shDelta'), f[49], f[50], f[51]);
           bind(4, shOn ? shadowTex : depthTex);
           g.uniform1i(p.u('smap'), 4);
           g.uniform1f(p.u('shOn'), shOn ? 1 : 0);
@@ -1630,6 +1645,7 @@
         pass(P.bright, qFb[0], bw, bh);
         bind(0, src); g.uniform1i(P.bright.u('s'), 0);
         g.uniform1f(P.bright.u('thr'), 0.62); g.uniform3f(P.bright.u('tint'), 1, 1, 1);
+        g.uniform1f(P.bright.u('glowK'), src === litTex ? 0.9 : 0.0);
         draw();
         pass(P.blur, qFb[1], bw, bh); g.uniform1i(P.blur.u('s'), 0);
         bind(0, qTex[0]); g.uniform2f(P.blur.u('d'), 1.5 / bw, 0); draw();
@@ -1640,6 +1656,7 @@
         pass(P.bright, qFb[2], bw, bh);
         bind(0, src); g.uniform1i(P.bright.u('s'), 0);
         g.uniform1f(P.bright.u('thr'), 0.9); g.uniform3fv(P.bright.u('tint'), sunCol);
+        g.uniform1f(P.bright.u('glowK'), 0.0);
         draw();
         pass(P.blur, qFb[3], bw, bh); g.uniform1i(P.blur.u('s'), 0);
         bind(0, qTex[2]); g.uniform2f(P.blur.u('d'), 5 / bw, 0); draw();

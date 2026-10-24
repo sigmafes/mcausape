@@ -97,7 +97,9 @@ private:
 	bool _postKeepsDepth;
 	void shaderParams(float a, float* f);
 	void renderShadowMap(float a);
-	bool _shadowPass;
+	bool _shadowPass;	///< a shadow map is valid (drawn within 3 s)
+	int _shadowAt;
+	float _shTh, _shOrigin[3];
 	static const int ShadowRadius = 64, ShadowDepth = 128;
 
 	// roll modification

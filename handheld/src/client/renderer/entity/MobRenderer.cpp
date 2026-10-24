@@ -201,7 +201,31 @@ void MobRenderer::renderName(Mob* mob, float x, float y, float z) {
 	*/
 }
 
+/** With the shaders on, name tags wait until after them (GameRenderer
+    flushes them over the finished picture): drawn into the scene they were
+    picked up by the water's reflections. They are drawn over everything
+    anyway, so nothing is lost by drawing them last. */
+bool MobRenderer::deferNameTags = false;
+std::vector<MobRenderer::PendingTag> MobRenderer::pendingTags;
+
+void MobRenderer::flushNameTags() {
+	for (unsigned int i = 0; i < pendingTags.size(); ++i) {
+		const PendingTag& p = pendingTags[i];
+		p.renderer->drawNameTag(p.mob, p.name, p.x, p.y, p.z, p.maxDist);
+	}
+	pendingTags.clear();
+}
+
 void MobRenderer::renderNameTag(Mob* mob, const std::string& name, float x, float y, float z, int maxDist) {
+	if (deferNameTags) {
+		PendingTag p = { this, mob, name, x, y, z, maxDist };
+		pendingTags.push_back(p);
+		return;
+	}
+	drawNameTag(mob, name, x, y, z, maxDist);
+}
+
+void MobRenderer::drawNameTag(Mob* mob, const std::string& name, float x, float y, float z, int maxDist) {
 	float dist = mob->distanceToSqr(entityRenderDispatcher->cameraEntity);
 
 	if (dist > maxDist*maxDist)

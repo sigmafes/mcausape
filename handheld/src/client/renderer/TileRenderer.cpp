@@ -157,6 +157,8 @@ static int materialTag(Tile* tt)
 		|| tt == Tile::prismarineBricks || tt == Tile::darkPrismarine
 		|| tt == Tile::stairs_prismarineBricks || tt == Tile::stairs_darkPrismarine)
 		return 215;	// glossy stone
+	if (Tile::lightEmission[tt->id] > 0)
+		return 245;	// gives light (torches, lava, fire, portals...): it glows
 	return -1;
 }
 

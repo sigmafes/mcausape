@@ -6,6 +6,7 @@
 #include "EntityRenderer.h"
 
 #include <string>
+#include <vector>
 
 class Model;
 class Entity;
@@ -37,6 +38,13 @@ public:
 	virtual void render(Entity* mob_, float x, float y, float z, float rot, float a);
 	virtual void renderName(Mob* mob, float x, float y, float z);
 	virtual void renderNameTag(Mob* mob, const std::string& name, float x, float y, float z, int maxDist);
+	void drawNameTag(Mob* mob, const std::string& name, float x, float y, float z, int maxDist);
+public:
+	struct PendingTag { MobRenderer* renderer; Mob* mob; std::string name; float x, y, z; int maxDist; };
+	static bool deferNameTags;
+	static std::vector<PendingTag> pendingTags;
+	static void flushNameTags();
+protected:
 	virtual void additionalRendering(Mob* mob, float a);
 
 	virtual void onGraphicsReset();
