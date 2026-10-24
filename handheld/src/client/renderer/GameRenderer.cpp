@@ -278,9 +278,9 @@ void GameRenderer::render(float a) {
 #if defined(MC_WASM)
 			_postKeepsDepth = false;
 			if (post) {
-				float f[27];
+				float f[33];
 				shaderParams(a, f);
-				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 27))); },
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, Array.prototype.slice.call(HEAPF32.subarray($2 >> 2, ($2 >> 2) + 33))); },
 					mc->width, mc->height, f);
 			}
 #endif
@@ -452,6 +452,23 @@ void GameRenderer::renderLevel(float a) {
 			glEnable2(GL_DEPTH_TEST);
             levelRenderer->render(cameraEntity, 2, a);
 			//glDepthRangef(0, 1);
+#if defined(MC_WASM)
+			// Shaders' water: the same layer again, untextured, into a depth
+			// of its own (the real pass writes none), so the shaders know
+			// where the water's surface is and how deep it is beneath.
+			if (_postKeepsDepth && EM_ASM_INT({ return window.mcpeShaders.maskBegin(GLctx); })) {
+				glDisable2(GL_BLEND);
+				glDisable2(GL_FOG);
+				glDisable2(GL_TEXTURE_2D);
+				glDepthMask(GL_TRUE);
+				levelRenderer->render(cameraEntity, 2, a);
+				glDepthMask(GL_FALSE);
+				glEnable2(GL_TEXTURE_2D);
+				glEnable2(GL_FOG);
+				glEnable2(GL_BLEND);
+				EM_ASM({ window.mcpeShaders.maskEnd(GLctx); });
+			}
+#endif
 
         }
         
@@ -985,6 +1002,14 @@ void GameRenderer::shaderParams(float a, float* f) {
 	// And its x and z (the shaders snap block faces to these).
 	f[21] = cy;  f[22] = sny * sp; f[23] = -sny * cp;
 	f[24] = sny; f[25] = -cy * sp; f[26] = cy * cp;
+	// The camera in the world (for the water's waves), wrapped to keep floats
+	// precise: the waves repeat well inside 512 blocks.
+	const float camX = p->xo + (p->x - p->xo) * a, camZ = p->zo + (p->z - p->zo) * a;
+	f[27] = camX - Mth::floor(camX / 512.0f) * 512.0f;
+	f[28] = p->yo + (p->y - p->yo) * a;
+	f[29] = camZ - Mth::floor(camZ / 512.0f) * 512.0f;
+	Vec3 sky = level->getSkyColor(p, a);
+	f[30] = (float) sky.x; f[31] = (float) sky.y; f[32] = (float) sky.z;
 }
 
 void GameRenderer::setupClearColor(float a) {
