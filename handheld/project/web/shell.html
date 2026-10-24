@@ -1152,6 +1152,9 @@
       ' vec3 v = normalize(pw);' +
       ' vec3 wp = vec3(dot(pw, xV), dot(pw, upV), dot(pw, zV)) + camPos;' +   // the surface point in the world
       ' vec3 nw = waveNormal(wp.xz);' +
+      // Far off the waves are finer than a pixel and only alias into bands:
+      // they calm with distance, to a flat mirror.
+      ' nw = normalize(mix(nw, vec3(0.0, 1.0, 0.0), smoothstep(12.0, 48.0, length(pw))));' +
       ' vec3 n = normalize(xV * nw.x + upV * nw.y + zV * nw.z);' +
       ' vec3 r = reflect(v, n);' +
       ' float ct = max(dot(-v, n), 0.0);' +
@@ -1159,10 +1162,14 @@
       ' fres = clamp(fres * 1.15 + 0.06, 0.0, 1.0);' +
       // What is seen through it: clearer and greener than the game's water,
       // fading to a deep teal with the depth of water looked through.
+      // The game's water is baked nearly clear (TileRenderer::shaderWater),
+      // so c is the bed itself: through shallow water it shows tinted
+      // green-blue, through deep water the colour is the water's own.
       ' float thick = max(sceneDist - length(pw), 0.0);' +
-      ' float absorb = 1.0 - exp(-thick * 0.18);' +
-      ' vec3 under = c * vec3(0.82, 1.06, 1.08) * 1.12;' +
-      ' under = mix(under, vec3(0.04, 0.2, 0.25) * (0.35 + 0.65 * dayK), absorb * 0.85);' +
+      ' float absorb = 1.0 - exp(-thick * 0.22);' +
+      ' vec3 deep = vec3(0.05, 0.27, 0.3) * (0.3 + 0.7 * max(dayK, 0.15));' +
+      ' vec3 under = c * vec3(0.72, 0.96, 0.92);' +
+      ' under = mix(under, deep, clamp(absorb * 0.95, 0.0, 1.0));' +
       ' vec3 refl = skyRefl(r);' +
       ' if (ssr > 0.5) {' +
       // High: march the reflected ray through the depth; what it meets on
@@ -1192,7 +1199,9 @@
       ' if (d < 0.02) { gl_FragColor = vec4(c, 1.0); return; }' +                     // the hand
       ' float wd = waterOn > 0.5 ? texture2D(wat, uv).r : 1.0;' +
       // Water in front of whatever is behind it, seen from above.
-      ' if (wd < 0.99999 && wd < d - 0.000001) {' +
+      // Compared in blocks, with room for coarse depths: in raw depth the
+      // far water and its bed differ by less than the depth can tell.
+      ' if (wd < 0.99999 && (d >= 0.99999 || lin(wd) < lin(d) + 0.05 + lin(d) * 0.004)) {' +
       '  vec3 pw = viewPos(uv, wd);' +
       '  if (dot(normalize(pw), upV) < 0.0) {' +
       '   float sceneDist = d >= 0.99999 ? far * 2.0 : length(viewPos(uv, d));' +
@@ -1202,6 +1211,9 @@
       '   float tw = max(dot(normalize(pw), sunV), 0.0);' +
       '   gl_FragColor = vec4(mix(cw, mix(hazeCol, sunsetCol, tw * tw * sunsetK), hw), 1.0); return;' +
       '  }' +
+      // Seen from below or edge-on (a waterfall, the side of a pool): no
+      // mirror, but still the water's colour, since the game's is clear.
+      '  c = mix(c * vec3(0.72, 0.96, 0.92), vec3(0.05, 0.27, 0.3) * (0.3 + 0.7 * max(dayK, 0.15)), 0.45);' +
       ' }' +
       ' if (d >= 0.99999) {' +
       // The sky: the haze carries on past the last terrain, full at the

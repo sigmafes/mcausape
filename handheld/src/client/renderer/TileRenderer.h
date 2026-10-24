@@ -17,6 +17,8 @@ class Material;
 class TileRenderer
 {
 public:
+	/// Water baked nearly clear for the shaders' water (TileRenderer.cpp).
+	static bool shaderWater;
     TileRenderer(LevelSource* level = 0);
 
     void tesselateInWorld(Tile* tile, int x, int y, int z, int fixedTexture);

@@ -1,4 +1,5 @@
 #include "GameRenderer.h"
+#include "TileRenderer.h"
 #include "../../world/level/dimension/Dimension.h"
 #include "../../SharedConstants.h"
 #include "../../world/level/biome/NetherBiomes.h"
@@ -273,6 +274,12 @@ void GameRenderer::render(float a) {
 			// 2: the depth is a texture the shaders read, so the hand must
 			// not clear it (renderLevel).
 			_postKeepsDepth = post == 2;
+			// The shaders' water needs the depth; when it comes or goes,
+			// the chunks are rebuilt with the game's water clear or blue.
+			if (TileRenderer::shaderWater != (post == 2)) {
+				TileRenderer::shaderWater = post == 2;
+				mc->levelRenderer->allChanged();
+			}
 #endif
 			renderLevel(a);
 #if defined(MC_WASM)

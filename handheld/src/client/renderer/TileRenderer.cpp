@@ -531,6 +531,17 @@ void TileRenderer::tesselateStemDirTexture( Tile* tt, int data, int dir, float h
 	}
 }
 
+bool TileRenderer::shaderWater = false;
+
+/// A liquid face's shade. With the shaders' water on (GameRenderer), water is
+/// baked nearly clear: the shaders draw its colour, depth and reflections
+/// themselves, and the game's blue under them would tint everything.
+static void waterColor(Tesselator& t, const Material* m, float v)
+{
+	if (TileRenderer::shaderWater && m == Material::water) t.color(v, v, v, 0.08f);
+	else t.color(v, v, v);
+}
+
 bool TileRenderer::tesselateWaterInWorld( Tile* tt, int x, int y, int z )
 {
 	Tesselator& t = Tesselator::instance;
@@ -588,7 +599,7 @@ bool TileRenderer::tesselateWaterInWorld( Tile* tt, int x, int y, int z )
 		float c = (Mth::cos(angle) * 8) / (TerrainAtlas::SizeF + 0.5f); //  of fp rounding errors) in big oceans)
 
 		float br = tt->getBrightness(level, x, y, z);
-		t.color(c11 * br, c11 * br, c11 * br);
+		waterColor(t, m, c11 * br);
 		t.vertexUV((float)x + 0, (float)y + h0, (float)z + 0, uc - c - s, vc - c + s);
 		t.vertexUV((float)x + 0, (float)y + h1, (float)z + 1, uc - c + s, vc + c + s);
 		t.vertexUV((float)x + 1, (float)y + h2, (float)z + 1, uc + c + s, vc + c - s);
@@ -597,7 +608,7 @@ bool TileRenderer::tesselateWaterInWorld( Tile* tt, int x, int y, int z )
 
 	if (noCulling || down) {
 		float br = tt->getBrightness(level, x, y - 1, z);
-		t.color(c10 * br, c10 * br, c10 * br);
+		waterColor(t, m, c10 * br);
 		renderFaceDown(tt, (float)x, (float)y, (float)z, tt->getTexture(0));
 		changed = true;
 	}
@@ -663,7 +674,7 @@ bool TileRenderer::tesselateWaterInWorld( Tile* tt, int x, int y, int z )
 			else br *= c3;
 
 			float yf = (float)y;
-			t.color(c11 * br, c11 * br, c11 * br);
+			waterColor(t, m, c11 * br);
 			t.vertexUV(x0, yf + hh0, z0, u0, v01);
 			t.vertexUV(x1, yf + hh1, z1, u1, v02);
 			t.vertexUV(x1, yf + 0, z1, u1, v1);
