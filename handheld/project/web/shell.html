@@ -1053,6 +1053,238 @@
 
   <script>
   // ---------------------------------------------------------------------------
+  // Shaders (Options > Graphics > Shaders, off unless turned on).
+  //
+  // 0.6.1 draws through Emscripten's fixed-function emulation and runs no shader
+  // of its own, so these sit around it rather than in it: GameRenderer asks
+  // begin() before the world is drawn, which points the frame at a texture of
+  // ours instead of the screen, and end() after it (before the HUD), which
+  // draws that texture to the screen through our own programs:
+  //
+  //   bloom (phase 2): the bright parts, at a quarter of the size, blurred
+  //     and added back - torches, lava, glowstone and the sun glow a little;
+  //   grade (phase 1): exposure, contrast, saturation, a tint for the
+  //     dimension, a soft vignette.
+  //
+  // The emulation keeps its own idea of the GL state, so end() puts back
+  // everything it touched exactly as it found it. Anything failing (no
+  // framebuffer support, a shader that will not compile) turns the whole
+  // thing off for the session and the game draws as it always has.
+  // ---------------------------------------------------------------------------
+  (function () {
+    var gl = null, broken = false;
+    var W = 0, H = 0;
+    var sceneFb, sceneTex, sceneDepth, bloomFb = [], bloomTex = [];
+    var quad, progBright, progBlur, progGrade;
+
+    var VS = 'attribute vec2 p; varying vec2 uv;' +
+      'void main(){ uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }';
+    var BRIGHT = 'precision mediump float; varying vec2 uv; uniform sampler2D s; uniform float thr;' +
+      'void main(){ vec3 c = texture2D(s, uv).rgb;' +
+      ' float l = dot(c, vec3(0.2126, 0.7152, 0.0722));' +
+      ' gl_FragColor = vec4(c * smoothstep(thr, 1.0, l), 1.0); }';
+    // Nine taps along one axis (weights of a Gaussian, sigma about 2).
+    var BLUR = 'precision mediump float; varying vec2 uv; uniform sampler2D s; uniform vec2 d;' +
+      'void main(){ vec3 c = texture2D(s, uv).rgb * 0.227;' +
+      ' c += (texture2D(s, uv + d).rgb + texture2D(s, uv - d).rgb) * 0.195;' +
+      ' c += (texture2D(s, uv + d * 2.0).rgb + texture2D(s, uv - d * 2.0).rgb) * 0.122;' +
+      ' c += (texture2D(s, uv + d * 3.0).rgb + texture2D(s, uv - d * 3.0).rgb) * 0.054;' +
+      ' c += (texture2D(s, uv + d * 4.0).rgb + texture2D(s, uv - d * 4.0).rgb) * 0.016;' +
+      ' gl_FragColor = vec4(c, 1.0); }';
+    var GRADE = 'precision mediump float; varying vec2 uv; uniform sampler2D s; uniform sampler2D b;' +
+      'uniform float bloom, exposure, contrast, saturation, vignette; uniform vec3 tint;' +
+      'void main(){ vec3 c = texture2D(s, uv).rgb + texture2D(b, uv).rgb * bloom;' +
+      ' c *= exposure * tint;' +
+      ' c = c / (1.0 + c * 0.15) * 1.15;' +                       // a gentle shoulder: highlights roll off
+      ' c = (c - 0.5) * contrast + 0.5;' +
+      ' float l = dot(c, vec3(0.2126, 0.7152, 0.0722));' +
+      ' c = mix(vec3(l), c, saturation);' +
+      ' vec2 q = uv - 0.5; c *= 1.0 - vignette * dot(q, q) * 1.6;' +
+      ' gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }';
+
+    function compile(vs, fs) {
+      function sh(type, src) {
+        var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+        return s;
+      }
+      var p = gl.createProgram();
+      gl.attachShader(p, sh(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+      gl.bindAttribLocation(p, 0, 'p');
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      p.u = function (n) { return gl.getUniformLocation(p, n); };
+      return p;
+    }
+
+    function texture(w, h) {
+      var t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return t;
+    }
+    function framebuffer(t, depth) {
+      var f = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+      if (depth) gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error('framebuffer');
+      return f;
+    }
+
+    // (Re)made at the screen's size: the scene and its depth, and the two
+    // quarter-size bloom buffers the blur goes back and forth between.
+    function resize(w, h) {
+      var tex0 = gl.getParameter(gl.TEXTURE_BINDING_2D), rb0 = gl.getParameter(gl.RENDERBUFFER_BINDING);
+      if (sceneFb) {
+        gl.deleteFramebuffer(sceneFb); gl.deleteTexture(sceneTex); gl.deleteRenderbuffer(sceneDepth);
+        for (var i = 0; i < 2; i++) { gl.deleteFramebuffer(bloomFb[i]); gl.deleteTexture(bloomTex[i]); }
+      }
+      sceneTex = texture(w, h);
+      sceneDepth = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, sceneDepth);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, w, h);
+      sceneFb = framebuffer(sceneTex, sceneDepth);
+      var bw = Math.max(1, w >> 2), bh = Math.max(1, h >> 2);
+      for (var k = 0; k < 2; k++) { bloomTex[k] = texture(bw, bh); bloomFb[k] = framebuffer(bloomTex[k], null); }
+      gl.bindTexture(gl.TEXTURE_2D, tex0);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, rb0);
+      W = w; H = h;
+    }
+
+    function setup(ctx) {
+      gl = ctx;
+      progBright = compile(VS, BRIGHT);
+      progBlur = compile(VS, BLUR);
+      progGrade = compile(VS, GRADE);
+      var buf0 = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+      quad = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf0);
+    }
+
+    // Per dimension: [exposure, contrast, saturation, vignette, bloom, tint r, g, b].
+    var LOOK = {
+      0: [1.02, 1.08, 1.12, 0.32, 0.55, 1.03, 1.0, 0.96],   // overworld: a touch warm
+      1: [1.0, 1.12, 1.08, 0.42, 0.75, 1.08, 0.96, 0.9],    // nether: hotter, darker edges, more glow
+      2: [1.0, 1.06, 1.1, 0.38, 0.6, 0.92, 1.0, 1.1]        // aquarium: cool
+    };
+
+    window.mcpeShaders = {
+      begin: function (ctx, w, h) {
+        if (broken) return 0;
+        try {
+          if (gl !== ctx) setup(ctx);
+          if (w !== W || h !== H) resize(w, h);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFb);
+          return 1;
+        } catch (e) {
+          broken = true;
+          console.warn('[shaders] off for this session:', e && e.message);
+          try { ctx.bindFramebuffer(ctx.FRAMEBUFFER, null); } catch (e2) {}
+          return 0;
+        }
+      },
+
+      end: function (ctx, w, h, look) {
+        var g = gl;
+        // What the emulation had, to be put back after.
+        var prog = g.getParameter(g.CURRENT_PROGRAM), abuf = g.getParameter(g.ARRAY_BUFFER_BINDING);
+        var unit = g.getParameter(g.ACTIVE_TEXTURE), vp = g.getParameter(g.VIEWPORT);
+        g.activeTexture(g.TEXTURE0); var tex0 = g.getParameter(g.TEXTURE_BINDING_2D);
+        g.activeTexture(g.TEXTURE1); var tex1 = g.getParameter(g.TEXTURE_BINDING_2D);
+        var caps = [g.DEPTH_TEST, g.BLEND, g.CULL_FACE, g.SCISSOR_TEST, g.STENCIL_TEST];
+        var on = caps.map(function (c) { return g.isEnabled(c); });
+        var a0 = {
+          en: g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_ENABLED),
+          buf: g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING),
+          size: g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_SIZE),
+          type: g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_TYPE),
+          norm: g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_NORMALIZED),
+          stride: g.getVertexAttrib(0, g.VERTEX_ATTRIB_ARRAY_STRIDE),
+          off: g.getVertexAttribOffset(0, g.VERTEX_ATTRIB_ARRAY_POINTER)
+        };
+        var mask = g.getParameter(g.DEPTH_WRITEMASK);
+        // Any other arrays the emulation left switched on would be checked
+        // against our four vertices: off while we draw, back on after.
+        var nAttr = Math.min(16, g.getParameter(g.MAX_VERTEX_ATTRIBS)), attrOn = [];
+        for (var ai = 1; ai < nAttr; ai++) {
+          attrOn[ai] = g.getVertexAttrib(ai, g.VERTEX_ATTRIB_ARRAY_ENABLED);
+          if (attrOn[ai]) g.disableVertexAttribArray(ai);
+        }
+
+        caps.forEach(function (c) { g.disable(c); });
+        g.depthMask(false);
+        g.bindBuffer(g.ARRAY_BUFFER, quad);
+        g.enableVertexAttribArray(0);
+        g.vertexAttribPointer(0, 2, g.FLOAT, false, 0, 0);
+        var L = LOOK[look] || LOOK[0];
+        var bw = Math.max(1, w >> 2), bh = Math.max(1, h >> 2);
+
+        // Bloom: bright parts into a quarter-size buffer, blurred both ways.
+        g.viewport(0, 0, bw, bh);
+        g.activeTexture(g.TEXTURE0);
+        g.useProgram(progBright);
+        g.uniform1i(progBright.u('s'), 0);
+        g.uniform1f(progBright.u('thr'), 0.62);
+        g.bindFramebuffer(g.FRAMEBUFFER, bloomFb[0]);
+        g.bindTexture(g.TEXTURE_2D, sceneTex);
+        g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+        g.useProgram(progBlur);
+        g.uniform1i(progBlur.u('s'), 0);
+        g.uniform2f(progBlur.u('d'), 1.5 / bw, 0);
+        g.bindFramebuffer(g.FRAMEBUFFER, bloomFb[1]);
+        g.bindTexture(g.TEXTURE_2D, bloomTex[0]);
+        g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+        g.uniform2f(progBlur.u('d'), 0, 1.5 / bh);
+        g.bindFramebuffer(g.FRAMEBUFFER, bloomFb[0]);
+        g.bindTexture(g.TEXTURE_2D, bloomTex[1]);
+        g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+
+        // The grade, onto the screen.
+        g.bindFramebuffer(g.FRAMEBUFFER, null);
+        g.viewport(0, 0, w, h);
+        g.useProgram(progGrade);
+        g.uniform1i(progGrade.u('s'), 0);
+        g.uniform1i(progGrade.u('b'), 1);
+        g.uniform1f(progGrade.u('exposure'), L[0]);
+        g.uniform1f(progGrade.u('contrast'), L[1]);
+        g.uniform1f(progGrade.u('saturation'), L[2]);
+        g.uniform1f(progGrade.u('vignette'), L[3]);
+        g.uniform1f(progGrade.u('bloom'), L[4]);
+        g.uniform3f(progGrade.u('tint'), L[5], L[6], L[7]);
+        g.bindTexture(g.TEXTURE_2D, sceneTex);
+        g.activeTexture(g.TEXTURE1);
+        g.bindTexture(g.TEXTURE_2D, bloomTex[0]);
+        g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+
+        // Back as it was.
+        g.bindTexture(g.TEXTURE_2D, tex1);
+        g.activeTexture(g.TEXTURE0);
+        g.bindTexture(g.TEXTURE_2D, tex0);
+        g.activeTexture(unit);
+        g.bindBuffer(g.ARRAY_BUFFER, a0.buf);
+        if (a0.buf) g.vertexAttribPointer(0, a0.size, a0.type, a0.norm, a0.stride, a0.off);
+        if (!a0.en) g.disableVertexAttribArray(0);
+        g.bindBuffer(g.ARRAY_BUFFER, abuf);
+        g.useProgram(prog);
+        g.viewport(vp[0], vp[1], vp[2], vp[3]);
+        g.depthMask(mask);
+        caps.forEach(function (c, i) { if (on[i]) g.enable(c); });
+        for (var aj = 1; aj < nAttr; aj++) if (attrOn[aj]) g.enableVertexAttribArray(aj);
+      }
+    };
+  })();
+  </script>
+
+  <script>
+  // ---------------------------------------------------------------------------
   // The wire.
   //
   // 0.6.1 talks to other players over UDP, which a tab has none of. This holds

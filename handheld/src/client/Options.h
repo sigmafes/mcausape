@@ -50,6 +50,7 @@ public:
 
 		static const Option PIXELS_PER_MILLIMETER;
 		static const Option FULLSCREEN;
+		static const Option SHADERS;
 
 		/*
         static Option* getItem(int id) {
@@ -129,6 +130,9 @@ public:
 	// there is nothing to restore at startup, and the browser can leave it
 	// (Escape) without asking -- OptionsScreen reads it back when it opens.
 	bool fullscreen;
+	/// Our post-processing (shell.html's mcpeShaders): colour grade and bloom.
+	/// Off by default everywhere; saved.
+	bool shaders;
     //std::string skin;
 
     KeyMapping keyUp;
@@ -272,6 +276,7 @@ public:
 		if (option == &Option::USE_TOUCHSCREEN) useTouchScreen = !useTouchScreen;
 		if (option == &Option::USE_TOUCH_JOYPAD) isJoyTouchArea = !isJoyTouchArea;
 		if (option == &Option::DESTROY_VIBRATION) destroyVibration = !destroyVibration;
+		if (option == &Option::SHADERS) shaders = !shaders;
 		if (option == &Option::FULLSCREEN) {
 			fullscreen = !fullscreen;
 			WebBridge::setFullscreen(fullscreen);
@@ -342,6 +347,8 @@ public:
 			return destroyVibration;
 		if (item == &Option::FULLSCREEN)
 			return fullscreen;
+		if (item == &Option::SHADERS)
+			return shaders;
 		return false;
 	}
 

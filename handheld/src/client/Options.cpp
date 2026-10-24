@@ -48,6 +48,7 @@ void Options::initDefaultValues() {
 	username = "Steve";
 	serverVisible = true;
 	fullscreen = false;
+	shaders = false;
 	thirdPersonFront = false;
 
 	keyUp	 = KeyMapping("key.forward", Keyboard::KEY_W);
@@ -177,7 +178,8 @@ const Options::Option
 	Options::Option::USE_TOUCH_JOYPAD	 (17, "options.usetouchpad", false, true),
 	Options::Option::DESTROY_VIBRATION   (18, "options.destroyvibration", false, true),
 	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false),
-	Options::Option::FULLSCREEN			 (20, "options.fullscreen", false, true);
+	Options::Option::FULLSCREEN			 (20, "options.fullscreen", false, true),
+	Options::Option::SHADERS			 (21, "options.shaders", false, true);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -271,6 +273,9 @@ void Options::update()
 		if (key == OptionStrings::Graphics_AmbientOcclusion) {
 			readBool(value, ambientOcclusion);
 			applyAmbientOcclusion();
+		}
+		if (key == OptionStrings::Graphics_Shaders) {
+			readBool(value, shaders);
 		}
 		if (key == OptionStrings::Graphics_ViewBobbing) {
 			readBool(value, bobView);
@@ -371,6 +376,7 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_RenderDistance, viewDistance);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_AmbientOcclusion, ambientOcclusion);
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_ViewBobbing, bobView);
+	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Shaders, shaders);
 
 	// Sound
 	addOptionToSaveOutput(stringVec, OptionStrings::Sound_Volume, sound);

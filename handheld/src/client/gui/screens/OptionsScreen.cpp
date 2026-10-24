@@ -301,7 +301,8 @@ void OptionsScreen::generateOptionScreens() {
 	OptionsGroup& graphics = panes[1]->createOptionsGroup("options.group.graphics")
 		.addOptionItem(&Options::Option::RENDER_DISTANCE, minecraft)
 		.addOptionItem(&Options::Option::GRAPHICS, minecraft)
-		.addOptionItem(&Options::Option::AMBIENT_OCCLUSION, minecraft);
+		.addOptionItem(&Options::Option::AMBIENT_OCCLUSION, minecraft)
+		.addOptionItem(&Options::Option::SHADERS, minecraft);
 	// The browser's fullscreen, where the page used to have a button for it.
 	// Not offered where there is none to have: an iPhone gives fullscreen to
 	// <video> only, and off the web there is no page to fill.

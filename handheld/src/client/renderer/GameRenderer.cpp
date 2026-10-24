@@ -262,7 +262,21 @@ void GameRenderer::render(float a) {
 			if (mc->screen && mc->screen->hasClippingArea(screenScissorArea))
 				useScreenScissor = true;
 
+#if defined(MC_WASM)
+			// Shaders (Options > Graphics): the world is drawn into shell.html's
+			// texture and comes out graded and bloomed, before the HUD goes on.
+			int post = 0;
+			if (mc->options.shaders && mc->level && mc->level->dimension) {
+				post = EM_ASM_INT({ return window.mcpeShaders ? window.mcpeShaders.begin(GLctx, $0, $1) : 0; }, mc->width, mc->height);
+			}
+#endif
 			renderLevel(a);
+#if defined(MC_WASM)
+			if (post) {
+				const int look = mc->level->dimension->id == Dimension::NETHER ? 1 : mc->level->dimension->isAllWater() ? 2 : 0;
+				EM_ASM({ window.mcpeShaders.end(GLctx, $0, $1, $2); }, mc->width, mc->height, look);
+			}
+#endif
 			hasClearedColorBuffer = true;
 
 			if (!mc->options.hideGui) {
