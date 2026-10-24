@@ -289,7 +289,9 @@ void GameRenderer::render(float a) {
 			// Cast shadows (High): the world from the sun, redrawn only every
 			// three seconds (or after a walk of 12 blocks): the shaders shift
 			// the old map by how far the player has moved since.
-			if (post == 2 && mc->options.shaderHigh && !mc->level->dimension->foggy && !mc->level->dimension->isAllWater()) {
+			// In the Aquarium too, with the light straight down: its shafts and
+			// caustics stop where blocks overhead would shade them.
+			if (post == 2 && mc->options.shaderHigh && !mc->level->dimension->foggy) {
 				Mob* sp = mc->cameraTargetPlayer;
 				const float px = sp->xOld + (sp->x - sp->xOld) * a, py = sp->yOld + (sp->y - sp->yOld) * a, pz = sp->zOld + (sp->z - sp->zOld) * a;
 				const float mx = px - _shOrigin[0], my = py - _shOrigin[1], mz = pz - _shOrigin[2];
@@ -1018,7 +1020,7 @@ void GameRenderer::tick(int nTick, int maxTick) {
     about x points it at the viewer. shaderParams passes the same turn. */
 void GameRenderer::renderShadowMap(float a) {
 #if defined(MC_WASM)
-	const float th = mc->level->getTimeOfDay(a) * Mth::PI * 2;
+	const float th = mc->level->dimension->isAllWater() ? 0.0f : mc->level->getTimeOfDay(a) * Mth::PI * 2;
 	_shadowPass = false;
 	if (Mth::cos(th) < 0.03f) return;	// the sun is down
 	_shTh = th;

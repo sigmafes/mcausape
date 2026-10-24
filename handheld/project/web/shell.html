@@ -14,6 +14,28 @@
 <title>mcausape</title>
 
 <script>
+// ---------------------------------------------------------------------------
+// Input latency. The game's WebGL context is asked for low latency:
+// desynchronized lets the browser show a frame without waiting on the page
+// compositor (the queue that, when the GPU is the bottleneck, holds two or
+// three finished frames - felt as the mouse and buttons lagging even at a
+// steady 40 fps), and antialias off spares a multisampled copy of every frame
+// (the shaders draw their own picture anyway). Only WebGL contexts are touched.
+// ---------------------------------------------------------------------------
+(function () {
+  var get = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+    if (type === 'webgl' || type === 'experimental-webgl' || type === 'webgl2') {
+      attrs = attrs || {};
+      if (attrs.desynchronized === undefined) attrs.desynchronized = true;
+      attrs.antialias = false;
+      if (!attrs.powerPreference) attrs.powerPreference = 'high-performance';
+    }
+    return get.call(this, type, attrs);
+  };
+})();
+</script>
+<script>
   // Which controls the game builds, decided before anything else on the page so
   // that the layout and the game agree. main_sdl.h reads this back out.
   //
@@ -1278,6 +1300,7 @@
       '  } else if (d < 0.99999) {' +
       '   vec3 n = faceNormal(dep, uv, p);' +
       '   float ca = caustic(worldOf(p).xz + worldOf(p).y * 0.25);' +
+      '   if (shOn > 0.5) ca *= 1.0 - mapShadow(p, n);' +       // none in caves or under overhangs
       '   float face = max(dot(n, upV), 0.0) * 0.9 + 0.25;' +
       '   c *= (1.0 + ca * face * 1.2 * lightK) * vec3(0.85, 1.0, 1.0);' +
       '  }' +
@@ -1380,11 +1403,11 @@
     var UWRAYS = HEAD + DEPTH + 'uniform sampler2D smap; uniform vec3 m0, m1, m2, mt, shDelta, xV, upV, zV, sunV, camPos;' +
       'uniform float shOn, shR, shD, shCos, shSin, time;' +
       'float lit(vec3 p){' +
-      ' if (shOn < 0.5) return 1.0;' +
+      ' if (shOn < 0.5) return 0.0;' +              // no map: no shafts, rather than shafts through rock
       ' vec3 e = p - mt; vec3 w = vec3(dot(e, m0), dot(e, m1), dot(e, m2)) + shDelta;' +
       ' vec3 q = vec3(w.x * shCos - w.y * shSin, -w.z, w.x * shSin + w.y * shCos);' +
       ' vec2 su = q.xy / shR * 0.5 + 0.5; float dz = -q.z / shD * 0.5 + 0.5;' +
-      ' if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) return 1.0;' +
+      ' if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) return 0.0;' +
       ' return step(dz, texture2D(smap, su).r + 0.002);' +
       '}' +
       'void main(){' +
@@ -1747,7 +1770,7 @@
         // 4. Rays (High): from the sun's place on screen, when it is ahead -> q3.
         // Under water, the shafts down through it instead.
         var raysK = 0, raysCol = sunCol;
-        if (high && depthTex && P.uwrays && f[53] > 0.5) {
+        if (high && depthTex && P.uwrays && f[53] > 0.5 && f[52] > 0.5 && shadowFb) {
           var pu = P.uwrays;
           pass(pu, qFb[3], bw, bh);
           bind(1, depthTex); bind(4, f[52] > 0.5 && shadowFb ? shadowTex : depthTex);

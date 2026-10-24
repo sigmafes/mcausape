@@ -17,6 +17,8 @@ public:
 	virtual void setupPositions();
 	virtual void render(Minecraft* minecraft, int xm, int ym);
 	virtual OptionsGroup& addOptionItem(const Options::Option* option, Minecraft* minecraft);
+	/// Enable Shaders [switch] [Low/High]: the quality button only while on.
+	OptionsGroup& addShaderRow(Minecraft* minecraft);
 protected:
 	virtual void createToggle(const Options::Option* option, Minecraft* minecraft);
 	virtual void createProgressSlider(const Options::Option* option, Minecraft* minecraft);

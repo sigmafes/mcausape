@@ -4,6 +4,61 @@
 #include "OptionsItem.h"
 #include "Slider.h"
 #include "../../../locale/I18n.h"
+#include "Button.h"
+#include "../../../platform/input/Mouse.h"
+
+/** The shader quality, beside the shaders' switch: "Low" or "High", shown
+    only while the shaders are on (one switch, not two). */
+class ShaderQualityButton: public Touch::TButton
+{
+	typedef Touch::TButton super;
+public:
+	ShaderQualityButton() : super(9999998, 0, 0, 34, 14, "Low") {}
+	void render(Minecraft* minecraft, int xm, int ym) {
+		if (!minecraft->options.shaders) return;
+		msg = minecraft->options.shaderHigh ? "High" : "Low";
+		super::render(minecraft, xm, ym);
+	}
+	void mouseClicked(Minecraft* minecraft, int x, int y, int buttonNum) {
+		if (!minecraft->options.shaders || buttonNum != MouseAction::ACTION_LEFT) return;
+		if (clicked(minecraft, x, y)) minecraft->options.toggle(&Options::Option::SHADER_HIGH, 1);
+	}
+};
+
+/// The switch and the quality button side by side, laid out each frame
+/// from where OptionsItem puts the row.
+class ShaderRow: public GuiElementContainer
+{
+	typedef GuiElementContainer super;
+public:
+	ShaderRow(GuiElement* toggle, GuiElement* quality)
+	: super(false, true, 0, 0, quality->width + 6 + toggle->width, toggle->height), toggle(toggle), quality(quality) {
+		addChild(toggle); addChild(quality);
+	}
+	void layout() {
+		toggle->x = x; toggle->y = y;
+		quality->x = x + toggle->width + 6; quality->y = y + (toggle->height - quality->height) / 2;
+	}
+	void render(Minecraft* minecraft, int xm, int ym) { layout(); super::render(minecraft, xm, ym); }
+	void mouseClicked(Minecraft* minecraft, int x, int y, int buttonNum) { layout(); super::mouseClicked(minecraft, x, y, buttonNum); }
+private:
+	GuiElement* toggle; GuiElement* quality;
+};
+
+OptionsGroup& OptionsGroup::addShaderRow(Minecraft* minecraft) {
+	ImageDef def;
+	def.setSrc(IntRectangle(160, 206, 39, 20));
+	def.name = "gui/touchgui.png";
+	def.width = 39 * 0.7f;
+	def.height = 20 * 0.7f;
+	OptionButton* toggle = new OptionButton(&Options::Option::SHADERS);
+	toggle->setImageDef(def, true);
+	toggle->updateImage(&minecraft->options);
+	OptionsItem* item = new OptionsItem(I18n::get("options.shaders"), new ShaderRow(toggle, new ShaderQualityButton()));
+	addChild(item);
+	setupPositions();
+	return *this;
+}
 OptionsGroup::OptionsGroup( std::string labelID )  {
 	label = I18n::get(labelID);
 }

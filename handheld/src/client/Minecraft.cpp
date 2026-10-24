@@ -2398,9 +2398,7 @@ void Minecraft::respawnPlayer() {
 	// editions: he comes back in the Overworld, not at that dimension's spawn.
 	if (level && player && !level->isClientSide && level->dimension
 		&& !Dimension::isOverworld(level->dimension->id)) {
-		player->reset();
-		if (isCreativeMode())
-			player->inventory->clearInventoryWithDefault();
+		player->reset();	// creative keeps its inventory (LocalPlayer::die)
 		changeDimension(Dimension::NORMAL, true);
 		return;
 	}

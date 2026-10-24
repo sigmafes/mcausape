@@ -449,6 +449,12 @@ void LocalPlayer::respawn()
 
 void LocalPlayer::die(Entity* source)
 {
+	// Creative keeps everything on death: its inventory is dozens of stacks
+	// picked from a palette, and spraying them over the ground helps nobody.
+	if (abilities.instabuild) {
+		super::die(source);
+		return;
+	}
 	// If we're an online client, send the inventory to be dropped
 	// If we're the server, drop the inventory immediately
 	if (level->isClientSide) {
