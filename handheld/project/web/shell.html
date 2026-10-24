@@ -1113,17 +1113,17 @@
       'vec2 toScreen(vec3 v){ return vec2(v.x / (-v.z) / (tanY * aspect), v.y / (-v.z) / tanY) * 0.5 + 0.5; }';
 
     var LIGHT = HEAD + DEPTH +
-      'uniform sampler2D s; uniform vec2 texel; uniform vec3 sunV, upV, warm, cool, night, hazeCol, sunsetCol;' +
+      'uniform sampler2D s; uniform vec2 texel; uniform vec3 sunV, upV, xV, zV, warm, cool, night, hazeCol, sunsetCol;' +
       'uniform float dayK, nightK, sunsetK, hazeK, hazeMax, lightOn, shadows;' +
-      'float shadow(vec3 o){' +
-      ' float t = 0.12, occ = 0.0;' +
+      'float shadow(vec3 o, float bias){' +
+      ' float t = 0.25, occ = 0.0;' +
       ' for (int i = 0; i < 14; i++) {' +
       '  vec3 q = o + sunV * t;' +
       '  if (q.z > -near) break;' +
       '  vec2 su = toScreen(q);' +
       '  if (su.x < 0.0 || su.y < 0.0 || su.x > 1.0 || su.y > 1.0) break;' +
       '  float sd = texture2D(dep, su).r;' +
-      '  if (sd > 0.02 && sd < 0.99999) { float dz = -q.z - lin(sd); if (dz > 0.06 && dz < 1.6) { occ = 1.0; break; } }' +
+      '  if (sd > 0.02 && sd < 0.99999) { float dz = -q.z - lin(sd); if (dz > bias && dz < 1.6 + bias) { occ = 1.0; break; } }' +
       '  t = t * 1.32 + 0.08;' +
       ' }' +
       ' return occ;' +
@@ -1148,12 +1148,20 @@
       ' vec3 dx = abs(pr.z - p.z) < abs(p.z - pl.z) ? pr - p : p - pl;' +       // the nearer side: no smear over edges
       ' vec3 dy = abs(pu.z - p.z) < abs(p.z - pd.z) ? pu - p : p - pd;' +
       ' vec3 n = normalize(cross(dx, dy)); if (dot(n, p) > 0.0) n = -n;' +
+      // Every face here is a block's: snap the rebuilt normal to the nearest
+      // of the world's six axes. A coarse depth (16 bits on many phones)
+      // makes the raw one wander in diagonal bands - lit, then shaded, then
+      // lit - which is what striped the faces.
+      ' vec3 w = vec3(dot(n, xV), dot(n, upV), dot(n, zV)); vec3 aw = abs(w);' +
+      ' if (aw.x > aw.y && aw.x > aw.z) n = xV * sign(w.x);' +
+      ' else if (aw.y > aw.z) n = upV * sign(w.y); else n = zV * sign(w.z);' +
       ' float dist = length(p);' +
       ' if (lightOn > 0.5) {' +
       '  float nl = dot(n, sunV);' +
       '  float lit = clamp(nl * 1.6, 0.0, 1.0) * dayK, shade = clamp(-nl * 1.6, 0.0, 1.0) * dayK;' +
       '  if (shadows > 0.5 && lit > 0.0 && dist < 64.0) {' +
-      '   float o = shadow(p + n * (0.03 + dist * 0.004)) * (1.0 - smoothstep(40.0, 64.0, dist));' +
+      // Margins that grow with distance, as the depth's steps do.
+      '   float o = shadow(p + n * (0.06 + dist * 0.01), 0.08 + dist * 0.015) * (1.0 - smoothstep(40.0, 64.0, dist));' +
       '   lit *= 1.0 - o; shade = max(shade, o * dayK * 0.85);' +
       '  }' +
       '  c *= mix(mix(vec3(1.0), warm, lit), cool, shade);' +
@@ -1305,7 +1313,7 @@
         }
       },
 
-      // f: 21 numbers from GameRenderer (18-20: the world's up in view space) -
+      // f: 27 numbers from GameRenderer (18-26: the world's y, x and z axes in view space) -
       //  0 near, 1 far, 2 tan(fovY/2), 3 aspect, 4-6 the sun's direction in
       //  view space, 7 the sun's height in the world (-1..1), 8-10 the fog
       //  colour, 11 the sunrise colour's strength, 12-14 the sunrise colour,
@@ -1377,6 +1385,8 @@
           g.uniform1f(p.u('dayK'), dayK); g.uniform1f(p.u('nightK'), nightK); g.uniform1f(p.u('sunsetK'), sunsetK);
           g.uniform1f(p.u('hazeK'), 3.0 / Math.max(32, f[1]));
           g.uniform3f(p.u('upV'), f[18], f[19], f[20]);
+          g.uniform3f(p.u('xV'), f[21], f[22], f[23]);
+          g.uniform3f(p.u('zV'), f[24], f[25], f[26]);
           g.uniform1f(p.u('hazeMax'), 0.55 * L[8]);
           g.uniform1f(p.u('lightOn'), sunlit ? 1 : 0);
           g.uniform1f(p.u('shadows'), high ? 1 : 0);
